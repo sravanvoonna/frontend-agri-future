@@ -32,7 +32,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
-const API_BASE_URL = 'http://127.0.0.1:5000/api';
+const API_BASE_URL = 'https://agri-future-backend.onrender.com/api';
 
 export default function App() {
   // Navigation
