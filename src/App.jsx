@@ -128,6 +128,12 @@ export default function App() {
   const [chatLoading, setChatLoading] = useState(false);
   const [geminiApiKeyMissing, setGeminiApiKeyMissing] = useState(false);
 
+  // Admin Authentication States
+  const [adminPasswordModalOpen, setAdminPasswordModalOpen] = useState(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [adminPasswordError, setAdminPasswordError] = useState('');
+
   // Fetch all basic data on mount
   useEffect(() => {
     fetchCoreData();
@@ -487,6 +493,18 @@ export default function App() {
     });
   };
 
+  const handleAdminPasswordSubmit = (e) => {
+    e.preventDefault();
+    const CORRECT_PASSWORD = 'admin'; // Admin password
+    if (adminPasswordInput === CORRECT_PASSWORD) {
+      setIsAdminAuthenticated(true);
+      setAdminPasswordModalOpen(false);
+      setActiveTab('admin-panel');
+    } else {
+      setAdminPasswordError('Incorrect password. Please try again.');
+    }
+  };
+
   // Filter lists based on inputs
   const filteredStates = states.filter(s => 
     s.state_name.toLowerCase().includes(stateSearchText.toLowerCase())
@@ -575,7 +593,13 @@ export default function App() {
               <button
                 key={tab.id}
                 onClick={() => {
-                  setActiveTab(tab.id);
+                  if (tab.id === 'admin-panel' && !isAdminAuthenticated) {
+                    setAdminPasswordInput('');
+                    setAdminPasswordError('');
+                    setAdminPasswordModalOpen(true);
+                  } else {
+                    setActiveTab(tab.id);
+                  }
                   setMobileMenuOpen(false);
                 }}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 group ${
@@ -1809,13 +1833,25 @@ export default function App() {
                     <p className="text-sm text-gray-500 mt-1">Add, update, or remove entries from the centralized advisory database.</p>
                   </div>
                   {/* Action buttons */}
-                  <button
-                    onClick={() => openAddModal(adminActiveSubTab)}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm flex items-center space-x-1.5 self-start shrink-0"
-                  >
-                    <Plus className="h-4.5 w-4.5" />
-                    <span>Create new {adminActiveSubTab.slice(0, -1)}</span>
-                  </button>
+                  <div className="flex items-center space-x-3 self-start shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAdminAuthenticated(false);
+                        setActiveTab('dashboard');
+                      }}
+                      className="border border-gray-200 text-gray-600 bg-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-gray-50 transition-all flex items-center space-x-1.5 shadow-sm"
+                    >
+                      <span>Lock Panel</span>
+                    </button>
+                    <button
+                      onClick={() => openAddModal(adminActiveSubTab)}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm flex items-center space-x-1.5"
+                    >
+                      <Plus className="h-4.5 w-4.5" />
+                      <span>Create new {adminActiveSubTab.slice(0, -1)}</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Sub navigation for CRUD categories */}
@@ -2339,6 +2375,60 @@ export default function App() {
                             className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold shadow-sm"
                           >
                             Save changes
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
+                {/* Admin Password Prompt Modal */}
+                {adminPasswordModalOpen && (
+                  <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-30 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl flex flex-col animate-fade-in">
+                      <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-emerald-950 text-white">
+                        <h3 className="text-base font-black uppercase tracking-wide">Admin Access Required</h3>
+                        <button 
+                          onClick={() => setAdminPasswordModalOpen(false)}
+                          className="text-emerald-200 hover:text-white p-1 rounded-lg hover:bg-emerald-900"
+                        >
+                          <X className="h-5 w-5" />
+                        </button>
+                      </div>
+
+                      <form onSubmit={handleAdminPasswordSubmit} className="p-6 space-y-4">
+                        {adminPasswordError && (
+                          <div className="p-3 bg-red-50 border-l-4 border-red-500 rounded text-xs text-red-700 font-semibold flex items-center">
+                            <AlertTriangle className="h-4 w-4 mr-1.5 shrink-0" />
+                            <span>{adminPasswordError}</span>
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Enter Admin Password</label>
+                          <input
+                            type="password"
+                            value={adminPasswordInput}
+                            onChange={(e) => setAdminPasswordInput(e.target.value)}
+                            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all font-semibold"
+                            placeholder="••••••••"
+                            required
+                            autoFocus
+                          />
+                        </div>
+
+                        <div className="border-t border-gray-100 pt-4 flex justify-end space-x-3">
+                          <button
+                            type="button"
+                            onClick={() => setAdminPasswordModalOpen(false)}
+                            className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-50"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold shadow-sm"
+                          >
+                            Authenticate
                           </button>
                         </div>
                       </form>
