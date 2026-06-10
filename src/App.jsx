@@ -2381,60 +2381,6 @@ export default function App() {
                     </div>
                   </div>
                 )}
-                {/* Admin Password Prompt Modal */}
-                {adminPasswordModalOpen && (
-                  <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-30 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl flex flex-col animate-fade-in">
-                      <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-emerald-950 text-white">
-                        <h3 className="text-base font-black uppercase tracking-wide">Admin Access Required</h3>
-                        <button 
-                          onClick={() => setAdminPasswordModalOpen(false)}
-                          className="text-emerald-200 hover:text-white p-1 rounded-lg hover:bg-emerald-900"
-                        >
-                          <X className="h-5 w-5" />
-                        </button>
-                      </div>
-
-                      <form onSubmit={handleAdminPasswordSubmit} className="p-6 space-y-4">
-                        {adminPasswordError && (
-                          <div className="p-3 bg-red-50 border-l-4 border-red-500 rounded text-xs text-red-700 font-semibold flex items-center">
-                            <AlertTriangle className="h-4 w-4 mr-1.5 shrink-0" />
-                            <span>{adminPasswordError}</span>
-                          </div>
-                        )}
-
-                        <div>
-                          <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Enter Admin Password</label>
-                          <input
-                            type="password"
-                            value={adminPasswordInput}
-                            onChange={(e) => setAdminPasswordInput(e.target.value)}
-                            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all font-semibold"
-                            placeholder="••••••••"
-                            required
-                            autoFocus
-                          />
-                        </div>
-
-                        <div className="border-t border-gray-100 pt-4 flex justify-end space-x-3">
-                          <button
-                            type="button"
-                            onClick={() => setAdminPasswordModalOpen(false)}
-                            className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-50"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold shadow-sm"
-                          >
-                            Authenticate
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
@@ -2684,6 +2630,61 @@ export default function App() {
               </div>
             )}
           </main>
+        )}
+
+        {/* Admin Password Prompt Modal */}
+        {adminPasswordModalOpen && (
+          <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-30 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl flex flex-col animate-fade-in">
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-emerald-950 text-white">
+                <h3 className="text-base font-black uppercase tracking-wide">Admin Access Required</h3>
+                <button 
+                  onClick={() => setAdminPasswordModalOpen(false)}
+                  className="text-emerald-200 hover:text-white p-1 rounded-lg hover:bg-emerald-900"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleAdminPasswordSubmit} className="p-6 space-y-4">
+                {adminPasswordError && (
+                  <div className="p-3 bg-red-50 border-l-4 border-red-500 rounded text-xs text-red-700 font-semibold flex items-center">
+                    <AlertTriangle className="h-4 w-4 mr-1.5 shrink-0" />
+                    <span>{adminPasswordError}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Enter Admin Password</label>
+                  <input
+                    type="password"
+                    value={adminPasswordInput}
+                    onChange={(e) => setAdminPasswordInput(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all font-semibold"
+                    placeholder="••••••••"
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                <div className="border-t border-gray-100 pt-4 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setAdminPasswordModalOpen(false)}
+                    className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold shadow-sm"
+                  >
+                    Authenticate
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
       </div>
     </div>
