@@ -32,7 +32,9 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
-const API_BASE_URL = 'https://agri-future-backend.onrender.com/api';
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://127.0.0.1:5000/api'
+  : 'https://agri-future-backend.onrender.com/api';
 
 export default function App() {
   // Navigation
@@ -106,7 +108,7 @@ export default function App() {
 
   // CRUD Form States
   const [stateForm, setStateForm] = useState({ state_name: '', climate: '', description: '' });
-  const [cropForm, setCropForm] = useState({ crop_name: '', scientific_name: '', season: 'Kharif', water_requirement: 'Medium', yield: '', state_ids: [], image_url: '', soil_ids: [] });
+  const [cropForm, setCropForm] = useState({ crop_name: '', scientific_name: '', season: 'Kharif', water_requirement: 'Medium', yield: '', msp: '', state_ids: [], image_url: '', soil_ids: [] });
   const [soilForm, setSoilForm] = useState({ soil_name: '', characteristics: '', ph_range: '' });
   const [diseaseForm, setDiseaseForm] = useState({ disease_name: '', symptoms: '', causes: '', prevention: '', crop_id: '', image_url: '' });
   const [chemicalForm, setChemicalForm] = useState({ chemical_name: '', chemical_type: 'Fungicide', dosage: '', application_method: '', safety_precautions: '', disease_id: '' });
@@ -119,6 +121,7 @@ export default function App() {
   const [aiResult, setAiResult] = useState(null);
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [aiSelectedCropId, setAiSelectedCropId] = useState('');
+  const [aiError, setAiError] = useState('');
 
   // 10. Gemini Chat States
   const [chatMessages, setChatMessages] = useState([
@@ -127,6 +130,7 @@ export default function App() {
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const [geminiApiKeyMissing, setGeminiApiKeyMissing] = useState(false);
+  const [chatError, setChatError] = useState('');
 
   // Admin Authentication States
   const [adminPasswordModalOpen, setAdminPasswordModalOpen] = useState(false);
@@ -134,10 +138,43 @@ export default function App() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminPasswordError, setAdminPasswordError] = useState('');
 
+  // Smart Scheduler States
+  const [schedulerForm, setSchedulerForm] = useState({
+    soil_type: '',
+    crop_type: '',
+    acres: '1',
+    irrigation_type: 'Drip Irrigation',
+    state_name: '',
+    previous_crop: '',
+    previous_yield: ''
+  });
+  const [schedulerResult, setSchedulerResult] = useState(null);
+  const [schedulerLoading, setSchedulerLoading] = useState(false);
+  const [schedulerError, setSchedulerError] = useState('');
+
+  // Voice Assistant States
+  const [voiceLanguage, setVoiceLanguage] = useState('en-IN');
+  const [isListening, setIsListening] = useState(false);
+  const [autoSpeak, setAutoSpeak] = useState(true);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
   // Fetch all basic data on mount
   useEffect(() => {
     fetchCoreData();
   }, []);
+
+  // Dynamically update welcome message when voice language changes
+  useEffect(() => {
+    if (chatMessages.length <= 1) {
+      let welcomeMsg = 'Namaste! I am CropCare AI. Ask me any farming questions, or ask about soil health, fertilizers, and crop diseases!';
+      if (voiceLanguage === 'hi-IN') {
+        welcomeMsg = 'नमस्ते! मैं क्रॉपकेयर एआई (CropCare AI) हूँ। मुझसे खेती से जुड़ा कोई भी सवाल पूछें, या मिट्टी की सेहत, उर्वरकों और फसल के रोगों के बारे में जानकारी पाएं!';
+      } else if (voiceLanguage === 'te-IN') {
+        welcomeMsg = 'నమస్తే! నేను క్రాప్‌కేర్ AI (CropCare AI). నన్ను వ్యవసాయానికి సంబంధించిన ఏవైనా ప్రశ్నలు అడగండి, లేదా నేల ఆరోగ్యం, ఎరువులు మరియు పంట తెగుళ్ల గురించి తెలుసుకోండి!';
+      }
+      setChatMessages([{ role: 'model', parts: [welcomeMsg] }]);
+    }
+  }, [voiceLanguage]);
 
   // Fetch admin stats and details
   const fetchCoreData = async () => {
@@ -284,7 +321,7 @@ export default function App() {
     
     // Clear forms
     setStateForm({ state_name: '', climate: '', description: '' });
-    setCropForm({ crop_name: '', scientific_name: '', season: 'Kharif', water_requirement: 'Medium', yield: '', state_ids: states[0] ? [states[0].id] : [], image_url: '', soil_ids: [] });
+    setCropForm({ crop_name: '', scientific_name: '', season: 'Kharif', water_requirement: 'Medium', yield: '', msp: '', state_ids: states[0] ? [states[0].id] : [], image_url: '', soil_ids: [] });
     setSoilForm({ soil_name: '', characteristics: '', ph_range: '' });
     setDiseaseForm({ disease_name: '', symptoms: '', causes: '', prevention: '', crop_id: crops[0]?.id || '', image_url: '' });
     setChemicalForm({ chemical_name: '', chemical_type: 'Fungicide', dosage: '', application_method: '', safety_precautions: '', disease_id: diseases[0]?.id || '' });
@@ -315,6 +352,7 @@ export default function App() {
         season: item.season,
         water_requirement: item.water_requirement,
         yield: item.yield,
+        msp: item.msp || '',
         state_ids: item.state_ids || (item.state_id ? [item.state_id] : []),
         image_url: item.image_url || '',
         soil_ids: matchedSoilIds
@@ -401,6 +439,23 @@ export default function App() {
     }
   };
 
+  const handleSchedulerSubmit = async (e) => {
+    e.preventDefault();
+    setSchedulerLoading(true);
+    setSchedulerError('');
+    setSchedulerResult(null);
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/gemini/schedule`, schedulerForm);
+      setSchedulerResult(response.data);
+    } catch (err) {
+      console.error(err);
+      setSchedulerError(err.response?.data?.error || err.message || 'Failed to generate cultivation schedule.');
+    } finally {
+      setSchedulerLoading(false);
+    }
+  };
+
   // AI Diagnostic Simulation
   const handleAiImageUpload = (e) => {
     const file = e.target.files[0];
@@ -418,6 +473,7 @@ export default function App() {
     setAiProgress(10);
     setAiProgressText('Uploading leaf image to Gemini AI server...');
     setGeminiApiKeyMissing(false);
+    setAiError('');
 
     // Get suspected crop name
     const suspectedCrop = crops.find(c => c.id === parseInt(aiSelectedCropId))?.crop_name || 'unknown plant';
@@ -458,29 +514,145 @@ export default function App() {
       if (errorData.code === 'API_KEY_MISSING') {
         setGeminiApiKeyMissing(true);
       } else {
-        alert(`Failed to run Gemini diagnostics: ${errorData.error || err.message}`);
+        const errorMsg = errorData.error || err.message;
+        if (errorMsg.includes('429') || errorMsg.toLowerCase().includes('quota')) {
+          setAiError('Gemini API rate limit or quota exceeded. Since this application runs on the Free Tier, please wait a minute and try again.');
+        } else {
+          setAiError(`Diagnostics error: ${errorMsg}`);
+        }
       }
     });
   };
 
-  const handleChatSubmit = (e) => {
-    e.preventDefault();
-    if (!chatInput.trim() || chatLoading) return;
+  const speakText = (text, lang) => {
+    if (!window.speechSynthesis) return;
+    
+    try {
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.resume(); // Unfreeze the engine if it was stuck in a paused state
+    } catch (e) {
+      console.error("Error cancelling/resuming SpeechSynthesis:", e);
+    }
+    
+    const cleanText = text
+      .replace(/[*#`_\-]/g, '')
+      .replace(/\n+/g, ' ');
 
-    const userMessage = { role: 'user', parts: [chatInput] };
+    // 100ms timeout prevents Chrome from locking up when calling cancel() right before speak()
+    setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = lang;
+
+      const voices = window.speechSynthesis.getVoices();
+      let matchedVoice = voices.find(v => v.lang.toLowerCase() === lang.toLowerCase());
+      if (!matchedVoice) {
+        matchedVoice = voices.find(v => v.lang.toLowerCase().startsWith(lang.toLowerCase().split('-')[0]));
+      }
+
+      if (matchedVoice) {
+        utterance.voice = matchedVoice;
+        console.log(`SpeechSynthesis: Explicitly set voice "${matchedVoice.name}" (${matchedVoice.lang}) for language "${lang}".`);
+      } else {
+        console.warn(`SpeechSynthesis: No matching voice found for "${lang}". Defaulting to browser choice.`);
+      }
+
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        window.activeUtterance = null;
+      };
+      utterance.onerror = (e) => {
+        console.error("SpeechSynthesis error:", e.error, e);
+        setIsSpeaking(false);
+        window.activeUtterance = null;
+      };
+
+      // Keep reference to prevent Garbage Collection from cutting off speech in Chrome
+      window.activeUtterance = utterance;
+
+      try {
+        window.speechSynthesis.resume();
+        window.speechSynthesis.speak(utterance);
+      } catch (e) {
+        console.error("Error speaking utterance:", e);
+      }
+    }, 100);
+  };
+
+  const stopSpeaking = () => {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
+  };
+
+  const startSpeechRecognition = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in this browser. Please try Chrome, Edge, or Safari.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = voiceLanguage;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      setIsSpeaking(false);
+    };
+
+    recognition.onresult = (event) => {
+      const speechToText = event.results[0][0].transcript;
+      submitChatWithMessage(speechToText);
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error:", event.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
+
+  const submitChatWithMessage = (messageText) => {
+    if (!messageText.trim() || chatLoading) return;
+
+    // Direct user interaction: play a silent sound/utterance to unlock SpeechSynthesis context
+    if (window.speechSynthesis && autoSpeak) {
+      const silentUtterance = new SpeechSynthesisUtterance("");
+      silentUtterance.volume = 0;
+      window.speechSynthesis.speak(silentUtterance);
+    }
+
+    const userMessage = { role: 'user', parts: [messageText] };
     const updatedMessages = [...chatMessages, userMessage];
     setChatMessages(updatedMessages);
-    setChatInput('');
     setChatLoading(true);
     setGeminiApiKeyMissing(false);
+    setChatError('');
 
     axios.post(`${API_BASE_URL}/gemini/chat`, {
-      message: chatInput,
-      history: chatMessages
+      message: messageText,
+      history: chatMessages,
+      language: voiceLanguage
     })
     .then(res => {
-      setChatMessages([...updatedMessages, { role: 'model', parts: [res.data.reply] }]);
+      const reply = res.data.reply;
+      setChatMessages([...updatedMessages, { role: 'model', parts: [reply] }]);
       setChatLoading(false);
+      
+      if (autoSpeak) {
+        speakText(reply, voiceLanguage);
+      }
     })
     .catch(err => {
       setChatLoading(false);
@@ -488,9 +660,20 @@ export default function App() {
       if (errorData.code === 'API_KEY_MISSING') {
         setGeminiApiKeyMissing(true);
       } else {
-        alert(`Chatbot error: ${errorData.error || err.message}`);
+        const errorMsg = errorData.error || err.message;
+        if (errorMsg.includes('429') || errorMsg.toLowerCase().includes('quota')) {
+          setChatError('Gemini API rate limit or quota exceeded. Since this application runs on the Free Tier, please wait a minute and try again.');
+        } else {
+          setChatError(`Chatbot error: ${errorMsg}`);
+        }
       }
     });
+  };
+
+  const handleChatSubmit = (e) => {
+    e.preventDefault();
+    submitChatWithMessage(chatInput);
+    setChatInput('');
   };
 
   const handleAdminPasswordSubmit = (e) => {
@@ -584,6 +767,7 @@ export default function App() {
             { id: 'chemical-rec', label: 'Chemical Advisories', icon: Sliders },
             { id: 'adv-search', label: 'Advanced Search', icon: Search },
             { id: 'disease-finder', label: 'Advisory Disease Finder', icon: HelpCircle },
+            { id: 'smart-scheduler', label: 'Smart Scheduler', icon: FileText },
             { id: 'ai-detection', label: 'AI Crop Diagnosis', icon: Bot },
             { id: 'gemini-chat', label: 'CropCare AI', icon: MessageSquare },
             { id: 'admin-panel', label: 'Admin Panel', icon: UserCheck }
@@ -940,7 +1124,7 @@ export default function App() {
                         </div>
 
                         <div className="p-5 space-y-3.5">
-                          <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="grid grid-cols-3 gap-2 text-xs">
                             <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
                               <span className="font-bold text-gray-400 block text-[9px] uppercase tracking-wider">Water Need</span>
                               <span className="font-semibold text-gray-700 mt-0.5 block">{crop.water_requirement}</span>
@@ -948,6 +1132,10 @@ export default function App() {
                             <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
                               <span className="font-bold text-gray-400 block text-[9px] uppercase tracking-wider">Expected Yield</span>
                               <span className="font-semibold text-gray-700 mt-0.5 block truncate" title={crop.yield}>{crop.yield}</span>
+                            </div>
+                            <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                              <span className="font-bold text-gray-400 block text-[9px] uppercase tracking-wider">Govt MSP</span>
+                              <span className="font-bold text-emerald-700 mt-0.5 block truncate" title={crop.msp || 'N/A'}>{crop.msp || 'N/A'}</span>
                             </div>
                           </div>
 
@@ -1023,6 +1211,10 @@ export default function App() {
                           <div>
                             <span className="font-extrabold text-xs text-gray-400 uppercase tracking-wider block">Expected Yield</span>
                             <span className="font-semibold text-gray-800 mt-1 block">{selectedCropDetail.yield}</span>
+                          </div>
+                          <div>
+                            <span className="font-extrabold text-xs text-gray-400 uppercase tracking-wider block">Govt Support Price (MSP)</span>
+                            <span className="font-bold text-emerald-700 mt-1 block">{selectedCropDetail.msp || 'N/A'}</span>
                           </div>
                         </div>
 
@@ -1913,6 +2105,7 @@ export default function App() {
                             <th className="px-6 py-4">Crop Name</th>
                             <th className="px-6 py-4">Scientific Name</th>
                             <th className="px-6 py-4">Season</th>
+                            <th className="px-6 py-4">Govt MSP</th>
                             <th className="px-6 py-4">State Location</th>
                             <th className="px-6 py-4 text-right">Actions</th>
                           </tr>
@@ -1923,6 +2116,7 @@ export default function App() {
                               <td className="px-6 py-4 font-bold text-gray-900">{c.crop_name}</td>
                               <td className="px-6 py-4 italic text-gray-500">{c.scientific_name}</td>
                               <td className="px-6 py-4 uppercase text-xs">{c.season}</td>
+                              <td className="px-6 py-4 text-emerald-700 font-bold text-xs">{c.msp || 'N/A'}</td>
                               <td className="px-6 py-4">{c.state_name}</td>
                               <td className="px-6 py-4 text-right space-x-3">
                                 <button onClick={() => openEditModal('crops', c)} className="text-blue-600 hover:text-blue-800 inline-block"><Edit2 className="h-4 w-4" /></button>
@@ -2142,6 +2336,16 @@ export default function App() {
                                   onChange={(e) => setCropForm({ ...cropForm, yield: e.target.value })}
                                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
                                   placeholder="e.g. 3.5 tons/hectare"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Govt Support Price (MSP)</label>
+                                <input
+                                  type="text"
+                                  value={cropForm.msp}
+                                  onChange={(e) => setCropForm({ ...cropForm, msp: e.target.value })}
+                                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                                  placeholder="e.g. ₹2,300 per quintal (or N/A)"
                                 />
                               </div>
                             </div>
@@ -2409,6 +2613,19 @@ export default function App() {
                     </div>
                   )}
 
+                  {aiError && (
+                    <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded max-w-md mx-auto shadow-sm flex items-start space-x-3">
+                      <AlertTriangle className="h-5 w-5 text-rose-500 mt-0.5 shrink-0" />
+                      <div className="flex-1 text-xs text-rose-800 leading-relaxed text-left">
+                        <strong className="font-bold block text-sm mb-1 text-rose-900">Diagnostics Connection Error</strong>
+                        {aiError}
+                      </div>
+                      <button onClick={() => setAiError('')} className="text-rose-400 hover:text-rose-600">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+
                   {/* Crop Selection Selector */}
                   <div className="max-w-md mx-auto">
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2 text-center">
@@ -2545,6 +2762,266 @@ export default function App() {
               </div>
             )}
 
+            {/* 10. SMART CULTIVATION SCHEDULER */}
+            {activeTab === 'smart-scheduler' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Smart Cultivation Scheduler</h2>
+                  <p className="text-sm text-gray-500 mt-1">Get custom cultivation steps, watering timelines, and fertilizer schedules generated in real-time by AI.</p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                  {/* Left Side: Advisor Form */}
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-4">
+                    <h3 className="font-extrabold text-base text-gray-900 border-b border-gray-100 pb-3 flex items-center space-x-2">
+                      <Sliders className="h-5 w-5 text-emerald-600" />
+                      <span>Farm Configuration</span>
+                    </h3>
+
+                    <form onSubmit={handleSchedulerSubmit} className="space-y-4">
+                      {/* State Location */}
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">State / Location</label>
+                        <select
+                          value={schedulerForm.state_name}
+                          onChange={(e) => setSchedulerForm({ ...schedulerForm, state_name: e.target.value })}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                          required
+                        >
+                          <option value="">-- Select Location --</option>
+                          {states.map(s => (
+                            <option key={s.id} value={s.state_name}>{s.state_name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Soil Type */}
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Soil Type</label>
+                        <select
+                          value={schedulerForm.soil_type}
+                          onChange={(e) => setSchedulerForm({ ...schedulerForm, soil_type: e.target.value })}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                          required
+                        >
+                          <option value="">-- Select Soil Type --</option>
+                          {soils.map(s => (
+                            <option key={s.id} value={s.soil_name}>{s.soil_name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Crop Type */}
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Target Crop</label>
+                        <select
+                          value={schedulerForm.crop_type}
+                          onChange={(e) => setSchedulerForm({ ...schedulerForm, crop_type: e.target.value })}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                          required
+                        >
+                          <option value="">-- Select Target Crop --</option>
+                          {crops.map(c => (
+                            <option key={c.id} value={c.crop_name}>{c.crop_name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Farm Size */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Acres</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="500"
+                            value={schedulerForm.acres}
+                            onChange={(e) => setSchedulerForm({ ...schedulerForm, acres: e.target.value })}
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Irrigation Type</label>
+                          <select
+                            value={schedulerForm.irrigation_type}
+                            onChange={(e) => setSchedulerForm({ ...schedulerForm, irrigation_type: e.target.value })}
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                            required
+                          >
+                            <option value="Drip Irrigation">Drip Irrigation</option>
+                            <option value="Sprinkler">Sprinkler</option>
+                            <option value="Flood Irrigation">Flood Irrigation</option>
+                            <option value="Rainfed">Rainfed (No Irrigation)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Previous Crop */}
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Previous Crop Grown</label>
+                        <input
+                          type="text"
+                          value={schedulerForm.previous_crop}
+                          onChange={(e) => setSchedulerForm({ ...schedulerForm, previous_crop: e.target.value })}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                          placeholder="e.g. Mustard / Fallow"
+                        />
+                      </div>
+
+                      {/* Previous Yield */}
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Previous Yield</label>
+                        <input
+                          type="text"
+                          value={schedulerForm.previous_yield}
+                          onChange={(e) => setSchedulerForm({ ...schedulerForm, previous_yield: e.target.value })}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                          placeholder="e.g. 2.5 tons/hectare"
+                        />
+                      </div>
+
+                      {schedulerError && (
+                        <div className="p-3 bg-red-50 border-l-4 border-red-500 rounded text-xs text-red-700 font-semibold flex items-center">
+                          <AlertTriangle className="h-4 w-4 mr-1.5 shrink-0" />
+                          <span>{schedulerError}</span>
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={schedulerLoading}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-all shadow flex items-center justify-center space-x-2 disabled:opacity-50"
+                      >
+                        {schedulerLoading && <RefreshCw className="h-4 w-4 animate-spin" />}
+                        <span>{schedulerLoading ? 'Generating Advisory...' : 'Generate AI Cultivation Plan'}</span>
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Right Side: Output Results */}
+                  <div className="lg:col-span-2 space-y-6">
+                    {schedulerLoading ? (
+                      <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm space-y-4 flex flex-col items-center justify-center min-h-[400px]">
+                        <div className="relative flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-16 w-16 border-4 border-emerald-600 border-t-transparent"></div>
+                          <Sprout className="absolute h-6 w-6 text-emerald-500 animate-pulse" />
+                        </div>
+                        <p className="text-gray-700 font-bold text-base mt-4">Analysing Farm Chemistry & Rotation Cycle...</p>
+                        <p className="text-gray-400 text-xs max-w-xs leading-relaxed">
+                          Gemini is calculating exact nitrogen-phosphorus ratios, water requirements, and organic cultivation dates for your farm.
+                        </p>
+                      </div>
+                    ) : schedulerResult ? (
+                      <div className="space-y-6">
+                        {/* Timeline */}
+                        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                          <h3 className="font-extrabold text-base text-gray-900 border-b border-gray-100 pb-3 mb-6">
+                            Cultivation Timeline for {schedulerForm.acres} Acres of {schedulerForm.crop_type}
+                          </h3>
+
+                          {/* Vertical Timeline */}
+                          <div className="relative border-l-2 border-emerald-100 ml-4 space-y-8 pb-4">
+                            {schedulerResult.crop_schedule && schedulerResult.crop_schedule.map((item, idx) => (
+                              <div key={idx} className="relative pl-6">
+                                {/* Dot indicator */}
+                                <div className="absolute -left-[9px] top-1 bg-emerald-600 border-4 border-emerald-50 h-5.5 w-5.5 rounded-full flex items-center justify-center shadow">
+                                  <Check className="h-2 w-2 text-white" />
+                                </div>
+                                <div className="space-y-2">
+                                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                                    <h4 className="font-extrabold text-emerald-900 text-base">{item.phase}</h4>
+                                    <span className="bg-emerald-50 text-emerald-800 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded border border-emerald-200/50 w-fit">
+                                      {item.timeline}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Activities list */}
+                                  <ul className="list-disc pl-4 text-xs text-gray-600 space-y-1 mt-2">
+                                    {item.activities && item.activities.map((act, aIdx) => (
+                                      <li key={aIdx}>{act}</li>
+                                    ))}
+                                  </ul>
+
+                                  {/* Advice details */}
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-50 text-xs">
+                                    {item.irrigation_advice && (
+                                      <div className="bg-blue-50/50 border border-blue-100/30 p-2.5 rounded-lg">
+                                        <strong className="text-blue-900 font-bold block mb-0.5">Water Management</strong>
+                                        <span className="text-blue-700">{item.irrigation_advice}</span>
+                                      </div>
+                                    )}
+                                    {item.fertilizer_dosage && (
+                                      <div className="bg-purple-50/50 border border-purple-100/30 p-2.5 rounded-lg">
+                                        <strong className="text-purple-900 font-bold block mb-0.5">NPK & Fertilizer Dosage</strong>
+                                        <span className="text-purple-700">{item.fertilizer_dosage}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Suggestions Cards Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {/* Soil/Fertilizer Tips */}
+                          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-3">
+                            <h4 className="font-bold text-gray-900 text-sm flex items-center">
+                              <Database className="h-4.5 w-4.5 text-amber-700 mr-1.5" />
+                              <span>Soil & Fertilizer Tips</span>
+                            </h4>
+                            <ul className="list-disc pl-4 text-xs text-gray-600 space-y-1.5">
+                              {schedulerResult.soil_and_fertilizer_tips && schedulerResult.soil_and_fertilizer_tips.map((tip, idx) => (
+                                <li key={idx}>{tip}</li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          {/* General Suggestions */}
+                          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-3">
+                            <h4 className="font-bold text-gray-900 text-sm flex items-center">
+                              <Sparkles className="h-4.5 w-4.5 text-emerald-600 mr-1.5" />
+                              <span>General Suggestions</span>
+                            </h4>
+                            <ul className="list-disc pl-4 text-xs text-gray-600 space-y-1.5">
+                              {schedulerResult.general_suggestions && schedulerResult.general_suggestions.map((sug, idx) => (
+                                <li key={idx}>{sug}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+
+                        {/* Warnings banner */}
+                        {schedulerResult.warnings && schedulerResult.warnings.length > 0 && (
+                          <div className="bg-rose-50 border border-rose-100 p-5 rounded-xl space-y-3 shadow-inner">
+                            <h4 className="font-bold text-rose-900 text-sm flex items-center">
+                              <ShieldAlert className="h-4.5 w-4.5 text-rose-700 mr-1.5" />
+                              <span>Potential Risks & Warnings</span>
+                            </h4>
+                            <ul className="list-disc pl-4 text-xs text-rose-700 space-y-1.5">
+                              {schedulerResult.warnings.map((warn, idx) => (
+                                <li key={idx}>{warn}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400 shadow-sm flex flex-col items-center justify-center min-h-[400px]">
+                        <FileText className="h-12 w-12 text-gray-200 mb-3" />
+                        <h4 className="font-bold text-gray-700 text-base">Plan Output Panel</h4>
+                        <p className="text-xs text-gray-400 mt-1 max-w-xs">
+                          Configure your farm parameters on the left and click **Generate Plan** to receive your AI-powered advice schedule here.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* 11. GEMINI CHATBOT MODULE */}
             {activeTab === 'gemini-chat' && (
               <div className="space-y-6 max-w-4xl mx-auto flex flex-col h-[calc(100vh-140px)]">
@@ -2574,8 +3051,62 @@ export default function App() {
                   </div>
                 )}
 
+                {chatError && (
+                  <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded shrink-0 shadow-sm flex items-start space-x-3">
+                    <AlertTriangle className="h-5 w-5 text-rose-500 mt-0.5 shrink-0" />
+                    <div className="flex-1 text-xs text-rose-800 leading-relaxed">
+                      <strong className="font-bold block text-sm mb-1 text-rose-900">Chatbot Connection Error</strong>
+                      {chatError}
+                    </div>
+                    <button onClick={() => setChatError('')} className="text-rose-400 hover:text-rose-600">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+
                 {/* Chat Message Window */}
                 <div className="flex-1 bg-white rounded-2xl border border-gray-200 shadow-md flex flex-col min-h-0">
+                  {/* Voice Assistant configuration header */}
+                  <div className="px-6 py-3 border-b border-gray-100 bg-gray-50/50 flex flex-wrap items-center justify-between gap-3 shrink-0 rounded-t-2xl">
+                    <div className="flex items-center space-x-2">
+                      <Bot className={`h-5 w-5 text-emerald-600 ${(isListening || isSpeaking) ? 'animate-pulse' : ''}`} />
+                      <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Multilingual Voice AI</span>
+                    </div>
+
+                    <div className="flex items-center space-x-4">
+                      {/* Language Select */}
+                      <div className="flex items-center space-x-1">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase">Language:</span>
+                        <select
+                          value={voiceLanguage}
+                          onChange={(e) => {
+                            setVoiceLanguage(e.target.value);
+                            stopSpeaking();
+                          }}
+                          className="border border-gray-200 rounded-lg text-xs font-semibold px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                          <option value="en-IN">English (India)</option>
+                          <option value="hi-IN">हिन्दी (Hindi)</option>
+                          <option value="te-IN">తెలుగు (Telugu)</option>
+                        </select>
+                      </div>
+
+                      {/* Auto Speak Toggle */}
+                      <label className="flex items-center space-x-1.5 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={autoSpeak}
+                          onChange={(e) => {
+                            setAutoSpeak(e.target.checked);
+                            if (!e.target.checked) stopSpeaking();
+                          }}
+                          className="rounded text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5 border-gray-300"
+                        />
+                        <span className="text-[10px] font-bold text-gray-500 uppercase">Auto-Speak</span>
+                      </label>
+                    </div>
+                  </div>
+
                   {/* Messages list */}
                   <div className="flex-1 overflow-y-auto p-6 space-y-4">
                     {chatMessages.map((msg, idx) => (
@@ -2584,14 +3115,40 @@ export default function App() {
                         className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
                       >
                         <div
-                          className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                          className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm relative group ${
                             msg.role === 'user'
                               ? 'bg-emerald-600 text-white rounded-tr-none'
                               : 'bg-gray-100 text-gray-800 rounded-tl-none border border-gray-200'
                           }`}
                         >
-                          <div className="font-bold text-[10px] opacity-65 mb-1">
-                            {msg.role === 'user' ? 'YOU' : 'CROPCARE AI'}
+                          <div className="font-bold text-[10px] opacity-65 mb-1 flex items-center justify-between">
+                            <span>{msg.role === 'user' ? 'YOU' : 'CROPCARE AI'}</span>
+                            {msg.role !== 'user' && (
+                              <button
+                                onClick={() => {
+                                  if (isSpeaking) {
+                                    stopSpeaking();
+                                  } else {
+                                    speakText(msg.parts[0], voiceLanguage);
+                                  }
+                                }}
+                                className="ml-4 text-emerald-600 hover:text-emerald-800 transition-colors focus:outline-none"
+                                title={isSpeaking ? "Stop Voice Playback" : "Speak Message"}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  {isSpeaking ? (
+                                    <>
+                                      <rect x="4" y="4" width="16" height="16" rx="2" ry="2" fill="currentColor"></rect>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                    </>
+                                  )}
+                                </svg>
+                              </button>
+                            )}
                           </div>
                           <p className="whitespace-pre-wrap">{msg.parts[0]}</p>
                         </div>
@@ -2606,16 +3163,60 @@ export default function App() {
                         </div>
                       </div>
                     )}
+
+                    {/* Speech listening visual wave */}
+                    {isListening && (
+                      <div className="flex justify-start items-center space-x-3 p-3 bg-rose-50 border border-rose-100 rounded-xl max-w-xs animate-pulse">
+                        <div className="flex items-center space-x-1">
+                          <span className="w-1.5 h-3.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
+                          <span className="w-1.5 h-5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+                          <span className="w-1.5 h-3.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></span>
+                        </div>
+                        <span className="text-xs font-semibold text-rose-800">
+                          Listening ({voiceLanguage === 'te-IN' ? 'Telugu' : voiceLanguage === 'hi-IN' ? 'Hindi' : 'English'})...
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Speech speaking visual wave */}
+                    {isSpeaking && (
+                      <div className="flex justify-start items-center space-x-3 p-3 bg-blue-50 border border-blue-100 rounded-xl max-w-xs animate-pulse">
+                        <div className="flex items-center space-x-1">
+                          <span className="w-1.5 h-4 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
+                          <span className="w-1.5 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+                          <span className="w-1.5 h-4 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></span>
+                        </div>
+                        <span className="text-xs font-semibold text-blue-800">Speaking response...</span>
+                        <button onClick={stopSpeaking} className="text-blue-500 hover:text-blue-700 text-[10px] font-bold border border-blue-200 px-1.5 py-0.5 rounded bg-white shrink-0 ml-auto">STOP</button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Input Form */}
                   <form onSubmit={handleChatSubmit} className="p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex items-center space-x-3 shrink-0">
+                    <button
+                      type="button"
+                      onClick={isListening ? () => {} : startSpeechRecognition}
+                      className={`p-2.5 rounded-xl border transition-all shrink-0 ${
+                        isListening
+                          ? 'bg-rose-100 border-rose-300 text-rose-600 animate-pulse'
+                          : 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100'
+                      }`}
+                      title="Speak your question"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                        <line x1="12" x2="12" y1="19" y2="22"></line>
+                      </svg>
+                    </button>
+
                     <input
                       type="text"
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
                       disabled={chatLoading}
-                      placeholder="Ask about fertilizer dosage, soil preparation, crop rotations..."
+                      placeholder="Ask in English, हिन्दी or తెలుగు..."
                       className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                     />
                     <button
