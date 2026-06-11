@@ -805,26 +805,38 @@ export default function App() {
           </div>
 
           {/* Right Card Grid showing core features */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[
-              { title: "AI Diagnostics", desc: "Instant leaf disease detection from photos", icon: Bot, color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
-              { title: "State-wise Crops", desc: "Region-matched seasons and crop lists", icon: MapPin, color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
-              { title: "Smart Scheduler", desc: "Customized soil and watering schedules", icon: FileText, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
-              { title: "Voice AI Bot", desc: "Multilingual help in Telugu, Hindi & English", icon: MessageSquare, color: "text-purple-400 bg-purple-500/10 border-purple-500/20" }
-            ].map((f, idx) => {
-              const Icon = f.icon;
-              return (
-                <div key={idx} className={`p-5 rounded-2xl border ${f.color} backdrop-blur-md transition-all duration-300 hover:scale-[1.03] space-y-3`}>
-                  <div className="p-2.5 w-fit rounded-xl bg-white/5">
-                    <Icon className="h-5 w-5" />
+          <div className="space-y-6">
+            {/* Farmer and Plant Illustration */}
+            <div className="bg-emerald-950/40 border border-emerald-500/20 backdrop-blur-md rounded-2xl p-4 flex items-center justify-center shadow-lg overflow-hidden relative group">
+              <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/50 to-transparent z-0"></div>
+              <img 
+                src="/farmer_plant.png" 
+                alt="Farmer and Sprout Illustration" 
+                className="h-44 object-contain rounded-xl transition-transform duration-300 group-hover:scale-[1.03] relative z-10" 
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                { title: "AI Diagnostics", desc: "Instant leaf disease detection from photos", icon: Bot, color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
+                { title: "State-wise Crops", desc: "Region-matched seasons and crop lists", icon: MapPin, color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
+                { title: "Smart Scheduler", desc: "Customized soil and watering schedules", icon: FileText, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+                { title: "Voice AI Bot", desc: "Multilingual help in Telugu, Hindi & English", icon: MessageSquare, color: "text-purple-400 bg-purple-500/10 border-purple-500/20" }
+              ].map((f, idx) => {
+                const Icon = f.icon;
+                return (
+                  <div key={idx} className={`p-5 rounded-2xl border ${f.color} backdrop-blur-md transition-all duration-300 hover:scale-[1.03] space-y-3`}>
+                    <div className="p-2.5 w-fit rounded-xl bg-white/5">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-sm text-white">{f.title}</h4>
+                      <p className="text-[11px] text-emerald-100/50 leading-normal mt-1">{f.desc}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-extrabold text-sm text-white">{f.title}</h4>
-                    <p className="text-[11px] text-emerald-100/50 leading-normal mt-1">{f.desc}</p>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </main>
 
