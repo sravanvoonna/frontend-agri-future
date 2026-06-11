@@ -75,6 +75,10 @@ export default function App() {
   const [cropSearchText, setCropSearchText] = useState('');
   const [selectedCropDetail, setSelectedCropDetail] = useState(null);
 
+  // 2b. Govt MSP Support Module
+  const [mspSearchText, setMspSearchText] = useState('');
+  const [mspFilterSeason, setMspFilterSeason] = useState('All');
+
   // 3. Soil Information Module
   const [soilSearchText, setSoilSearchText] = useState('');
 
@@ -762,6 +766,7 @@ export default function App() {
             { id: 'dashboard', label: 'Dashboard', icon: Layers },
             { id: 'state-select', label: 'State-wise Crops', icon: MapPin },
             { id: 'crop-info', label: 'Crop Information', icon: Sprout },
+            { id: 'gov-msp', label: 'Govt Crops & MSP', icon: TrendingUp },
             { id: 'soil-info', label: 'Soil Details', icon: Database },
             { id: 'disease-mgmt', label: 'Diseases Management', icon: ShieldAlert },
             { id: 'chemical-rec', label: 'Chemical Advisories', icon: Sliders },
@@ -1260,6 +1265,221 @@ export default function App() {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Government Supported Crops & MSP Module */}
+            {activeTab === 'gov-msp' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-2">
+                    <TrendingUp className="h-7 w-7 text-emerald-600" />
+                    Government Supported Crops & MSP Scheme
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Check which crops are backed by the Government of India's Minimum Support Price (MSP) scheme and see recommended prices.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                  {/* Left & Middle: Crops Grid */}
+                  <div className="lg:col-span-2 space-y-6">
+                    {/* Filter and Search Bar */}
+                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row gap-4 items-center justify-between">
+                      <div className="relative w-full sm:max-w-xs">
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Search supported crops..."
+                          value={mspSearchText}
+                          onChange={(e) => setMspSearchText(e.target.value)}
+                          className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                        />
+                      </div>
+
+                      <div className="flex items-center space-x-2 w-full sm:w-auto shrink-0 justify-end">
+                        <span className="text-xs font-bold text-gray-400 uppercase">Season:</span>
+                        <select
+                          value={mspFilterSeason}
+                          onChange={(e) => setMspFilterSeason(e.target.value)}
+                          className="border border-gray-200 rounded-lg text-xs font-semibold px-3 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                          <option value="All">All Seasons</option>
+                          <option value="Kharif">Kharif</option>
+                          <option value="Rabi">Rabi</option>
+                          <option value="Annual">Annual</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Crops Grid */}
+                    {(() => {
+                      const supportedCrops = crops.filter(c => {
+                        const hasMsp = c.msp && c.msp !== 'N/A' && c.msp.trim() !== '';
+                        const matchSearch = c.crop_name.toLowerCase().includes(mspSearchText.toLowerCase()) || 
+                                            c.scientific_name.toLowerCase().includes(mspSearchText.toLowerCase());
+                        const matchSeason = mspFilterSeason === 'All' || c.season.toLowerCase().includes(mspFilterSeason.toLowerCase());
+                        return hasMsp && matchSearch && matchSeason;
+                      });
+
+                      if (supportedCrops.length === 0) {
+                        return (
+                          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400 shadow-sm">
+                            <Sprout className="h-12 w-12 text-gray-200 mx-auto mb-3" />
+                            <h4 className="font-bold text-gray-700 text-base">No Supported Crops Found</h4>
+                            <p className="text-xs text-gray-400 mt-1">Try adjusting your search query or season filter.</p>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {supportedCrops.map(c => (
+                            <div key={c.id} className="bg-white rounded-xl border border-emerald-100 hover:border-emerald-300 shadow-sm hover:shadow-md transition-all p-5 flex flex-col justify-between space-y-4">
+                              <div className="flex justify-between items-start">
+                                <div className="space-y-1">
+                                  <div className="flex items-center space-x-2">
+                                    <h4 className="font-bold text-gray-900 text-base">{c.crop_name}</h4>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200/50 uppercase tracking-wider">
+                                      {c.season}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-gray-400 italic font-medium">{c.scientific_name}</p>
+                                </div>
+                                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+                                  <Sprout className="h-5 w-5" />
+                                </div>
+                              </div>
+
+                              <div className="bg-emerald-50/40 border border-emerald-100/50 rounded-xl p-3.5 flex items-center justify-between">
+                                <div>
+                                  <span className="text-[10px] font-bold text-emerald-800/60 uppercase tracking-wide block">Minimum Support Price</span>
+                                  <span className="text-lg font-black text-emerald-700">{c.msp}</span>
+                                </div>
+                                <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-600 text-white shadow-sm">
+                                  Govt Backed
+                                </span>
+                              </div>
+
+                              <div className="text-xs border-t border-gray-50 pt-3 space-y-1.5 text-gray-600 font-medium">
+                                <div className="flex justify-between">
+                                  <span>Water Requirement:</span>
+                                  <span className="text-gray-900 font-semibold">{c.water_requirement}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Average Yield:</span>
+                                  <span className="text-gray-900 font-semibold">{c.yield}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Suitable Soils:</span>
+                                  <span className="text-gray-900 font-semibold max-w-[150px] truncate" title={c.soils?.join(', ')}>
+                                    {c.soils?.join(', ') || 'N/A'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={() => {
+                                  setSelectedCropDetail(c);
+                                  setActiveTab('crop-info');
+                                }}
+                                className="w-full py-2 bg-gray-50 hover:bg-emerald-50 text-gray-700 hover:text-emerald-700 font-bold rounded-lg text-xs transition-all border border-gray-100 hover:border-emerald-200"
+                              >
+                                View Detailed Guide & Diseases
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Right Side: Mandi Selling Guidelines (Sider Suggestions Card) */}
+                  <div className="space-y-6">
+                    {/* Procurement Guidelines Sider Card */}
+                    <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 text-white rounded-2xl p-6 shadow-md border border-emerald-800 space-y-5">
+                      <div className="border-b border-emerald-800 pb-3">
+                        <h3 className="font-extrabold text-base tracking-wide flex items-center">
+                          <CheckCircle2 className="h-5 w-5 text-emerald-300 mr-2" />
+                          Procurement Guidelines
+                        </h3>
+                        <p className="text-xs text-emerald-300 mt-1">Ensure your harvest qualifies for the full government MSP.</p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="flex items-start space-x-3 text-xs">
+                          <div className="bg-emerald-800 p-1.5 rounded-lg text-emerald-300 mt-0.5 shrink-0">
+                            <Activity className="h-3.5 w-3.5" />
+                          </div>
+                          <div>
+                            <strong className="text-emerald-100 font-bold block mb-1">Moisture Limits:</strong>
+                            <p className="text-emerald-200/95 leading-relaxed">
+                              Paddy and wheat must have a moisture content of **less than 14%**. High moisture content leads to rejection or price deductions.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start space-x-3 text-xs">
+                          <div className="bg-emerald-800 p-1.5 rounded-lg text-emerald-300 mt-0.5 shrink-0">
+                            <ShieldAlert className="h-3.5 w-3.5" />
+                          </div>
+                          <div>
+                            <strong className="text-emerald-100 font-bold block mb-1">Foreign Matter Cleanliness:</strong>
+                            <p className="text-emerald-200/95 leading-relaxed">
+                              Winnow and clean your grains before bringing them to the market. Dust, chaff, stones, and weed seeds must be under 1%.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start space-x-3 text-xs">
+                          <div className="bg-emerald-800 p-1.5 rounded-lg text-emerald-300 mt-0.5 shrink-0">
+                            <FileText className="h-3.5 w-3.5" />
+                          </div>
+                          <div>
+                            <strong className="text-emerald-100 font-bold block mb-1">Required Mandi Documents:</strong>
+                            <p className="text-emerald-200/95 leading-relaxed">
+                              1. Aadhaar Card copy (linked to Bank Account)<br />
+                              2. Pattadar Passbook / Land Record Copy<br />
+                              3. Bank Passbook copy (for direct DBT cash transfer)<br />
+                              4. Crop sowing certificate from local Agriculture Officer
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-emerald-850/60 rounded-xl p-3 text-center border border-emerald-800 text-xs">
+                        <span className="block text-emerald-300 font-medium">Kisan Helpline Toll-Free</span>
+                        <span className="text-sm font-black text-white tracking-wider">1800-180-1551</span>
+                      </div>
+                    </div>
+
+                    {/* Government Farmer Schemes Card */}
+                    <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-4">
+                      <h4 className="font-extrabold text-sm text-gray-900 flex items-center border-b border-gray-100 pb-2">
+                        <Sparkles className="h-4.5 w-4.5 text-amber-500 mr-2" />
+                        Key Farmer Schemes
+                      </h4>
+
+                      <div className="space-y-3.5 text-xs">
+                        <div className="p-3 bg-emerald-50/5 hover:bg-emerald-50/10 border border-gray-100 rounded-xl transition-all">
+                          <strong className="text-gray-900 block font-bold">PM-KISAN Yojana</strong>
+                          <span className="text-gray-500 text-[10px] block mt-0.5">Income Support Scheme</span>
+                          <p className="text-gray-600 mt-1 leading-relaxed">
+                            Direct income support of **₹6,000 per year** paid in three equal installments of ₹2,000 directly into bank accounts of land-holding farmer families.
+                          </p>
+                        </div>
+
+                        <div className="p-3 bg-emerald-50/5 hover:bg-emerald-50/10 border border-gray-100 rounded-xl transition-all">
+                          <strong className="text-gray-900 block font-bold">PM Fasal Bima Yojana (PMFBY)</strong>
+                          <span className="text-gray-500 text-[10px] block mt-0.5">Crop Insurance Scheme</span>
+                          <p className="text-gray-600 mt-1 leading-relaxed">
+                            Financial support to farmers suffering crop loss/damage arising out of natural calamities, pests, & diseases at a very low premium (1.5% - 2%).
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
