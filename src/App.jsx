@@ -161,6 +161,7 @@ export default function App() {
   const [isListening, setIsListening] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
 
   // Agricultural Loading Phrases
   const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
@@ -759,6 +760,82 @@ export default function App() {
 
   const advResults = getAdvSearchResults();
   const advResultsCount = advResults.states.length + advResults.crops.length + advResults.soils.length + advResults.diseases.length + advResults.chemicals.length;
+
+  if (!hasStarted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-950 flex flex-col justify-between p-6 md:p-12 relative overflow-hidden antialiased select-none">
+        {/* Glow effect blobs */}
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+
+        {/* Top Header branding */}
+        <header className="flex items-center space-x-3 relative z-10 font-sans">
+          <div className="bg-emerald-600 p-2.5 rounded-xl text-white shadow-lg border border-emerald-500/30">
+            <Sprout className="h-6 w-6 animate-pulse" />
+          </div>
+          <div>
+            <h1 className="font-black text-xl text-white tracking-wide uppercase">AgriFuture</h1>
+            <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Cerevyn Research AI</p>
+          </div>
+        </header>
+
+        {/* Main welcome block */}
+        <main className="max-w-4xl mx-auto my-auto py-12 grid grid-cols-1 md:grid-cols-2 gap-12 items-center relative z-10">
+          {/* Left Text details */}
+          <div className="space-y-6 text-left">
+            <span className="inline-block px-3.5 py-1.5 bg-emerald-800/60 border border-emerald-700/50 text-emerald-300 rounded-full text-xs font-bold uppercase tracking-wider">
+              Smart Cultivation & Support System
+            </span>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight">
+              Future of <span className="text-emerald-400">Farming</span>, Guided by AI.
+            </h2>
+            <p className="text-sm text-emerald-100/70 leading-relaxed">
+              Empowering farmers in India with real-time crop MSP lookups, AI plant disease diagnostics, automated schedules, and friendly voice-enabled advice in local languages.
+            </p>
+
+            <div className="pt-2">
+              <button
+                onClick={() => setHasStarted(true)}
+                className="group bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-extrabold px-8 py-4 rounded-2xl shadow-xl hover:shadow-emerald-500/20 transition-all duration-300 transform hover:-translate-y-1 flex items-center space-x-3 text-base select-none border border-emerald-400/20"
+              >
+                <span>Access Advisory Dashboard</span>
+                <ChevronRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1 text-emerald-200" />
+              </button>
+            </div>
+          </div>
+
+          {/* Right Card Grid showing core features */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              { title: "AI Diagnostics", desc: "Instant leaf disease detection from photos", icon: Bot, color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
+              { title: "State-wise Crops", desc: "Region-matched seasons and crop lists", icon: MapPin, color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
+              { title: "Smart Scheduler", desc: "Customized soil and watering schedules", icon: FileText, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+              { title: "Voice AI Bot", desc: "Multilingual help in Telugu, Hindi & English", icon: MessageSquare, color: "text-purple-400 bg-purple-500/10 border-purple-500/20" }
+            ].map((f, idx) => {
+              const Icon = f.icon;
+              return (
+                <div key={idx} className={`p-5 rounded-2xl border ${f.color} backdrop-blur-md transition-all duration-300 hover:scale-[1.03] space-y-3`}>
+                  <div className="p-2.5 w-fit rounded-xl bg-white/5">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-sm text-white">{f.title}</h4>
+                    <p className="text-[11px] text-emerald-100/50 leading-normal mt-1">{f.desc}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </main>
+
+        {/* Footer branding */}
+        <footer className="text-center md:text-left text-[10px] text-emerald-500/60 font-semibold relative z-10 flex flex-col md:flex-row justify-between gap-2 border-t border-emerald-900/40 pt-6">
+          <span>&copy; {new Date().getFullYear()} AgriFuture. All Rights Reserved.</span>
+          <span>Powered by Cerevyn Research Azure AI Engine</span>
+        </footer>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row antialiased">
