@@ -162,6 +162,26 @@ export default function App() {
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
+  // Agricultural Loading Phrases
+  const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
+  const loadingPhrases = [
+    "Ploughing the virtual fields...",
+    "Sowing the seeds of crop data...",
+    "Watering the soil databases...",
+    "Nurturing the disease registries...",
+    "Sunny rays reaching the advisory server...",
+    "Waking up the Cerevyn Research container..."
+  ];
+
+  useEffect(() => {
+    if (loading) {
+      const interval = setInterval(() => {
+        setLoadingPhraseIndex((prev) => (prev + 1) % loadingPhrases.length);
+      }, 2500);
+      return () => clearInterval(interval);
+    }
+  }, [loading]);
+
   // Fetch all basic data on mount
   useEffect(() => {
     fetchCoreData();
@@ -835,14 +855,47 @@ export default function App() {
 
         {/* Core Loading Overlay */}
         {loading ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-6 text-center max-w-sm mx-auto">
-            <div className="relative flex items-center justify-center">
-              <div className="animate-spin rounded-full h-14 w-14 border-4 border-emerald-600 border-t-transparent"></div>
-              <Sprout className="absolute h-5.5 w-5.5 text-emerald-500 animate-pulse" />
+          <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-6 text-center max-w-md mx-auto">
+            {/* Thematic Farmer / Crop Growing Animation Container */}
+            <div className="relative w-28 h-28 flex items-center justify-center">
+              {/* Rotating Golden Sun */}
+              <div className="absolute top-0 right-1 animate-spin" style={{ animationDuration: '10s' }}>
+                <svg className="h-7 w-7 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="4" fill="currentColor" className="text-amber-300"></circle>
+                  <path d="M12 2v2"></path>
+                  <path d="M12 20v2"></path>
+                  <path d="m4.93 4.93 1.41 1.41"></path>
+                  <path d="m17.66 17.66 1.41 1.41"></path>
+                  <path d="M2 12h2"></path>
+                  <path d="M20 12h2"></path>
+                  <path d="m6.34 17.66-1.41 1.41"></path>
+                  <path d="m19.07 4.93-1.41 1.41"></path>
+                </svg>
+              </div>
+
+              {/* Falling Rain/Water Droplets */}
+              <div className="absolute top-4 left-6 flex space-x-1.5">
+                <span className="w-1.5 h-3.5 bg-sky-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s', animationDuration: '1s' }}></span>
+                <span className="w-1.5 h-4 bg-sky-400 rounded-full animate-bounce" style={{ animationDelay: '0.35s', animationDuration: '1s' }}></span>
+                <span className="w-1.5 h-3.5 bg-sky-400 rounded-full animate-bounce" style={{ animationDelay: '0.6s', animationDuration: '1s' }}></span>
+              </div>
+
+              {/* Growing Sprout from Soil */}
+              <div className="absolute bottom-2.5 flex flex-col items-center">
+                <div className="animate-bounce" style={{ animationDuration: '2s' }}>
+                  <Sprout className="h-14 w-14 text-emerald-600 animate-pulse" />
+                </div>
+                {/* Soil Ground */}
+                <div className="w-20 h-3 bg-amber-900 rounded-full shadow-inner mt-0.5 border border-amber-950"></div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <p className="text-gray-700 font-extrabold text-sm">Initializing Advisory System...</p>
-              <p className="text-gray-450 text-xs leading-relaxed">
+
+            <div className="space-y-3">
+              {/* Dynamic agricultural phrase */}
+              <p className="text-emerald-800 font-extrabold text-base transition-all duration-500 animate-pulse">
+                {loadingPhrases[loadingPhraseIndex]}
+              </p>
+              <p className="text-gray-400 text-xs leading-relaxed max-w-sm">
                 The free-tier backend server on Render spins down when inactive. Please allow **45-90 seconds** for the container to wake up and connect. Subsequent visits and actions will load instantly!
               </p>
             </div>
