@@ -838,7 +838,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row antialiased">
+    <div className="min-h-screen bg-gradient-to-tr from-emerald-50/25 via-white to-amber-50/15 flex flex-col md:flex-row antialiased">
       {/* Sidebar Navigation */}
       <aside className={`w-full md:w-64 bg-emerald-900 text-white flex flex-col shrink-0 transition-all z-20 md:static ${mobileMenuOpen ? 'fixed inset-0 h-screen' : 'h-auto md:h-screen'}`}>
         {/* Logo Section */}
@@ -904,7 +904,38 @@ export default function App() {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto h-screen">
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto h-screen relative">
+        {/* Subtle Watermark Designs (Plant & Farmer theme) */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
+          {/* Top-Left: Soft Plant/Sprout Watermark */}
+          <div className="absolute top-10 left-10 text-emerald-600/5 transform -rotate-12 animate-pulse" style={{ animationDuration: '8s' }}>
+            <svg width="220" height="220" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M7 20h10"></path>
+              <path d="M10 20V8a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v12"></path>
+              <path d="M12 6a4 4 0 0 1-4-4h0a4 4 0 0 1 4 4Z"></path>
+              <path d="M12 10a3 3 0 0 1-3-3h0a3 3 0 0 1 3 3Z"></path>
+              <path d="M12 14a3 3 0 0 0 3-3h0a3 3 0 0 0-3 3Z"></path>
+            </svg>
+          </div>
+
+          {/* Bottom-Right: Soft Farmer/Nature Watermark */}
+          <div className="absolute bottom-10 right-10 text-emerald-600/5 transform rotate-6 animate-pulse" style={{ animationDuration: '12s' }}>
+            <svg width="260" height="260" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="7" r="4"></circle>
+              <path d="M5 22v-3a7 7 0 0 1 10-6v0"></path>
+              <path d="m18 10-2-2 4-4"></path>
+              <path d="M16 8a4 4 0 0 1 4-4"></path>
+            </svg>
+          </div>
+
+          {/* Center-Right: Floating Leaf Watermark */}
+          <div className="absolute top-1/3 right-1/4 text-amber-600/4 transform rotate-45">
+            <svg width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 3.5 1 9.8a7 7 0 0 1-9 8.2Z"></path>
+              <path d="M9 22v-4h4"></path>
+            </svg>
+          </div>
+        </div>
         {/* Mobile Header */}
         <header className="md:hidden bg-emerald-900 text-white p-4 flex items-center justify-between shadow-md shrink-0">
           <div className="flex items-center space-x-2">
