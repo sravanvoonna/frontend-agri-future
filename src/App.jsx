@@ -471,7 +471,7 @@ export default function App() {
 
     setAiAnalyzing(true);
     setAiProgress(10);
-    setAiProgressText('Uploading leaf image to Gemini AI server...');
+    setAiProgressText('Uploading leaf image to Cerevyn Research Azure AI server...');
     setGeminiApiKeyMissing(false);
     setAiError('');
 
@@ -516,7 +516,7 @@ export default function App() {
       } else {
         const errorMsg = errorData.error || err.message;
         if (errorMsg.includes('429') || errorMsg.toLowerCase().includes('quota')) {
-          setAiError('Gemini API rate limit or quota exceeded. Since this application runs on the Free Tier, please wait a minute and try again.');
+          setAiError('Cerevyn Research Azure AI rate limit or quota exceeded. Please wait a minute and try again.');
         } else {
           setAiError(`Diagnostics error: ${errorMsg}`);
         }
@@ -662,7 +662,7 @@ export default function App() {
       } else {
         const errorMsg = errorData.error || err.message;
         if (errorMsg.includes('429') || errorMsg.toLowerCase().includes('quota')) {
-          setChatError('Gemini API rate limit or quota exceeded. Since this application runs on the Free Tier, please wait a minute and try again.');
+          setChatError('Cerevyn Research Azure AI rate limit or quota exceeded. Please wait a minute and try again.');
         } else {
           setChatError(`Chatbot error: ${errorMsg}`);
         }
@@ -2909,7 +2909,7 @@ export default function App() {
                         </div>
                         <p className="text-gray-700 font-bold text-base mt-4">Analysing Farm Chemistry & Rotation Cycle...</p>
                         <p className="text-gray-400 text-xs max-w-xs leading-relaxed">
-                          Gemini is calculating exact nitrogen-phosphorus ratios, water requirements, and organic cultivation dates for your farm.
+                          Cerevyn Research AI is calculating exact nitrogen-phosphorus ratios, water requirements, and organic cultivation dates for your farm.
                         </p>
                       </div>
                     ) : schedulerResult ? (
