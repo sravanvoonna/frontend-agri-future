@@ -835,9 +835,17 @@ export default function App() {
 
         {/* Core Loading Overlay */}
         {loading ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-600 border-t-transparent"></div>
-            <p className="text-gray-600 font-semibold text-sm">Loading agricultural advisor data...</p>
+          <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-6 text-center max-w-sm mx-auto">
+            <div className="relative flex items-center justify-center">
+              <div className="animate-spin rounded-full h-14 w-14 border-4 border-emerald-600 border-t-transparent"></div>
+              <Sprout className="absolute h-5.5 w-5.5 text-emerald-500 animate-pulse" />
+            </div>
+            <div className="space-y-2">
+              <p className="text-gray-700 font-extrabold text-sm">Initializing Advisory System...</p>
+              <p className="text-gray-450 text-xs leading-relaxed">
+                The free-tier backend server on Render spins down when inactive. Please allow **45-90 seconds** for the container to wake up and connect. Subsequent visits and actions will load instantly!
+              </p>
+            </div>
           </div>
         ) : (
           <main className="flex-1 p-6 md:p-8 overflow-y-auto animate-fade-in">
