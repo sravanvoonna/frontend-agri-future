@@ -2606,8 +2606,8 @@ export default function App() {
                       <div className="flex items-start space-x-3">
                         <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
                         <div className="text-xs text-amber-800 leading-relaxed text-left">
-                          <strong className="font-bold block text-sm mb-1 text-amber-900">Gemini API Key Missing</strong>
-                          Please add <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">GEMINI_API_KEY</code> to your backend <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">.env</code> file and restart the backend server to enable real-time crop disease diagnosis.
+                          <strong className="font-bold block text-sm mb-1 text-amber-900">Azure OpenAI Credentials Missing</strong>
+                          Please add <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">AZURE_OPENAI_KEY</code> and configuration parameters to your backend <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">.env</code> file (or Render Environment Settings) and restart the server to enable real-time crop disease diagnosis.
                         </div>
                       </div>
                     </div>
@@ -3039,11 +3039,11 @@ export default function App() {
                     <div className="flex items-start space-x-3">
                       <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
                       <div className="text-xs text-amber-800 leading-relaxed">
-                        <strong className="font-bold block text-sm mb-1 text-amber-900">Gemini API Key Missing</strong>
-                        To enable real-time plant diagnostics and the chatbot, please configure your Gemini API Key in the backend environment:
+                        <strong className="font-bold block text-sm mb-1 text-amber-900">Azure OpenAI Credentials Missing</strong>
+                        To enable real-time plant diagnostics and the chatbot, please configure your Azure OpenAI credentials in the backend environment:
                         <ol className="list-decimal pl-4 mt-1.5 space-y-1">
-                          <li>Create or edit the <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">.env</code> file in the <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">backend/</code> folder.</li>
-                          <li>Add the line: <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">GEMINI_API_KEY=your_gemini_api_key_here</code></li>
+                          <li>Create or edit the <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">.env</code> file in the <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">backend/</code> folder (or set them in Render's Env variables dashboard).</li>
+                          <li>Add <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">AZURE_OPENAI_KEY</code>, <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">AZURE_OPENAI_ENDPOINT</code>, <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">AZURE_OPENAI_DEPLOYMENT</code>, and <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">AZURE_OPENAI_API_VERSION</code>.</li>
                           <li>Restart the backend server.</li>
                         </ol>
                       </div>
