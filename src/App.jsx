@@ -579,12 +579,26 @@ export default function App() {
     });
   };
 
+  const detectLanguage = (text) => {
+    if (!text) return 'en-IN';
+    const teluguRegex = /[\u0c00-\u0c7f]/;
+    const hindiRegex = /[\u0900-\u097f]/;
+
+    if (teluguRegex.test(text)) {
+      return 'te-IN';
+    }
+    if (hindiRegex.test(text)) {
+      return 'hi-IN';
+    }
+    return 'en-IN';
+  };
+
   const speakText = (text, lang) => {
     if (!window.speechSynthesis) return;
     
     try {
       window.speechSynthesis.cancel();
-      window.speechSynthesis.resume(); // Unfreeze the engine if it was stuck in a paused state
+      window.speechSynthesis.resume();
     } catch (e) {
       console.error("Error cancelling/resuming SpeechSynthesis:", e);
     }
@@ -593,20 +607,36 @@ export default function App() {
       .replace(/[*#`_\-]/g, '')
       .replace(/\n+/g, ' ');
 
-    // 100ms timeout prevents Chrome from locking up when calling cancel() right before speak()
     setTimeout(() => {
       const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.lang = lang;
 
       const voices = window.speechSynthesis.getVoices();
-      let matchedVoice = voices.find(v => v.lang.toLowerCase() === lang.toLowerCase());
-      if (!matchedVoice) {
-        matchedVoice = voices.find(v => v.lang.toLowerCase().startsWith(lang.toLowerCase().split('-')[0]));
+      
+      const langVoices = voices.filter(v => 
+        v.lang.toLowerCase() === lang.toLowerCase() || 
+        v.lang.toLowerCase().startsWith(lang.toLowerCase().split('-')[0])
+      );
+      
+      const femaleKeywords = [
+        'female', 'lady', 'zira', 'samantha', 'karen', 'veena', 'moira', 'tessa', 
+        'hazel', 'heera', 'kalpana', 'shruti', 'swara', 'priya', 'neerja', 'lata', 
+        'victoria', 'susan', 'melody', 'kiana', 'sara', 'nora',
+        'google हिन्दी', 'google తెలుగు'
+      ];
+      
+      let matchedVoice = langVoices.find(v => {
+        const nameLower = v.name.toLowerCase();
+        return femaleKeywords.some(keyword => nameLower.includes(keyword));
+      });
+      
+      if (!matchedVoice && langVoices.length > 0) {
+        matchedVoice = langVoices[0];
       }
 
       if (matchedVoice) {
         utterance.voice = matchedVoice;
-        console.log(`SpeechSynthesis: Explicitly set voice "${matchedVoice.name}" (${matchedVoice.lang}) for language "${lang}".`);
+        console.log(`SpeechSynthesis (Lady Voice Prioritized): Explicitly set voice "${matchedVoice.name}" (${matchedVoice.lang}) for language "${lang}".`);
       } else {
         console.warn(`SpeechSynthesis: No matching voice found for "${lang}". Defaulting to browser choice.`);
       }
@@ -622,7 +652,6 @@ export default function App() {
         window.activeUtterance = null;
       };
 
-      // Keep reference to prevent Garbage Collection from cutting off speech in Chrome
       window.activeUtterance = utterance;
 
       try {
@@ -706,7 +735,7 @@ export default function App() {
       setChatLoading(false);
       
       if (autoSpeak) {
-        speakText(reply, voiceLanguage);
+        speakText(reply, detectLanguage(reply));
       }
     })
     .catch(err => {
@@ -3781,7 +3810,7 @@ export default function App() {
                               if (isSpeaking) {
                                 stopSpeaking();
                               } else {
-                                speakText(msg.parts[0], voiceLanguage);
+                                speakText(msg.parts[0], detectLanguage(msg.parts[0]));
                               }
                             }}
                             className="ml-3 text-emerald-600 hover:text-emerald-800 transition-colors focus:outline-none"
