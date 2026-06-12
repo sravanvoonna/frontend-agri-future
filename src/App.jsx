@@ -135,6 +135,13 @@ export default function App() {
   const [chatLoading, setChatLoading] = useState(false);
   const [geminiApiKeyMissing, setGeminiApiKeyMissing] = useState(false);
   const [chatError, setChatError] = useState('');
+  const [chatbotOpen, setChatbotOpen] = useState(false);
+
+  // 11. MSP Year Selection & Prediction States
+  const [selectedMspYear, setSelectedMspYear] = useState(2026);
+  const [mspPredictionsData, setMspPredictionsData] = useState(null);
+  const [mspPredictionsLoading, setMspPredictionsLoading] = useState(false);
+  const [selectedMspChartCropId, setSelectedMspChartCropId] = useState(null);
 
   // Admin Authentication States
   const [adminPasswordModalOpen, setAdminPasswordModalOpen] = useState(false);
@@ -187,6 +194,29 @@ export default function App() {
   useEffect(() => {
     fetchCoreData();
   }, []);
+
+  // Fetch MSP predictions from the backend linear regression model
+  const fetchMspPredictions = async (year) => {
+    setMspPredictionsLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/predict-msp?year=${year}`);
+      setMspPredictionsData(res.data);
+      // Automatically select the first crop for chart representation if not set yet
+      if (res.data.predictions && res.data.predictions.length > 0 && !selectedMspChartCropId) {
+        setSelectedMspChartCropId(res.data.predictions[0].crop_id);
+      }
+    } catch (err) {
+      console.error('Error fetching MSP predictions:', err);
+    } finally {
+      setMspPredictionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'gov-msp') {
+      fetchMspPredictions(selectedMspYear);
+    }
+  }, [activeTab, selectedMspYear]);
 
   // Dynamically update welcome message when voice language changes
   useEffect(() => {
@@ -871,7 +901,6 @@ export default function App() {
             { id: 'disease-finder', label: 'Advisory Disease Finder', icon: HelpCircle },
             { id: 'smart-scheduler', label: 'Smart Scheduler', icon: FileText },
             { id: 'ai-detection', label: 'AI Crop Diagnosis', icon: Bot },
-            { id: 'gemini-chat', label: 'CropCare AI', icon: MessageSquare },
             { id: 'admin-panel', label: 'Admin Panel', icon: UserCheck }
           ].map((tab) => {
             const Icon = tab.icon;
@@ -1565,6 +1594,193 @@ export default function App() {
 
                   {/* Right Side: Mandi Selling Guidelines (Sider Suggestions Card) */}
                   <div className="space-y-6">
+                    {/* AI MSP Predictor Sider Card */}
+                    <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-4">
+                      <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                        <h4 className="font-extrabold text-sm text-gray-900 flex items-center">
+                          <TrendingUp className="h-4.5 w-4.5 text-emerald-600 mr-2" />
+                          AI MSP Predictor (2026–2036)
+                        </h4>
+                        {/* Year selector */}
+                        <select
+                          value={selectedMspYear}
+                          onChange={(e) => setSelectedMspYear(parseInt(e.target.value))}
+                          className="border border-gray-200 rounded-lg text-xs font-semibold px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                          {Array.from({ length: 11 }, (_, i) => 2026 + i).map(yr => (
+                            <option key={yr} value={yr}>{yr}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {mspPredictionsLoading ? (
+                        <div className="flex flex-col items-center justify-center py-8 space-y-2">
+                          <RefreshCw className="h-6 w-6 animate-spin text-emerald-600" />
+                          <span className="text-xs text-gray-400 font-semibold">Running ML Trend Model...</span>
+                        </div>
+                      ) : mspPredictionsData ? (
+                        <div className="space-y-4">
+                          {/* Best Crop of the Year Callout */}
+                          {mspPredictionsData.best_crop && (
+                            <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-3 flex items-center justify-between shadow-sm">
+                              <div className="space-y-1 text-left">
+                                <span className="text-[8px] font-black text-emerald-800 uppercase tracking-widest bg-emerald-100 px-1.5 py-0.5 rounded">
+                                  Best Crop of {selectedMspYear}
+                                </span>
+                                <h5 className="font-bold text-gray-950 text-sm mt-1">{mspPredictionsData.best_crop.crop_name}</h5>
+                                <span className="text-[10px] text-gray-400 font-medium block">Season: {mspPredictionsData.best_crop.season}</span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-emerald-700 font-black text-base block">+{mspPredictionsData.best_crop.growth_rate_pct}%</span>
+                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wide">Predicted Growth</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* SVG Line Chart */}
+                          {(() => {
+                            const selectedCropData = mspPredictionsData.predictions.find(p => p.crop_id === selectedMspChartCropId);
+                            if (!selectedCropData) return null;
+
+                            const allPoints = [
+                              ...selectedCropData.historical.map(p => ({ year: p.year, value: p.value, isFuture: false })),
+                              ...selectedCropData.future.map(p => ({ year: p.year, value: p.value, isFuture: true }))
+                            ];
+
+                            const values = allPoints.map(p => p.value);
+                            const minVal = Math.min(...values) * 0.9;
+                            const maxVal = Math.max(...values) * 1.1;
+                            const valRange = maxVal - minVal;
+
+                            const width = 300;
+                            const height = 130;
+                            const paddingLeft = 35;
+                            const paddingRight = 10;
+                            const paddingTop = 15;
+                            const paddingBottom = 20;
+
+                            const getX = (year) => {
+                              const minYear = 2013;
+                              const maxYear = 2036;
+                              return paddingLeft + ((year - minYear) / (maxYear - minYear)) * (width - paddingLeft - paddingRight);
+                            };
+
+                            const getY = (val) => {
+                              return height - paddingBottom - ((val - minVal) / valRange) * (height - paddingTop - paddingBottom);
+                            };
+
+                            let histPath = "";
+                            let futurePath = "";
+
+                            const histPoints = allPoints.filter(p => !p.isFuture || p.year === 2025);
+                            const futurePoints = allPoints.filter(p => p.isFuture || p.year === 2025);
+
+                            histPoints.forEach((p, idx) => {
+                              const x = getX(p.year);
+                              const y = getY(p.value);
+                              if (idx === 0) histPath += `M ${x} ${y}`;
+                              else histPath += ` L ${x} ${y}`;
+                            });
+
+                            futurePoints.forEach((p, idx) => {
+                              const x = getX(p.year);
+                              const y = getY(p.value);
+                              if (idx === 0) futurePath += `M ${x} ${y}`;
+                              else futurePath += ` L ${x} ${y}`;
+                            });
+
+                            let areaPath = `${histPath}`;
+                            futurePoints.slice(1).forEach(p => {
+                              areaPath += ` L ${getX(p.year)} ${getY(p.value)}`;
+                            });
+                            areaPath += ` L ${getX(2036)} ${height - paddingBottom} L ${getX(2013)} ${height - paddingBottom} Z`;
+
+                            return (
+                              <div className="space-y-2 mt-4 bg-gray-50/70 border border-gray-150 p-2.5 rounded-xl text-left">
+                                <div className="flex items-center justify-between">
+                                  <label className="text-[9px] font-extrabold text-gray-500 uppercase">Crop Trend Line:</label>
+                                  <select
+                                    value={selectedMspChartCropId || ""}
+                                    onChange={(e) => setSelectedMspChartCropId(parseInt(e.target.value))}
+                                    className="border border-gray-200 rounded px-1.5 py-0.5 text-[9px] font-bold bg-white focus:outline-none"
+                                  >
+                                    {mspPredictionsData.predictions.map(p => (
+                                      <option key={p.crop_id} value={p.crop_id}>{p.crop_name}</option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                <div className="relative">
+                                  <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible">
+                                    <defs>
+                                      <linearGradient id="chart-area-grad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#10b981" stopOpacity="0.15" />
+                                        <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                                      </linearGradient>
+                                    </defs>
+
+                                    {/* Grid lines */}
+                                    <line x1={paddingLeft} y1={getY(minVal + valRange * 0.25)} x2={width - paddingRight} y2={getY(minVal + valRange * 0.25)} stroke="#f3f4f6" strokeDasharray="3,3" />
+                                    <line x1={paddingLeft} y1={getY(minVal + valRange * 0.5)} x2={width - paddingRight} y2={getY(minVal + valRange * 0.5)} stroke="#f3f4f6" strokeDasharray="3,3" />
+                                    <line x1={paddingLeft} y1={getY(minVal + valRange * 0.75)} x2={width - paddingRight} y2={getY(minVal + valRange * 0.75)} stroke="#f3f4f6" strokeDasharray="3,3" />
+
+                                    {/* Axis Labels */}
+                                    <text x={5} y={getY(minVal + valRange * 0.25) + 3} className="text-[7px] font-bold text-gray-400">₹{Math.round((minVal + valRange * 0.25) / 100) * 100}</text>
+                                    <text x={5} y={getY(minVal + valRange * 0.5) + 3} className="text-[7px] font-bold text-gray-400">₹{Math.round((minVal + valRange * 0.5) / 100) * 100}</text>
+                                    <text x={5} y={getY(minVal + valRange * 0.75) + 3} className="text-[7px] font-bold text-gray-400">₹{Math.round((minVal + valRange * 0.75) / 100) * 100}</text>
+
+                                    {/* Area */}
+                                    <path d={areaPath} fill="url(#chart-area-grad)" />
+
+                                    {/* Lines */}
+                                    <path d={histPath} fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" />
+                                    <path d={futurePath} fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" />
+
+                                    {/* Markers */}
+                                    <circle cx={getX(2013)} cy={getY(histPoints[0].value)} r="2.5" fill="#9ca3af" stroke="white" strokeWidth="1" />
+                                    <circle cx={getX(2025)} cy={getY(selectedCropData.base_msp)} r="3" fill="#3b82f6" stroke="white" strokeWidth="1" />
+                                    <circle cx={getX(2036)} cy={getY(futurePoints[futurePoints.length - 1].value)} r="3" fill="#10b981" stroke="white" strokeWidth="1" />
+
+                                    {/* Year labels */}
+                                    <text x={getX(2013) - 5} y={height - 4} className="text-[7px] font-extrabold text-gray-400">2013</text>
+                                    <text x={getX(2025) - 10} y={height - 4} className="text-[7px] font-extrabold text-blue-500">2025</text>
+                                    <text x={getX(2036) - 10} y={height - 4} className="text-[7px] font-extrabold text-emerald-600">2036</text>
+                                  </svg>
+                                  <div className="flex justify-between text-[7px] font-extrabold text-gray-400 uppercase px-1 mt-1">
+                                    <span className="flex items-center gap-0.5"><span className="h-1 w-2 bg-gray-400 rounded-sm inline-block"></span> Hist</span>
+                                    <span className="flex items-center gap-0.5"><span className="h-1 w-2 bg-blue-500 rounded-sm inline-block"></span> Base</span>
+                                    <span className="flex items-center gap-0.5"><span className="h-1 w-2 bg-emerald-500 rounded-sm inline-block"></span> Pred</span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* List of predicted prices for all crops */}
+                          <div className="space-y-2 text-left">
+                            <h5 className="text-[9px] font-extrabold text-gray-500 uppercase tracking-wider">
+                              Predicted Prices ({selectedMspYear}):
+                            </h5>
+                            <div className="border border-gray-150 rounded-xl max-h-[160px] overflow-y-auto divide-y divide-gray-100">
+                              {mspPredictionsData.predictions.map(pred => (
+                                <div key={pred.crop_id} className="p-2 flex items-center justify-between text-xs hover:bg-gray-50 transition-colors">
+                                  <div>
+                                    <strong className="text-gray-900 font-bold block">{pred.crop_name}</strong>
+                                    <span className="text-[9px] text-gray-400">Base: ₹{pred.base_msp}</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <strong className="text-emerald-700 font-bold block">₹{pred.predicted_msp}</strong>
+                                    <span className="text-[9px] text-emerald-500 font-bold block">+{pred.growth_rate_pct}%</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center text-xs text-gray-450 py-4">No prediction data available.</div>
+                      )}
+                    </div>
                     {/* Procurement Guidelines Sider Card */}
                     <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 text-white rounded-2xl p-6 shadow-md border border-emerald-800 space-y-5">
                       <div className="border-b border-emerald-800 pb-3">
@@ -3137,16 +3353,6 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Future Tensor Flow notice */}
-                  <div className="flex items-start space-x-3 bg-blue-50/50 border border-blue-100 p-4 rounded-xl">
-                    <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-                    <div>
-                      <h4 className="text-xs font-extrabold text-blue-900 uppercase tracking-wide">Future TensorFlow Integration</h4>
-                      <p className="text-xs text-blue-700 mt-1 leading-relaxed">
-                        Currently, this page operates with mock prediction results mapped directly to our central catalog. In a production setting, this interface links to a hosted TensorFlow Lite/Keras model endpoint (`/api/predict/image`) to run inference on leaf pixel grids in real time.
-                      </p>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
@@ -3411,214 +3617,7 @@ export default function App() {
               </div>
             )}
 
-            {/* 11. GEMINI CHATBOT MODULE */}
-            {activeTab === 'gemini-chat' && (
-              <div className="space-y-6 max-w-4xl mx-auto flex flex-col h-[calc(100vh-140px)]">
-                <div className="text-center space-y-2 shrink-0">
-                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight flex items-center justify-center">
-                    <MessageSquare className="h-7 w-7 mr-2 text-emerald-600" /> CropCare AI
-                  </h2>
-                  <p className="text-sm text-gray-500 max-w-md mx-auto">
-                    Real-time farming advisory chatbot. Ask in English, Hindi, Telugu, Tamil, Bengali, or any local language.
-                  </p>
-                </div>
 
-                {geminiApiKeyMissing && (
-                  <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded shrink-0 shadow-sm">
-                    <div className="flex items-start space-x-3">
-                      <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
-                      <div className="text-xs text-amber-800 leading-relaxed">
-                        <strong className="font-bold block text-sm mb-1 text-amber-900">Azure OpenAI Credentials Missing</strong>
-                        To enable real-time plant diagnostics and the chatbot, please configure your Azure OpenAI credentials in the backend environment:
-                        <ol className="list-decimal pl-4 mt-1.5 space-y-1">
-                          <li>Create or edit the <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">.env</code> file in the <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">backend/</code> folder (or set them in Render's Env variables dashboard).</li>
-                          <li>Add <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">AZURE_OPENAI_KEY</code>, <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">AZURE_OPENAI_ENDPOINT</code>, <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">AZURE_OPENAI_DEPLOYMENT</code>, and <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">AZURE_OPENAI_API_VERSION</code>.</li>
-                          <li>Restart the backend server.</li>
-                        </ol>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {chatError && (
-                  <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded shrink-0 shadow-sm flex items-start space-x-3">
-                    <AlertTriangle className="h-5 w-5 text-rose-500 mt-0.5 shrink-0" />
-                    <div className="flex-1 text-xs text-rose-800 leading-relaxed">
-                      <strong className="font-bold block text-sm mb-1 text-rose-900">Chatbot Connection Error</strong>
-                      {chatError}
-                    </div>
-                    <button onClick={() => setChatError('')} className="text-rose-400 hover:text-rose-600">
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                )}
-
-                {/* Chat Message Window */}
-                <div className="flex-1 bg-white rounded-2xl border border-gray-200 shadow-md flex flex-col min-h-0">
-                  {/* Voice Assistant configuration header */}
-                  <div className="px-6 py-3 border-b border-gray-100 bg-gray-50/50 flex flex-wrap items-center justify-between gap-3 shrink-0 rounded-t-2xl">
-                    <div className="flex items-center space-x-2">
-                      <Bot className={`h-5 w-5 text-emerald-600 ${(isListening || isSpeaking) ? 'animate-pulse' : ''}`} />
-                      <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Multilingual Voice AI</span>
-                    </div>
-
-                    <div className="flex items-center space-x-4">
-                      {/* Language Select */}
-                      <div className="flex items-center space-x-1">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase">Language:</span>
-                        <select
-                          value={voiceLanguage}
-                          onChange={(e) => {
-                            setVoiceLanguage(e.target.value);
-                            stopSpeaking();
-                          }}
-                          className="border border-gray-200 rounded-lg text-xs font-semibold px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                        >
-                          <option value="en-IN">English (India)</option>
-                          <option value="hi-IN">हिन्दी (Hindi)</option>
-                          <option value="te-IN">తెలుగు (Telugu)</option>
-                        </select>
-                      </div>
-
-                      {/* Auto Speak Toggle */}
-                      <label className="flex items-center space-x-1.5 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={autoSpeak}
-                          onChange={(e) => {
-                            setAutoSpeak(e.target.checked);
-                            if (!e.target.checked) stopSpeaking();
-                          }}
-                          className="rounded text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5 border-gray-300"
-                        />
-                        <span className="text-[10px] font-bold text-gray-500 uppercase">Auto-Speak</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Messages list */}
-                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                    {chatMessages.map((msg, idx) => (
-                      <div
-                        key={idx}
-                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
-                      >
-                        <div
-                          className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm relative group ${
-                            msg.role === 'user'
-                              ? 'bg-emerald-600 text-white rounded-tr-none'
-                              : 'bg-gray-100 text-gray-800 rounded-tl-none border border-gray-200'
-                          }`}
-                        >
-                          <div className="font-bold text-[10px] opacity-65 mb-1 flex items-center justify-between">
-                            <span>{msg.role === 'user' ? 'YOU' : 'CROPCARE AI'}</span>
-                            {msg.role !== 'user' && (
-                              <button
-                                onClick={() => {
-                                  if (isSpeaking) {
-                                    stopSpeaking();
-                                  } else {
-                                    speakText(msg.parts[0], voiceLanguage);
-                                  }
-                                }}
-                                className="ml-4 text-emerald-600 hover:text-emerald-800 transition-colors focus:outline-none"
-                                title={isSpeaking ? "Stop Voice Playback" : "Speak Message"}
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                  {isSpeaking ? (
-                                    <>
-                                      <rect x="4" y="4" width="16" height="16" rx="2" ry="2" fill="currentColor"></rect>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                                    </>
-                                  )}
-                                </svg>
-                              </button>
-                            )}
-                          </div>
-                          <p className="whitespace-pre-wrap">{msg.parts[0]}</p>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    {chatLoading && (
-                      <div className="flex justify-start animate-pulse">
-                        <div className="bg-gray-100 text-gray-400 border border-gray-200 px-4 py-3 rounded-2xl rounded-tl-none text-xs font-semibold flex items-center space-x-2">
-                          <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                          <span>CropCare AI is thinking...</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Speech listening visual wave */}
-                    {isListening && (
-                      <div className="flex justify-start items-center space-x-3 p-3 bg-rose-50 border border-rose-100 rounded-xl max-w-xs animate-pulse">
-                        <div className="flex items-center space-x-1">
-                          <span className="w-1.5 h-3.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
-                          <span className="w-1.5 h-5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
-                          <span className="w-1.5 h-3.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></span>
-                        </div>
-                        <span className="text-xs font-semibold text-rose-800">
-                          Listening ({voiceLanguage === 'te-IN' ? 'Telugu' : voiceLanguage === 'hi-IN' ? 'Hindi' : 'English'})...
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Speech speaking visual wave */}
-                    {isSpeaking && (
-                      <div className="flex justify-start items-center space-x-3 p-3 bg-blue-50 border border-blue-100 rounded-xl max-w-xs animate-pulse">
-                        <div className="flex items-center space-x-1">
-                          <span className="w-1.5 h-4 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
-                          <span className="w-1.5 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
-                          <span className="w-1.5 h-4 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></span>
-                        </div>
-                        <span className="text-xs font-semibold text-blue-800">Speaking response...</span>
-                        <button onClick={stopSpeaking} className="text-blue-500 hover:text-blue-700 text-[10px] font-bold border border-blue-200 px-1.5 py-0.5 rounded bg-white shrink-0 ml-auto">STOP</button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Input Form */}
-                  <form onSubmit={handleChatSubmit} className="p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex items-center space-x-3 shrink-0">
-                    <button
-                      type="button"
-                      onClick={isListening ? () => {} : startSpeechRecognition}
-                      className={`p-2.5 rounded-xl border transition-all shrink-0 ${
-                        isListening
-                          ? 'bg-rose-100 border-rose-300 text-rose-600 animate-pulse'
-                          : 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100'
-                      }`}
-                      title="Speak your question"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                        <line x1="12" x2="12" y1="19" y2="22"></line>
-                      </svg>
-                    </button>
-
-                    <input
-                      type="text"
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      disabled={chatLoading}
-                      placeholder="Ask in English, हिन्दी or తెలుగు..."
-                      className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!chatInput.trim() || chatLoading}
-                      className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold px-5 py-2.5 rounded-xl transition-all shadow-md shrink-0 text-sm"
-                    >
-                      Send
-                    </button>
-                  </form>
-                </div>
-              </div>
-            )}
           </main>
         )}
 
@@ -3676,6 +3675,234 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {/* Floating Chatbot FAB & Window */}
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+          {/* Chat Window */}
+          {chatbotOpen && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl flex flex-col w-[350px] sm:w-[380px] h-[480px] mb-4 overflow-hidden animate-slide-up-fade">
+              {/* Header */}
+              <div className="px-4 py-3 bg-emerald-950 text-white flex items-center justify-between shrink-0">
+                <div className="flex items-center space-x-2">
+                  <div className="relative">
+                    <div className="p-1 bg-emerald-900 rounded-lg text-emerald-300">
+                      <Bot className={`h-4 w-4 ${(isListening || isSpeaking) ? 'animate-pulse' : ''}`} />
+                    </div>
+                    <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-400 border-2 border-emerald-950"></span>
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-xs leading-none">CropCare AI</h3>
+                    <span className="text-[9px] text-emerald-300 font-medium">Agricultural Advisor</span>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setChatbotOpen(false)}
+                  className="text-emerald-200 hover:text-white p-1 rounded-lg hover:bg-emerald-900 transition-all"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Error notifications */}
+              {geminiApiKeyMissing && (
+                <div className="bg-amber-50 border-b border-amber-200 p-2.5 shrink-0 text-left">
+                  <div className="flex items-start space-x-2">
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
+                    <div className="text-[9px] text-amber-800 leading-normal">
+                      <strong className="font-bold">Azure OpenAI Missing:</strong> Add keys to <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">.env</code> & restart.
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {chatError && (
+                <div className="bg-rose-50 border-b border-rose-200 p-2.5 shrink-0 flex items-start justify-between gap-2 text-left">
+                  <div className="flex items-start space-x-2">
+                    <AlertTriangle className="h-3.5 w-3.5 text-rose-500 mt-0.5 shrink-0" />
+                    <div className="text-[9px] text-rose-800 leading-normal">{chatError}</div>
+                  </div>
+                  <button onClick={() => setChatError('')} className="text-rose-400 hover:text-rose-600 shrink-0">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+
+              {/* Language & Voice Controls Header */}
+              <div className="px-3 py-1.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between shrink-0">
+                <div className="flex items-center space-x-1">
+                  <span className="text-[8px] font-bold text-gray-400 uppercase">Lang:</span>
+                  <select
+                    value={voiceLanguage}
+                    onChange={(e) => {
+                      setVoiceLanguage(e.target.value);
+                      stopSpeaking();
+                    }}
+                    className="border border-gray-200 rounded px-1 py-0.5 text-[9px] font-bold bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  >
+                    <option value="en-IN">English</option>
+                    <option value="hi-IN">हिन्दी</option>
+                    <option value="te-IN">తెలుగు</option>
+                  </select>
+                </div>
+
+                <label className="flex items-center space-x-1 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={autoSpeak}
+                    onChange={(e) => {
+                      setAutoSpeak(e.target.checked);
+                      if (!e.target.checked) stopSpeaking();
+                    }}
+                    className="rounded text-emerald-600 focus:ring-emerald-500 h-3 w-3 border-gray-300"
+                  />
+                  <span className="text-[8px] font-bold text-gray-500 uppercase">Auto-Speak</span>
+                </label>
+              </div>
+
+              {/* Messages list */}
+              <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-gray-50/20 text-left">
+                {chatMessages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
+                  >
+                    <div
+                      className={`max-w-[85%] px-3 py-2 rounded-xl text-xs leading-relaxed shadow-sm relative group ${
+                        msg.role === 'user'
+                          ? 'bg-emerald-600 text-white rounded-tr-none'
+                          : 'bg-white text-gray-800 rounded-tl-none border border-gray-200'
+                      }`}
+                    >
+                      <div className="font-bold text-[8px] opacity-60 mb-0.5 flex items-center justify-between">
+                        <span>{msg.role === 'user' ? 'YOU' : 'CROPCARE AI'}</span>
+                        {msg.role !== 'user' && (
+                          <button
+                            onClick={() => {
+                              if (isSpeaking) {
+                                stopSpeaking();
+                              } else {
+                                speakText(msg.parts[0], voiceLanguage);
+                              }
+                            }}
+                            className="ml-3 text-emerald-600 hover:text-emerald-800 transition-colors focus:outline-none"
+                            title={isSpeaking ? "Stop Voice Playback" : "Speak Message"}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              {isSpeaking ? (
+                                <rect x="4" y="4" width="16" height="16" rx="2" ry="2" fill="currentColor"></rect>
+                              ) : (
+                                <>
+                                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                </>
+                              )}
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      <p className="whitespace-pre-wrap">{msg.parts[0]}</p>
+                    </div>
+                  </div>
+                ))}
+                
+                {chatLoading && (
+                  <div className="flex justify-start animate-pulse">
+                    <div className="bg-white text-gray-400 border border-gray-150 px-3 py-2 rounded-xl rounded-tl-none text-[9px] font-semibold flex items-center space-x-1 shadow-sm">
+                      <RefreshCw className="h-2.5 w-2.5 animate-spin text-emerald-600" />
+                      <span>Thinking...</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Speech listening visual wave */}
+                {isListening && (
+                  <div className="flex justify-start items-center space-x-1.5 p-2 bg-rose-50 border border-rose-100 rounded-lg max-w-[150px] animate-pulse">
+                    <div className="flex items-center space-x-0.5">
+                      <span className="w-0.5 h-2.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
+                      <span className="w-0.5 h-3.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+                      <span className="w-0.5 h-2.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></span>
+                    </div>
+                    <span className="text-[9px] font-semibold text-rose-800">
+                      Listening...
+                    </span>
+                  </div>
+                )}
+
+                {/* Speech speaking visual wave */}
+                {isSpeaking && (
+                  <div className="flex justify-start items-center space-x-1.5 p-2 bg-blue-50 border border-blue-100 rounded-lg max-w-[180px] animate-pulse">
+                    <div className="flex items-center space-x-0.5">
+                      <span className="w-0.5 h-3 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
+                      <span className="w-0.5 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+                      <span className="w-0.5 h-3 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></span>
+                    </div>
+                    <span className="text-[9px] font-semibold text-blue-800">Speaking...</span>
+                    <button onClick={stopSpeaking} className="text-blue-500 hover:text-blue-700 text-[7px] font-extrabold border border-blue-200 px-1 py-0.5 rounded bg-white shrink-0 ml-auto">STOP</button>
+                  </div>
+                )}
+              </div>
+
+              {/* Input Form */}
+              <form onSubmit={handleChatSubmit} className="p-2.5 border-t border-gray-150 bg-gray-50 flex items-center space-x-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={isListening ? () => {} : startSpeechRecognition}
+                  className={`p-2 rounded-xl border transition-all shrink-0 ${
+                    isListening
+                      ? 'bg-rose-100 border-rose-300 text-rose-600 animate-pulse'
+                      : 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100'
+                  }`}
+                  title="Speak your question"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" x2="12" y1="19" y2="22"></line>
+                  </svg>
+                </button>
+
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  disabled={chatLoading}
+                  placeholder="Ask CropCare AI..."
+                  className="flex-1 border border-gray-250 rounded-xl px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                />
+                <button
+                  type="submit"
+                  disabled={!chatInput.trim() || chatLoading}
+                  className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold px-3.5 py-1.5 rounded-xl transition-all shadow-md shrink-0 text-xs"
+                >
+                  Send
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* Small round icon button */}
+          <button
+            onClick={() => setChatbotOpen(!chatbotOpen)}
+            className={`h-12 w-12 rounded-full flex items-center justify-center text-white shadow-2xl transition-all duration-350 hover:scale-105 active:scale-95 cursor-pointer relative z-50 ${
+              chatbotOpen 
+                ? 'bg-emerald-850 hover:bg-emerald-900 border border-emerald-800 animate-pulse-subtle' 
+                : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:shadow-emerald-500/20 hover:shadow-xl'
+            }`}
+            title="Chat with CropCare AI"
+          >
+            {chatbotOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <>
+                <MessageSquare className="h-5 w-5 animate-pulse-subtle" />
+                <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border border-white text-[7px] text-white font-black items-center justify-center">AI</span>
+                </span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
