@@ -69,11 +69,12 @@ const STATE_COORDINATES = {
   "Puducherry": { lat: 11.9416, lon: 79.8083 }
 };
 
-const getWeatherDescription = (code) => {
+const getWeatherDescription = (code, isDay = 1) => {
+  const isNight = isDay === 0;
   const codes = {
-    0: { desc: 'Clear sky', icon: '☀️' },
-    1: { desc: 'Mainly clear', icon: '🌤️' },
-    2: { desc: 'Partly cloudy', icon: '⛅' },
+    0: { desc: isNight ? 'Clear night' : 'Clear sky', icon: isNight ? '🌙' : '☀️' },
+    1: { desc: isNight ? 'Mainly clear night' : 'Mainly clear', icon: isNight ? '🌙' : '🌤️' },
+    2: { desc: isNight ? 'Partly cloudy night' : 'Partly cloudy', icon: isNight ? '☁️🌙' : '⛅' },
     3: { desc: 'Overcast', icon: '☁️' },
     45: { desc: 'Fog', icon: '🌫️' },
     48: { desc: 'Depositing rime fog', icon: '🌫️' },
@@ -103,7 +104,14 @@ const getWeatherDescription = (code) => {
   return codes[code] || { desc: 'Unknown weather', icon: '🌡️' };
 };
 
-const getWeatherGradient = (code) => {
+const getWeatherGradient = (code, isDay = 1) => {
+  const isNight = isDay === 0;
+  if (isNight) {
+    if ([0, 1, 2].includes(code)) {
+      return 'from-slate-900 via-indigo-950 to-slate-900';
+    }
+    return 'from-slate-950 via-blue-950 to-zinc-900';
+  }
   if (code === undefined || code === null) return 'from-sky-500 via-blue-600 to-indigo-700';
   if ([0, 1, 2].includes(code)) {
     return 'from-amber-500 via-orange-500 to-amber-600';
@@ -1446,13 +1454,13 @@ export default function App() {
                 </div>
 
                 {dashboardWeather && (
-                  <div className={`p-6 rounded-2xl bg-gradient-to-br ${getWeatherGradient(dashboardWeather.weathercode)} text-white shadow-md border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-6 transition-all duration-300 hover:shadow-lg animate-fade-in`}>
+                  <div className={`p-6 rounded-2xl bg-gradient-to-br ${getWeatherGradient(dashboardWeather.weathercode, dashboardWeather.is_day)} text-white shadow-md border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-6 transition-all duration-300 hover:shadow-lg animate-fade-in`}>
                     <div className="flex items-center gap-5">
-                      <span className="text-5xl md:text-6xl">{getWeatherDescription(dashboardWeather.weathercode).icon}</span>
+                      <span className="text-5xl md:text-6xl">{getWeatherDescription(dashboardWeather.weathercode, dashboardWeather.is_day).icon}</span>
                       <div className="text-left space-y-1">
                         <span className="text-[10px] font-black uppercase tracking-wider text-white/70 bg-white/15 px-2.5 py-0.5 rounded-full inline-block">National Capital Region Weather</span>
                         <h3 className="text-3xl font-black">{dashboardWeather.temperature}°C</h3>
-                        <p className="text-sm font-bold">{getWeatherDescription(dashboardWeather.weathercode).desc}</p>
+                        <p className="text-sm font-bold">{getWeatherDescription(dashboardWeather.weathercode, dashboardWeather.is_day).desc}</p>
                         <p className="text-xs text-white/80">Wind speed: {dashboardWeather.windspeed} km/h • Standard Station coordinates</p>
                       </div>
                     </div>
@@ -1630,12 +1638,12 @@ export default function App() {
                               <span className="text-xs font-semibold">Loading Weather...</span>
                             </div>
                           ) : weatherData && (
-                            <div className={`p-4 rounded-2xl bg-gradient-to-br ${getWeatherGradient(weatherData.weathercode)} text-white flex items-center gap-4 shadow-sm border border-white/10 max-w-xs shrink-0`}>
-                              <span className="text-4xl">{getWeatherDescription(weatherData.weathercode).icon}</span>
+                            <div className={`p-4 rounded-2xl bg-gradient-to-br ${getWeatherGradient(weatherData.weathercode, weatherData.is_day)} text-white flex items-center gap-4 shadow-sm border border-white/10 max-w-xs shrink-0`}>
+                              <span className="text-4xl">{getWeatherDescription(weatherData.weathercode, weatherData.is_day).icon}</span>
                               <div className="text-left">
                                 <span className="text-[9px] font-black uppercase tracking-wider text-white/70 block">Live Weather</span>
                                 <span className="text-xl font-black">{weatherData.temperature}°C</span>
-                                <span className="text-xs font-bold block">{getWeatherDescription(weatherData.weathercode).desc}</span>
+                                <span className="text-xs font-bold block">{getWeatherDescription(weatherData.weathercode, weatherData.is_day).desc}</span>
                                 <span className="text-[10px] text-white/80 block mt-0.5">💨 {weatherData.windspeed} km/h wind</span>
                               </div>
                             </div>
