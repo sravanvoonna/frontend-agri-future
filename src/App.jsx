@@ -593,7 +593,7 @@ export default function App() {
     return 'en-IN';
   };
 
-  const speakText = (text, lang) => {
+  const fallbackSpeakText = (text, lang) => {
     if (!window.speechSynthesis) return;
     
     try {
@@ -663,7 +663,67 @@ export default function App() {
     }, 100);
   };
 
+  const speakText = async (text, lang) => {
+    if (!text) return;
+    
+    stopSpeaking();
+    setIsSpeaking(true);
+    
+    try {
+      const cleanText = text
+        .replace(/[*#`_\-]/g, '')
+        .replace(/\n+/g, ' ');
+
+      const response = await axios.post('https://api.sarvam.ai/text-to-speech', {
+        text: cleanText,
+        speaker: 'priya', // Excellent Tier 1 Female voice
+        target_language_code: lang,
+        model: 'bulbul:v3',
+        pace: 1.0,
+        enable_preprocessing: true
+      }, {
+        headers: {
+          'api-subscription-key': 'sk_3mjur4e9_HLfe5OP7WqgZIV0fXi3ZZk36',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.data && response.data.audios && response.data.audios.length > 0) {
+        const audioBase64 = response.data.audios[0];
+        const audioUrl = `data:audio/wav;base64,${audioBase64}`;
+        
+        const audio = new Audio(audioUrl);
+        window.activeAudio = audio;
+        
+        audio.onplay = () => setIsSpeaking(true);
+        audio.onended = () => {
+          setIsSpeaking(false);
+          window.activeAudio = null;
+        };
+        audio.onerror = (e) => {
+          console.error("Sarvam AI Audio playback error, falling back:", e);
+          fallbackSpeakText(text, lang);
+        };
+        
+        await audio.play();
+      } else {
+        throw new Error("Invalid audio response structure from Sarvam AI");
+      }
+    } catch (err) {
+      console.error("Sarvam AI TTS call failed, using WebSpeech fallback:", err);
+      fallbackSpeakText(text, lang);
+    }
+  };
+
   const stopSpeaking = () => {
+    if (window.activeAudio) {
+      try {
+        window.activeAudio.pause();
+        window.activeAudio = null;
+      } catch (e) {
+        console.error("Error pausing active audio:", e);
+      }
+    }
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
