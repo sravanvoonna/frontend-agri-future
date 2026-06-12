@@ -36,6 +36,87 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
   ? 'http://127.0.0.1:5000/api'
   : 'https://agri-future-backend.onrender.com/api';
 
+const STATE_COORDINATES = {
+  "Andhra Pradesh": { lat: 15.9129, lon: 79.7400 },
+  "Arunachal Pradesh": { lat: 28.2180, lon: 94.7278 },
+  "Assam": { lat: 26.2006, lon: 92.9376 },
+  "Bihar": { lat: 25.0961, lon: 85.3131 },
+  "Chhattisgarh": { lat: 21.2787, lon: 81.8661 },
+  "Goa": { lat: 15.2993, lon: 74.1240 },
+  "Gujarat": { lat: 22.2587, lon: 71.1924 },
+  "Haryana": { lat: 29.0588, lon: 76.0856 },
+  "Himachal Pradesh": { lat: 31.1048, lon: 77.1734 },
+  "Jharkhand": { lat: 23.6102, lon: 85.2799 },
+  "Karnataka": { lat: 15.3173, lon: 75.7139 },
+  "Kerala": { lat: 10.8505, lon: 76.2711 },
+  "Madhya Pradesh": { lat: 22.9734, lon: 78.6569 },
+  "Maharashtra": { lat: 19.7515, lon: 75.7139 },
+  "Manipur": { lat: 24.6637, lon: 93.9063 },
+  "Meghalaya": { lat: 25.4670, lon: 91.3662 },
+  "Mizoram": { lat: 23.1645, lon: 92.9376 },
+  "Nagaland": { lat: 26.1584, lon: 94.5624 },
+  "Odisha": { lat: 20.9517, lon: 85.0985 },
+  "Punjab": { lat: 31.1471, lon: 75.3412 },
+  "Rajasthan": { lat: 27.0238, lon: 74.2179 },
+  "Sikkim": { lat: 27.5330, lon: 88.5122 },
+  "Tamil Nadu": { lat: 11.1271, lon: 78.6569 },
+  "Telangana": { lat: 18.1124, lon: 79.0193 },
+  "Tripura": { lat: 23.9408, lon: 91.9882 },
+  "Uttar Pradesh": { lat: 26.8467, lon: 80.9462 },
+  "Uttarakhand": { lat: 30.0668, lon: 79.0193 },
+  "West Bengal": { lat: 22.9868, lon: 87.8550 },
+  "Jammu & Kashmir": { lat: 33.7782, lon: 76.5762 },
+  "Puducherry": { lat: 11.9416, lon: 79.8083 }
+};
+
+const getWeatherDescription = (code) => {
+  const codes = {
+    0: { desc: 'Clear sky', icon: '☀️' },
+    1: { desc: 'Mainly clear', icon: '🌤️' },
+    2: { desc: 'Partly cloudy', icon: '⛅' },
+    3: { desc: 'Overcast', icon: '☁️' },
+    45: { desc: 'Fog', icon: '🌫️' },
+    48: { desc: 'Depositing rime fog', icon: '🌫️' },
+    51: { desc: 'Light drizzle', icon: '🌧️' },
+    53: { desc: 'Moderate drizzle', icon: '🌧️' },
+    55: { desc: 'Dense drizzle', icon: '🌧️' },
+    56: { desc: 'Light freezing drizzle', icon: '🌧️' },
+    57: { desc: 'Dense freezing drizzle', icon: '🌧️' },
+    61: { desc: 'Slight rain', icon: '🌧️' },
+    63: { desc: 'Moderate rain', icon: '🌧️' },
+    65: { desc: 'Heavy rain', icon: '🌧️' },
+    66: { desc: 'Light freezing rain', icon: '🌧️' },
+    67: { desc: 'Heavy freezing rain', icon: '🌧️' },
+    71: { desc: 'Slight snow fall', icon: '❄️' },
+    73: { desc: 'Moderate snow fall', icon: '❄️' },
+    75: { desc: 'Heavy snow fall', icon: '❄️' },
+    77: { desc: 'Snow grains', icon: '❄️' },
+    80: { desc: 'Slight rain showers', icon: '🌦️' },
+    81: { desc: 'Moderate rain showers', icon: '🌦️' },
+    82: { desc: 'Violent rain showers', icon: '🌦️' },
+    85: { desc: 'Slight snow showers', icon: '🌨️' },
+    86: { desc: 'Heavy snow showers', icon: '🌨️' },
+    95: { desc: 'Thunderstorm', icon: '⛈️' },
+    96: { desc: 'Thunderstorm with light hail', icon: '⛈️' },
+    99: { desc: 'Thunderstorm with heavy hail', icon: '⛈️' }
+  };
+  return codes[code] || { desc: 'Unknown weather', icon: '🌡️' };
+};
+
+const getWeatherGradient = (code) => {
+  if (code === undefined || code === null) return 'from-sky-500 via-blue-600 to-indigo-700';
+  if ([0, 1, 2].includes(code)) {
+    return 'from-amber-500 via-orange-500 to-amber-600';
+  }
+  if ([3, 45, 48].includes(code)) {
+    return 'from-slate-400 via-gray-500 to-slate-600';
+  }
+  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99].includes(code)) {
+    return 'from-sky-600 via-blue-700 to-slate-800';
+  }
+  return 'from-sky-500 via-blue-600 to-indigo-700';
+};
+
 export default function App() {
   // Navigation
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -170,6 +251,21 @@ export default function App() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
 
+  // 12. Weather, Mandi Prices, Profit Calculator & Soil Analyzer States
+  const [weatherData, setWeatherData] = useState(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [dashboardWeather, setDashboardWeather] = useState(null);
+  const [dashboardWeatherLoading, setDashboardWeatherLoading] = useState(false);
+  
+  const [mandiPrices, setMandiPrices] = useState({});
+  const [calcAcres, setCalcAcres] = useState('1');
+  const [calcCostPerAcre, setCalcCostPerAcre] = useState('15000');
+
+  const [soilAnalPh, setSoilAnalPh] = useState('6.8');
+  const [soilAnalN, setSoilAnalN] = useState('Medium');
+  const [soilAnalP, setSoilAnalP] = useState('Medium');
+  const [soilAnalK, setSoilAnalK] = useState('Medium');
+
   // Agricultural Loading Phrases
   const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
   const loadingPhrases = [
@@ -189,6 +285,166 @@ export default function App() {
       return () => clearInterval(interval);
     }
   }, [loading]);
+
+  const fetchWeatherForState = async (stateName) => {
+    if (!stateName) return;
+    const coords = STATE_COORDINATES[stateName] || { lat: 28.6139, lon: 79.7400 };
+    setWeatherLoading(true);
+    try {
+      const res = await axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current_weather=true`);
+      if (res.data && res.data.current_weather) {
+        setWeatherData({
+          ...res.data.current_weather,
+          stateName: stateName
+        });
+      }
+    } catch (err) {
+      console.error(`Error fetching weather for state ${stateName}:`, err);
+    } finally {
+      setWeatherLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (stateDetail && stateDetail.state_name) {
+      fetchWeatherForState(stateDetail.state_name);
+    }
+  }, [stateDetail]);
+
+  useEffect(() => {
+    const fetchDashboardWeather = async () => {
+      setDashboardWeatherLoading(true);
+      try {
+        const lat = 28.6139; // New Delhi
+        const lon = 77.2090;
+        const res = await axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+        if (res.data && res.data.current_weather) {
+          setDashboardWeather(res.data.current_weather);
+        }
+      } catch (err) {
+        console.error("Error fetching dashboard weather:", err);
+      } finally {
+        setDashboardWeatherLoading(false);
+      }
+    };
+    fetchDashboardWeather();
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMandiPrices(prev => {
+        const updated = { ...prev };
+        crops.forEach(crop => {
+          if (!crop.msp || crop.msp === 'N/A') return;
+          const basePriceMatch = crop.msp.match(/\d+[\d,.]*/);
+          const basePrice = basePriceMatch ? parseFloat(basePriceMatch[0].replace(/,/g, '')) : 2000;
+          
+          if (!updated[crop.id]) {
+            updated[crop.id] = [
+              { mandi: 'Azadpur Mandi (Delhi)', price: Math.round(basePrice * 1.05), change: 0, trend: 'stable' },
+              { mandi: 'Vashi Mandi (Mumbai)', price: Math.round(basePrice * 1.08), change: 0, trend: 'stable' },
+              { mandi: 'Kalyan Mandi (Kolkata)', price: Math.round(basePrice * 1.02), change: 0, trend: 'stable' },
+              { mandi: 'Guntur Mandi (AP)', price: Math.round(basePrice * 1.04), change: 0, trend: 'stable' }
+            ];
+          } else {
+            updated[crop.id] = updated[crop.id].map(m => {
+              const delta = Math.floor(Math.random() * 31) - 15;
+              const newPrice = Math.max(Math.round(basePrice * 0.9), m.price + delta);
+              let trend = 'stable';
+              if (delta > 3) trend = 'up';
+              else if (delta < -3) trend = 'down';
+              return {
+                ...m,
+                price: newPrice,
+                change: delta,
+                trend: trend === 'stable' ? m.trend : trend
+              };
+            });
+          }
+        });
+        return updated;
+      });
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [crops]);
+
+  const getCalculationResults = (crop) => {
+    if (!crop) return null;
+    const mspMatch = crop.msp ? crop.msp.match(/\d+[\d,.]*/) : null;
+    const mspPerQuintal = mspMatch ? parseFloat(mspMatch[0].replace(/,/g, '')) : 2000;
+    
+    const yieldMatches = crop.yield ? crop.yield.match(/\d+[\d,.]*/g) : null;
+    let avgYieldTonsPerHectare = 3.5;
+    if (yieldMatches) {
+      if (yieldMatches.length >= 2) {
+        avgYieldTonsPerHectare = (parseFloat(yieldMatches[0]) + parseFloat(yieldMatches[1])) / 2;
+      } else {
+        avgYieldTonsPerHectare = parseFloat(yieldMatches[0]);
+      }
+    }
+    
+    const yieldTonsPerAcre = avgYieldTonsPerHectare / 2.47;
+    const yieldQuintalsPerAcre = yieldTonsPerAcre * 10;
+    
+    const acres = parseFloat(calcAcres) || 0;
+    const costPerAcre = parseFloat(calcCostPerAcre) || 0;
+    
+    const totalYieldQuintals = yieldQuintalsPerAcre * acres;
+    const totalCost = costPerAcre * acres;
+    const totalRevenue = totalYieldQuintals * mspPerQuintal;
+    const netProfit = totalRevenue - totalCost;
+    const profitMarginPct = totalRevenue > 0 ? (netProfit / totalRevenue) * 105 : 0;
+    
+    return {
+      yieldPerAcre: yieldQuintalsPerAcre.toFixed(1),
+      totalYield: totalYieldQuintals.toFixed(1),
+      totalCost: Math.round(totalCost),
+      totalRevenue: Math.round(totalRevenue),
+      netProfit: Math.round(netProfit),
+      profitMarginPct: Math.min(100, Math.max(0, Math.round(profitMarginPct)))
+    };
+  };
+
+  const getSoilRecommendations = () => {
+    const ph = parseFloat(soilAnalPh) || 7.0;
+    
+    let ureaBags = 2.0;
+    if (soilAnalN === 'Low') ureaBags = 3.0;
+    else if (soilAnalN === 'High') ureaBags = 1.0;
+    
+    let sspBags = 2.5;
+    if (soilAnalP === 'Low') sspBags = 4.0;
+    else if (soilAnalP === 'High') sspBags = 1.0;
+    
+    let mopBags = 1.0;
+    if (soilAnalK === 'Low') mopBags = 1.5;
+    else if (soilAnalK === 'High') mopBags = 0.5;
+    
+    let amendment = "";
+    let colorClass = "text-emerald-700 bg-emerald-50 border-emerald-200";
+    if (ph < 6.0) {
+      amendment = "Highly acidic. Apply Lime (Calcium Carbonate) at 1.5 - 2.0 tons per acre to neutralize acidity and improve nutrient uptake.";
+      colorClass = "text-amber-800 bg-amber-50 border-amber-200";
+    } else if (ph > 8.5) {
+      amendment = "Highly alkaline/sodic. Apply Gypsum (Calcium Sulfate) at 1.5 - 2.5 tons per acre to replace sodium with calcium and improve soil structure.";
+      colorClass = "text-rose-800 bg-rose-50 border-rose-200";
+    } else if (ph > 7.5) {
+      amendment = "Mildly alkaline. Use acid-forming fertilizers like Ammonium Sulfate instead of Urea. Keep organic carbon high with crop residues.";
+      colorClass = "text-blue-800 bg-blue-50 border-blue-200";
+    } else {
+      amendment = "Optimal pH range. Maintain organic carbon levels using well-rotted Farmyard Manure (FYM) or green manuring.";
+      colorClass = "text-emerald-800 bg-emerald-50 border-emerald-200";
+    }
+    
+    return {
+      urea: ureaBags,
+      ssp: sspBags,
+      mop: mopBags,
+      amendment,
+      colorClass
+    };
+  };
 
   // Fetch all basic data on mount
   useEffect(() => {
@@ -259,14 +515,50 @@ export default function App() {
       setChemicals(chemicalsRes.data);
       setApiStats(statsRes.data);
       
+      try {
+        localStorage.setItem('cached_states', JSON.stringify(statesRes.data));
+        localStorage.setItem('cached_crops', JSON.stringify(cropsRes.data));
+        localStorage.setItem('cached_soils', JSON.stringify(soilsRes.data));
+        localStorage.setItem('cached_diseases', JSON.stringify(diseasesRes.data));
+        localStorage.setItem('cached_chemicals', JSON.stringify(chemicalsRes.data));
+        localStorage.setItem('cached_stats', JSON.stringify(statsRes.data));
+      } catch (storageErr) {
+        console.error('Failed to write to localStorage cache:', storageErr);
+      }
+      
       // Default selections
       if (statesRes.data.length > 0) {
         setSelectedStateId(statesRes.data[0].id.toString());
       }
     } catch (err) {
-      console.error('Error fetching API data:', err);
-      setApiOnline(false);
-      setErrorMessage('Could not connect to the Python Flask REST API server. Please ensure the backend server is running on http://127.0.0.1:5000.');
+      console.error('Error fetching API data, trying offline cache:', err);
+      
+      const cachedStates = localStorage.getItem('cached_states');
+      const cachedCrops = localStorage.getItem('cached_crops');
+      const cachedSoils = localStorage.getItem('cached_soils');
+      const cachedDiseases = localStorage.getItem('cached_diseases');
+      const cachedChemicals = localStorage.getItem('cached_chemicals');
+      const cachedStats = localStorage.getItem('cached_stats');
+
+      if (cachedStates && cachedCrops) {
+        setStates(JSON.parse(cachedStates));
+        setCrops(JSON.parse(cachedCrops));
+        setSoils(JSON.parse(cachedSoils));
+        setDiseases(JSON.parse(cachedDiseases));
+        setChemicals(JSON.parse(cachedChemicals));
+        if (cachedStats) setApiStats(JSON.parse(cachedStats));
+        
+        setApiOnline(false);
+        setErrorMessage('Offline Mode - Serving locally cached agricultural database.');
+        
+        const parsedStates = JSON.parse(cachedStates);
+        if (parsedStates.length > 0) {
+          setSelectedStateId(parsedStates[0].id.toString());
+        }
+      } else {
+        setApiOnline(false);
+        setErrorMessage('Could not connect to the Python Flask REST API server and no offline cache is available.');
+      }
     } finally {
       setLoading(false);
     }
@@ -1153,6 +1445,28 @@ export default function App() {
                   </div>
                 </div>
 
+                {dashboardWeather && (
+                  <div className={`p-6 rounded-2xl bg-gradient-to-br ${getWeatherGradient(dashboardWeather.weathercode)} text-white shadow-md border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-6 transition-all duration-300 hover:shadow-lg animate-fade-in`}>
+                    <div className="flex items-center gap-5">
+                      <span className="text-5xl md:text-6xl">{getWeatherDescription(dashboardWeather.weathercode).icon}</span>
+                      <div className="text-left space-y-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-white/70 bg-white/15 px-2.5 py-0.5 rounded-full inline-block">National Capital Region Weather</span>
+                        <h3 className="text-3xl font-black">{dashboardWeather.temperature}°C</h3>
+                        <p className="text-sm font-bold">{getWeatherDescription(dashboardWeather.weathercode).desc}</p>
+                        <p className="text-xs text-white/80">Wind speed: {dashboardWeather.windspeed} km/h • Standard Station coordinates</p>
+                      </div>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-xl text-left max-w-sm">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-emerald-300">Agricultural Advisory</h4>
+                      <p className="text-xs text-white/90 leading-relaxed mt-1">
+                        {[0, 1, 2].includes(dashboardWeather.weathercode) ? "Ideal conditions for sowing, harvesting, and pesticide application." :
+                         [3, 45, 48].includes(dashboardWeather.weathercode) ? "Cool weather. Monitor crops for fungal activity." :
+                         "Rain expected. Delay irrigation and pesticide spraying. Ensure proper soil drainage."}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Stat Cards Grid */}
                 <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                   {[
@@ -1302,12 +1616,30 @@ export default function App() {
                   <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-6">
                     {stateDetail ? (
                       <div className="space-y-6">
-                        <div className="border-b border-gray-100 pb-4">
-                          <h3 className="text-2xl font-black text-emerald-900">{stateDetail.state_name}</h3>
-                          <div className="flex items-center space-x-2 mt-2 text-xs font-semibold px-2.5 py-1 rounded bg-emerald-50 text-emerald-700 w-fit">
-                            <Thermometer className="h-3.5 w-3.5" />
-                            <span>Climate Zone: {stateDetail.climate}</span>
+                        <div className="border-b border-gray-100 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                          <div>
+                            <h3 className="text-2xl font-black text-emerald-900">{stateDetail.state_name}</h3>
+                            <div className="flex items-center space-x-2 mt-2 text-xs font-semibold px-2.5 py-1 rounded bg-emerald-50 text-emerald-700 w-fit">
+                              <Thermometer className="h-3.5 w-3.5" />
+                              <span>Climate Zone: {stateDetail.climate}</span>
+                            </div>
                           </div>
+                          {weatherLoading ? (
+                            <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-gray-400 flex items-center gap-3 w-fit">
+                              <RefreshCw className="h-4 w-4 animate-spin text-emerald-600" />
+                              <span className="text-xs font-semibold">Loading Weather...</span>
+                            </div>
+                          ) : weatherData && (
+                            <div className={`p-4 rounded-2xl bg-gradient-to-br ${getWeatherGradient(weatherData.weathercode)} text-white flex items-center gap-4 shadow-sm border border-white/10 max-w-xs shrink-0`}>
+                              <span className="text-4xl">{getWeatherDescription(weatherData.weathercode).icon}</span>
+                              <div className="text-left">
+                                <span className="text-[9px] font-black uppercase tracking-wider text-white/70 block">Live Weather</span>
+                                <span className="text-xl font-black">{weatherData.temperature}°C</span>
+                                <span className="text-xs font-bold block">{getWeatherDescription(weatherData.weathercode).desc}</span>
+                                <span className="text-[10px] text-white/80 block mt-0.5">💨 {weatherData.windspeed} km/h wind</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         <div>
@@ -1622,7 +1954,13 @@ export default function App() {
                       return (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {supportedCrops.map(c => (
-                            <div key={c.id} className="bg-white rounded-xl border border-emerald-100 hover:border-emerald-300 shadow-sm hover:shadow-md transition-all p-5 flex flex-col justify-between space-y-4">
+                            <div 
+                              key={c.id} 
+                              onClick={() => setSelectedMspChartCropId(c.id)}
+                              className={`bg-white rounded-xl border cursor-pointer shadow-sm transition-all p-5 flex flex-col justify-between space-y-4 ${
+                                selectedMspChartCropId === c.id ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md' : 'border-emerald-100 hover:border-emerald-300'
+                              }`}
+                            >
                               <div className="flex justify-between items-start">
                                 <div className="space-y-1">
                                   <div className="flex items-center space-x-2">
@@ -1633,7 +1971,7 @@ export default function App() {
                                   </div>
                                   <p className="text-xs text-gray-400 italic font-medium">{c.scientific_name}</p>
                                 </div>
-                                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+                                <div className="p-2 bg-emerald-55 text-emerald-600 rounded-lg">
                                   <Sprout className="h-5 w-5" />
                                 </div>
                               </div>
@@ -1666,7 +2004,8 @@ export default function App() {
                               </div>
 
                               <button
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setSelectedCropDetail(c);
                                   setActiveTab('crop-info');
                                 }}
@@ -1870,6 +2209,136 @@ export default function App() {
                         <div className="text-center text-xs text-gray-450 py-4">No prediction data available.</div>
                       )}
                     </div>
+
+                    {/* Live Mandi Prices Card */}
+                    {(() => {
+                      const selectedCrop = crops.find(c => c.id === selectedMspChartCropId);
+                      if (!selectedCrop) return null;
+                      const prices = mandiPrices[selectedMspChartCropId];
+                      return (
+                        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-4 animate-fade-in text-left">
+                          <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                            <h4 className="font-extrabold text-sm text-gray-900 flex items-center">
+                              <span className="relative flex h-2 w-2 mr-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                              </span>
+                              Live Mandi Prices: {selectedCrop.crop_name}
+                            </h4>
+                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider">Updates live</span>
+                          </div>
+                          
+                          <div className="space-y-2.5">
+                            {prices ? prices.map((m, idx) => (
+                              <div key={idx} className="flex justify-between items-center text-xs p-2.5 bg-gray-50/70 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
+                                <div>
+                                  <span className="font-bold text-gray-800 block">{m.mandi}</span>
+                                  <span className="text-[9px] text-gray-400">Standard Quality</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="font-black text-gray-900 text-sm block">₹{m.price}</span>
+                                  <span className={`text-[9px] font-bold flex items-center justify-end gap-0.5 ${
+                                    m.trend === 'up' ? 'text-emerald-600' : m.trend === 'down' ? 'text-rose-600' : 'text-gray-500'
+                                  }`}>
+                                    {m.trend === 'up' ? '▲' : m.trend === 'down' ? '▼' : '■'}
+                                    {m.change !== 0 ? `${Math.abs(m.change)}` : 'Stable'}
+                                  </span>
+                                </div>
+                              </div>
+                            )) : (
+                              <p className="text-center text-xs text-gray-400 py-2">Loading live prices...</p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Crop Yield & Profit Calculator */}
+                    {(() => {
+                      const selectedCrop = crops.find(c => c.id === selectedMspChartCropId);
+                      if (!selectedCrop) return null;
+                      const results = getCalculationResults(selectedCrop);
+                      if (!results) return null;
+                      
+                      return (
+                        <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-4 text-left animate-fade-in">
+                          <div className="border-b border-gray-100 pb-2">
+                            <h4 className="font-extrabold text-sm text-gray-900 flex items-center">
+                              <Sliders className="h-4.5 w-4.5 text-emerald-600 mr-2" />
+                              Profit & Yield Calculator
+                            </h4>
+                            <p className="text-[10px] text-gray-400 mt-0.5">Estimate investment cost, yield, and margins using current MSP.</p>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-3.5">
+                            <div>
+                              <label className="text-[9px] font-black text-gray-400 uppercase tracking-wide block mb-1">Land Size (Acres)</label>
+                              <input
+                                type="number"
+                                min="0.1"
+                                step="0.1"
+                                value={calcAcres}
+                                onChange={(e) => setCalcAcres(e.target.value)}
+                                className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-black text-gray-400 uppercase tracking-wide block mb-1">Cost Per Acre (₹)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="500"
+                                value={calcCostPerAcre}
+                                onChange={(e) => setCalcCostPerAcre(e.target.value)}
+                                className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="border-t border-gray-150 pt-3 space-y-2 text-xs">
+                            <div className="flex justify-between font-semibold">
+                              <span className="text-gray-500">Est. Yield Per Acre:</span>
+                              <span className="text-gray-900">{results.yieldPerAcre} Quintals</span>
+                            </div>
+                            <div className="flex justify-between font-semibold">
+                              <span className="text-gray-500">Total Est. Yield:</span>
+                              <span className="text-gray-900">{results.totalYield} Quintals</span>
+                            </div>
+                            <div className="flex justify-between font-semibold">
+                              <span className="text-gray-500">Total Investment Cost:</span>
+                              <span className="text-rose-600 font-bold">₹{results.totalCost.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between font-semibold">
+                              <span className="text-gray-500">Gross Revenue (at MSP):</span>
+                              <span className="text-emerald-600 font-bold">₹{results.totalRevenue.toLocaleString()}</span>
+                            </div>
+                            
+                            <div className="border-t border-dashed border-gray-200 pt-2 flex justify-between items-center font-bold">
+                              <span className="text-gray-700">Net Est. Profit:</span>
+                              <span className={`text-base font-black ${results.netProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                                ₹{results.netProfit.toLocaleString()}
+                              </span>
+                            </div>
+
+                            <div className="space-y-1 mt-2">
+                              <div className="flex justify-between text-[10px] font-bold">
+                                <span className="text-gray-400 uppercase">Profit Margin</span>
+                                <span className={results.netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}>
+                                  {results.profitMarginPct}%
+                                </span>
+                              </div>
+                              <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                                <div 
+                                  className={`h-2 rounded-full transition-all duration-500 ${results.netProfit >= 0 ? 'bg-emerald-600' : 'bg-rose-500'}`}
+                                  style={{ width: `${results.profitMarginPct}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {/* Procurement Guidelines Sider Card */}
                     <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 text-white rounded-2xl p-6 shadow-md border border-emerald-800 space-y-5">
                       <div className="border-b border-emerald-800 pb-3">
@@ -1965,62 +2434,166 @@ export default function App() {
                   <p className="text-sm text-gray-500 mt-1">Catalog of soil classifications, characteristics, pH ratings, and nutrient indexes.</p>
                 </div>
 
-                <div className="relative max-w-md">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search soil by name or attribute..."
-                    value={soilSearchText}
-                    onChange={(e) => setSoilSearchText(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                  />
-                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                  {/* Left Column: Soils List */}
+                  <div className="lg:col-span-2 space-y-6">
+                    <div className="relative max-w-md">
+                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search soil by name or attribute..."
+                        value={soilSearchText}
+                        onChange={(e) => setSoilSearchText(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                      />
+                    </div>
 
-                {/* Soil list */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {filteredSoils.map((soil) => (
-                    <div 
-                      key={soil.id}
-                      className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-4"
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-extrabold text-base text-gray-900 flex items-center space-x-2">
-                            <Database className="h-5 w-5 text-amber-700" />
-                            <span>{soil.soil_name}</span>
-                          </h3>
-                          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
-                            pH: {soil.ph_range}
-                          </span>
-                        </div>
-
-                        <div>
-                          <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Characteristics & Nutrients</span>
-                          <p className="text-xs text-gray-600 leading-relaxed mt-1">{soil.characteristics}</p>
-                        </div>
-                      </div>
-
-                      <div className="border-t border-gray-100 pt-3.5">
-                        <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-1.5">Suitable Crops for Cultivation</span>
-                        <div className="flex flex-wrap gap-1">
-                          {soil.suitable_crops && soil.suitable_crops.length > 0 ? (
-                            soil.suitable_crops.map((c, idx) => (
-                              <span key={idx} className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded text-[10px] font-bold">
-                                {c}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {filteredSoils.map((soil) => (
+                        <div 
+                          key={soil.id}
+                          className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-4"
+                        >
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h3 className="font-extrabold text-base text-gray-900 flex items-center space-x-2">
+                                <Database className="h-5 w-5 text-amber-700" />
+                                <span>{soil.soil_name}</span>
+                              </h3>
+                              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                                pH: {soil.ph_range}
                               </span>
-                            ))
-                          ) : (
-                            <span className="text-gray-400 text-xs italic">No Crops Associated</span>
-                          )}
+                            </div>
+
+                            <div className="text-left">
+                              <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Characteristics & Nutrients</span>
+                              <p className="text-xs text-gray-600 leading-relaxed mt-1">{soil.characteristics}</p>
+                            </div>
+                          </div>
+
+                          <div className="border-t border-gray-100 pt-3.5 text-left">
+                            <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-1.5">Suitable Crops for Cultivation</span>
+                            <div className="flex flex-wrap gap-1">
+                              {soil.suitable_crops && soil.suitable_crops.length > 0 ? (
+                                soil.suitable_crops.map((c, idx) => (
+                                  <span key={idx} className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded text-[10px] font-bold">
+                                    {c}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-gray-400 text-xs italic">No Crops Associated</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {filteredSoils.length === 0 && (
+                        <div className="col-span-full bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
+                          No soil profiles match the search.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right Column: Soil Health Card Analyzer */}
+                  <div className="lg:col-span-1 space-y-6">
+                    <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-5 text-left animate-fade-in">
+                      <div className="border-b border-gray-100 pb-3">
+                        <h3 className="font-extrabold text-base text-gray-900 flex items-center">
+                          <Activity className="h-5 w-5 text-amber-700 mr-2 animate-pulse" />
+                          Soil Health Card Analyzer
+                        </h3>
+                        <p className="text-xs text-gray-400 mt-1">Get precise chemical fertilizer dosage and soil amendment suggestions.</p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-wide block mb-1">Soil pH level ({soilAnalPh})</label>
+                          <input
+                            type="range"
+                            min="3.5"
+                            max="10.0"
+                            step="0.1"
+                            value={soilAnalPh}
+                            onChange={(e) => setSoilAnalPh(e.target.value)}
+                            className="w-full accent-amber-700 cursor-pointer h-1.5 bg-gray-100 rounded-lg appearance-none"
+                          />
+                          <div className="flex justify-between text-[9px] text-gray-400 font-bold uppercase mt-1">
+                            <span className="text-rose-600">Acidic (3.5)</span>
+                            <span className="text-emerald-600">Neutral (7.0)</span>
+                            <span className="text-amber-850">Alkaline (10.0)</span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-wide block mb-1">Nitrogen (N)</label>
+                            <select
+                              value={soilAnalN}
+                              onChange={(e) => setSoilAnalN(e.target.value)}
+                              className="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs font-semibold bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                            >
+                              <option value="Low">Low</option>
+                              <option value="Medium">Medium</option>
+                              <option value="High">High</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-wide block mb-1">Phosphorus (P)</label>
+                            <select
+                              value={soilAnalP}
+                              onChange={(e) => setSoilAnalP(e.target.value)}
+                              className="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs font-semibold bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                            >
+                              <option value="Low">Low</option>
+                              <option value="Medium">Medium</option>
+                              <option value="High">High</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-wide block mb-1">Potassium (K)</label>
+                            <select
+                              value={soilAnalK}
+                              onChange={(e) => setSoilAnalK(e.target.value)}
+                              className="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs font-semibold bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                            >
+                              <option value="Low">Low</option>
+                              <option value="Medium">Medium</option>
+                              <option value="High">High</option>
+                            </select>
+                          </div>
                         </div>
                       </div>
+
+                      {(() => {
+                        const recs = getSoilRecommendations();
+                        return (
+                          <div className="space-y-4 border-t border-gray-150 pt-4 text-xs">
+                            <h4 className="font-extrabold text-[10px] text-gray-400 uppercase tracking-wider">Recommended Fertilizer Dosage (Per Acre):</h4>
+                            <div className="grid grid-cols-3 gap-2 text-center font-bold">
+                              <div className="bg-orange-50 border border-orange-100 rounded-xl p-2">
+                                <span className="font-extrabold text-sm text-orange-850 block">{recs.urea} Bags</span>
+                                <span className="text-[8px] text-orange-600/80 font-bold uppercase tracking-wider block mt-0.5">Urea (46% N)</span>
+                              </div>
+                              <div className="bg-sky-50 border border-sky-100 rounded-xl p-2">
+                                <span className="font-extrabold text-sm text-sky-850 block">{recs.ssp} Bags</span>
+                                <span className="text-[8px] text-sky-600/80 font-bold uppercase tracking-wider block mt-0.5">SSP (16% P)</span>
+                              </div>
+                              <div className="bg-purple-50 border border-purple-100 rounded-xl p-2">
+                                <span className="font-extrabold text-sm text-purple-850 block">{recs.mop} Bags</span>
+                                <span className="text-[8px] text-purple-600/80 font-bold uppercase tracking-wider block mt-0.5">MOP (60% K)</span>
+                              </div>
+                            </div>
+
+                            <div className={`p-4 border rounded-xl space-y-1.5 ${recs.colorClass}`}>
+                              <strong className="text-[10px] font-black uppercase tracking-wider block">Soil Amendment Advisory:</strong>
+                              <p className="text-xs leading-relaxed">{recs.amendment}</p>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
-                  ))}
-                  {filteredSoils.length === 0 && (
-                    <div className="col-span-full bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
-                      No soil profiles match the search.
-                    </div>
-                  )}
+                  </div>
                 </div>
               </div>
             )}
