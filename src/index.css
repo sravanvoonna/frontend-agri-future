@@ -79,3 +79,12 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(21, 128, 61, 0.4);
 }
+
+/* Custom Farmer-themed Sickle Cursors */
+html, body {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M 2 2 C 10 2, 16 6, 16 12 C 16 15, 12 17, 8 17' fill='none' stroke='%23059669' stroke-width='2' stroke-linecap='round'/><path d='M 3 3 C 9 3, 14 6, 14 11 C 14 13, 11 15, 8 15' fill='none' stroke='%23a7f3d0' stroke-width='0.8' stroke-linecap='round'/><line x1='12' y1='16' x2='18' y2='22' stroke='%2378350f' stroke-width='3.5' stroke-linecap='round'/></svg>") 2 2, auto;
+}
+
+a, button, select, input, textarea, [role="button"], .cursor-pointer {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'><path d='M 2 2 C 10 2, 16 6, 16 12 C 16 15, 12 17, 8 17' fill='none' stroke='%23059669' stroke-width='2' stroke-linecap='round'/><path d='M 3 3 C 9 3, 14 6, 14 11 C 14 13, 11 15, 8 15' fill='none' stroke='%23a7f3d0' stroke-width='0.8' stroke-linecap='round'/><line x1='12' y1='16' x2='18' y2='22' stroke='%2378350f' stroke-width='3.5' stroke-linecap='round'/><path d='M 18 10 C 22 10, 24 8, 24 4 C 20 4, 18 6, 18 10' fill='%2310b981'/><path d='M 18 10 C 18 12, 20 14, 24 14 C 24 10, 22 10, 18 10' fill='%2334d399'/><line x1='18' y1='10' x2='16' y2='12' stroke='%23059669' stroke-width='1.5' stroke-linecap='round'/></svg>") 2 2, pointer;
+}
