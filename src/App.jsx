@@ -274,6 +274,8 @@ export default function App() {
   const [soilAnalP, setSoilAnalP] = useState('Medium');
   const [soilAnalK, setSoilAnalK] = useState('Medium');
 
+  const [isDragging, setIsDragging] = useState(false);
+
   // Agricultural Loading Phrases
   const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
   const loadingPhrases = [
@@ -818,6 +820,32 @@ export default function App() {
       setAiImageFile(file);
       setAiImagePreview(URL.createObjectURL(file));
       setAiResult(null);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (file.type.startsWith('image/')) {
+        setAiImageFile(file);
+        setAiImagePreview(URL.createObjectURL(file));
+        setAiResult(null);
+        setAiError('');
+      } else {
+        setAiError('Please upload a valid image file (PNG, JPG, or JPEG).');
+      }
     }
   };
 
@@ -3919,7 +3947,16 @@ export default function App() {
                   </div>
 
                   {/* Upload Interface */}
-                  <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center bg-gray-50/50 hover:bg-gray-50 transition-all flex flex-col items-center justify-center space-y-3.5 relative">
+                  <div 
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`border-2 border-dashed rounded-xl p-8 text-center transition-all flex flex-col items-center justify-center space-y-3.5 relative ${
+                      isDragging 
+                        ? 'border-emerald-500 bg-emerald-50/50 shadow-inner' 
+                        : 'border-gray-200 bg-gray-50/50 hover:bg-gray-50'
+                    }`}
+                  >
                     {aiImagePreview ? (
                       <div className="relative max-w-xs rounded-lg overflow-hidden border shadow-inner">
                         <img src={aiImagePreview} alt="Crop Leaf Preview" className="max-h-56 object-cover" />
