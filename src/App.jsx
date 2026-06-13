@@ -129,6 +129,8 @@ export default function App() {
   // Navigation
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [cropSubTab, setCropSubTab] = useState('catalog'); // 'catalog' or 'states'
+  const [healthSubTab, setHealthSubTab] = useState('diseases'); // 'diseases' or 'chemicals'
 
   // Core Data States
   const [states, setStates] = useState([]);
@@ -1323,27 +1325,40 @@ export default function App() {
               <p className="text-xs text-emerald-300 font-medium">Advisory System</p>
             </div>
           </div>
-          <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(false)}>
-            <X className="h-6 w-6" />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button 
+              onClick={() => {
+                if (!isAdminAuthenticated) {
+                  setAdminPasswordInput('');
+                  setAdminPasswordError('');
+                  setAdminPasswordModalOpen(true);
+                } else {
+                  setActiveTab('admin-panel');
+                }
+              }}
+              title="Admin Panel"
+              className="hidden md:flex text-emerald-300 hover:text-white p-1.5 rounded-lg hover:bg-emerald-800 transition-all"
+            >
+              <UserCheck className="h-5 w-5" />
+            </button>
+            <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(false)}>
+              <X className="h-6 w-6" />
+            </button>
+          </div>
         </div>
 
         {/* Navigation Tabs */}
         <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
           {[
             { id: 'dashboard', label: 'Dashboard', icon: Layers },
-            { id: 'state-select', label: 'State-wise Crops', icon: MapPin },
-            { id: 'crop-info', label: 'Crop Information', icon: Sprout },
+            { id: 'crop-info', label: 'Crops Directory', icon: Sprout },
             { id: 'gov-msp', label: 'Govt Crops & MSP', icon: TrendingUp },
             { id: 'gov-schemes', label: 'Govt Schemes Eligibility', icon: CheckCircle2 },
             { id: 'soil-info', label: 'Soil Details', icon: Database },
-            { id: 'disease-mgmt', label: 'Diseases Management', icon: ShieldAlert },
-            { id: 'chemical-rec', label: 'Chemical Advisories', icon: Sliders },
-            { id: 'adv-search', label: 'Advanced Search', icon: Search },
+            { id: 'disease-mgmt', label: 'Crop Health Hub', icon: ShieldAlert },
             { id: 'disease-finder', label: 'Advisory Disease Finder', icon: HelpCircle },
             { id: 'smart-scheduler', label: 'Smart Scheduler', icon: FileText },
-            { id: 'ai-detection', label: 'AI Crop Diagnosis', icon: Bot },
-            { id: 'admin-panel', label: 'Admin Panel', icon: UserCheck }
+            { id: 'ai-detection', label: 'AI Crop Diagnosis', icon: Bot }
           ].map((tab) => {
             const Icon = tab.icon;
             return (
@@ -1413,9 +1428,26 @@ export default function App() {
             <Sprout className="h-5 w-5 text-emerald-400" />
             <span className="font-bold text-base">AgriFuture Advisory</span>
           </div>
-          <button onClick={() => setMobileMenuOpen(true)}>
-            <Menu className="h-6 w-6" />
-          </button>
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={() => {
+                if (!isAdminAuthenticated) {
+                  setAdminPasswordInput('');
+                  setAdminPasswordError('');
+                  setAdminPasswordModalOpen(true);
+                } else {
+                  setActiveTab('admin-panel');
+                }
+              }}
+              title="Admin Panel"
+              className="text-emerald-300 hover:text-white p-1 rounded hover:bg-emerald-800 transition-all animate-fade-in"
+            >
+              <UserCheck className="h-5 w-5" />
+            </button>
+            <button onClick={() => setMobileMenuOpen(true)}>
+              <Menu className="h-6 w-6" />
+            </button>
+          </div>
         </header>
 
         {/* Global Error Banner */}
@@ -1541,7 +1573,7 @@ export default function App() {
                                   <p className="text-xs text-gray-400 italic mt-0.5">{c.scientific_name}</p>
                                 </div>
                                 <button
-                                  onClick={() => { handleCropClick(c.id); setActiveTab('crop-info'); }}
+                                  onClick={() => { handleCropClick(c.id); setCropSubTab('catalog'); setActiveTab('crop-info'); }}
                                   className="text-xs text-emerald-600 hover:text-emerald-800 font-bold flex items-center shrink-0 ml-4"
                                 >
                                   <span>View Crop Profile</span>
@@ -1596,7 +1628,7 @@ export default function App() {
                                   <p className="text-xs text-gray-500 mt-0.5 truncate">{d.symptoms}</p>
                                 </div>
                                 <button
-                                  onClick={() => { handleDiseaseClick(d.id); setActiveTab('disease-mgmt'); }}
+                                  onClick={() => { handleDiseaseClick(d.id); setHealthSubTab('diseases'); setActiveTab('disease-mgmt'); }}
                                   className="text-xs text-emerald-600 hover:text-emerald-800 font-bold flex items-center shrink-0 ml-4"
                                 >
                                   <span>Advisory Details</span>
@@ -1625,6 +1657,13 @@ export default function App() {
                                 </div>
                                 <div className="flex justify-between items-center mt-3 text-xs">
                                   <span className="text-gray-500">Dosage: <strong className="text-emerald-700 font-bold">{c.dosage}</strong></span>
+                                  <button
+                                    onClick={() => { handleDiseaseClick(c.disease_id); setHealthSubTab('diseases'); setActiveTab('disease-mgmt'); }}
+                                    className="text-xs text-emerald-600 hover:text-emerald-800 font-bold flex items-center"
+                                  >
+                                    <span>Target Disease</span>
+                                    <ChevronRight className="h-3 w-3 ml-0.5" />
+                                  </button>   <span className="text-gray-500">Dosage: <strong className="text-emerald-700 font-bold">{c.dosage}</strong></span>
                                   <button
                                     onClick={() => { handleDiseaseClick(c.disease_id); setActiveTab('disease-mgmt'); }}
                                     className="text-xs text-emerald-600 hover:text-emerald-800 font-bold flex items-center"
@@ -1752,7 +1791,7 @@ export default function App() {
                         apiStats.activity_logs.map((log, index) => (
                           <div key={index} className="flex items-start space-x-3 text-xs">
                             <div className="p-1 rounded bg-gray-100 shrink-0 mt-0.5">
-                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-semibold text-gray-800 truncate">{log.action}</p>
@@ -1775,237 +1814,269 @@ export default function App() {
               </div>
             )}
 
-            {/* 2. STATE SELECTION MODULE */}
-            {activeTab === 'state-select' && (
+            {/* 3. CROP INFORMATION & STATE SUITABILITY MODULE */}
+            {activeTab === 'crop-info' && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">State Agricultural Directory</h2>
-                  <p className="text-sm text-gray-500 mt-1">Select an Indian State to explore its unique climate and major crops.</p>
+                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Crops Directory</h2>
+                  <p className="text-sm text-gray-500 mt-1">Explore suitability mappings, crop information directory, and cultivation preferences.</p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                  {/* Selection List */}
-                  <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-4">
-                    <div className="relative">
+                {/* Sub-tab selection */}
+                <div className="flex space-x-2 bg-emerald-50/50 p-1.5 rounded-xl w-fit border border-emerald-100/40">
+                  <button
+                    onClick={() => setCropSubTab('catalog')}
+                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${
+                      cropSubTab === 'catalog'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-emerald-800 hover:bg-emerald-100/40'
+                    }`}
+                  >
+                    Browse Crop Catalog
+                  </button>
+                  <button
+                    onClick={() => setCropSubTab('states')}
+                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${
+                      cropSubTab === 'states'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-emerald-800 hover:bg-emerald-100/40'
+                    }`}
+                  >
+                    Explore State Suitability
+                  </button>
+                </div>
+
+                {cropSubTab === 'catalog' && (
+                  <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div>
+                        <h3 className="text-lg font-extrabold text-gray-900">Crop Catalog</h3>
+                        <p className="text-xs text-gray-500">Search and filter detailed parameters of Indian crop varieties.</p>
+                      </div>
+                      {/* Filters */}
+                      <div className="flex items-center space-x-2 shrink-0">
+                        <span className="text-xs font-bold text-gray-500 uppercase">Season:</span>
+                        <select
+                          value={cropFilterSeason}
+                          onChange={(e) => setCropFilterSeason(e.target.value)}
+                          className="border border-gray-200 rounded-lg text-xs font-semibold px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                          <option value="All">All Seasons</option>
+                          <option value="Kharif">Kharif</option>
+                          <option value="Rabi">Rabi</option>
+                          <option value="Annual">Annual</option>
+                          <option value="Perennial">Perennial</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Search box */}
+                    <div className="relative max-w-md">
                       <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                       <input
                         type="text"
-                        placeholder="Search state..."
-                        value={stateSearchText}
-                        onChange={(e) => setStateSearchText(e.target.value)}
+                        placeholder="Search crop by name or scientific term..."
+                        value={cropSearchText}
+                        onChange={(e) => setCropSearchText(e.target.value)}
                         className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                       />
                     </div>
 
-                    <div className="max-h-[350px] overflow-y-auto space-y-1">
-                      {filteredStates.map((st) => (
-                        <button
-                          key={st.id}
-                          onClick={() => setSelectedStateId(st.id.toString())}
-                          className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-between ${
-                            selectedStateId === st.id.toString()
-                              ? 'bg-emerald-50 text-emerald-800'
-                              : 'text-gray-700 hover:bg-gray-50'
-                          }`}
+                    {/* Crops Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {filteredCropsList.map((crop) => (
+                        <div 
+                          key={crop.id}
+                          className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-200"
                         >
-                          <span>{st.state_name}</span>
-                          <ChevronRight className={`h-4 w-4 text-emerald-600 transition-transform ${selectedStateId === st.id.toString() ? 'translate-x-0.5' : 'opacity-40'}`} />
-                        </button>
+                          <div>
+                            {/* Placeholder or image */}
+                            <div className="h-44 bg-gradient-to-br from-emerald-800 to-emerald-950 flex items-center justify-center p-6 text-emerald-200 relative">
+                              <Sprout className="h-14 w-14 opacity-25 absolute" />
+                              <div className="text-center relative z-10 space-y-1">
+                                <span className="text-3xl">🌾</span>
+                                <h4 className="font-extrabold text-lg text-white leading-tight mt-2">{crop.crop_name}</h4>
+                                <p className="text-xs text-emerald-300 italic">{crop.scientific_name}</p>
+                              </div>
+                              <span className="absolute top-3 right-3 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded bg-emerald-700/60 text-white border border-emerald-600/30">
+                                {crop.season}
+                              </span>
+                            </div>
+
+                            <div className="p-5 space-y-3.5">
+                              <div className="grid grid-cols-3 gap-2 text-xs">
+                                <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                                  <span className="font-bold text-gray-400 block text-[9px] uppercase tracking-wider">Water Need</span>
+                                  <span className="font-semibold text-gray-700 mt-0.5 block">{crop.water_requirement}</span>
+                                </div>
+                                <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                                  <span className="font-bold text-gray-400 block text-[9px] uppercase tracking-wider">Expected Yield</span>
+                                  <span className="font-semibold text-gray-700 mt-0.5 block truncate" title={crop.yield}>{crop.yield}</span>
+                                </div>
+                                <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                                  <span className="font-bold text-gray-400 block text-[9px] uppercase tracking-wider">Govt MSP</span>
+                                  <span className="font-bold text-emerald-700 mt-0.5 block truncate" title={crop.msp || 'N/A'}>{crop.msp || 'N/A'}</span>
+                                </div>
+                              </div>
+
+                              <div>
+                                <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-1.5">Suitable Soils</span>
+                                <div className="flex flex-wrap gap-1">
+                                  {crop.soils && crop.soils.length > 0 ? (
+                                    crop.soils.map((s, idx) => (
+                                      <span key={idx} className="bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-0.5 rounded text-[10px] font-bold">
+                                        {s}
+                                      </span>
+                                    ))
+                                  ) : (
+                                    <span className="text-gray-400 text-xs italic">No Soils Mapped</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+                            <span className="text-xs font-semibold text-gray-500">
+                              State: <strong className="text-gray-700 font-bold">{crop.state_name}</strong>
+                            </span>
+                            <button
+                              onClick={() => handleCropClick(crop.id)}
+                              className="text-xs font-bold text-emerald-600 hover:text-emerald-800 flex items-center space-x-1"
+                            >
+                              <span>Diseases & Details</span>
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
                       ))}
-                      {filteredStates.length === 0 && (
-                        <p className="text-center text-gray-400 text-xs py-4">No states matching that search.</p>
+                      {filteredCropsList.length === 0 && (
+                        <div className="col-span-full bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
+                          No crops found matching the criteria.
+                        </div>
                       )}
                     </div>
                   </div>
+                )}
 
-                  {/* Detail Panel */}
-                  <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-6">
-                    {stateDetail ? (
-                      <div className="space-y-6">
-                        <div className="border-b border-gray-100 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                          <div>
-                            <h3 className="text-2xl font-black text-emerald-900">{stateDetail.state_name}</h3>
-                            <div className="flex items-center space-x-2 mt-2 text-xs font-semibold px-2.5 py-1 rounded bg-emerald-50 text-emerald-700 w-fit">
-                              <Thermometer className="h-3.5 w-3.5" />
-                              <span>Climate Zone: {stateDetail.climate}</span>
-                            </div>
-                          </div>
-                          {weatherLoading ? (
-                            <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-gray-400 flex items-center gap-3 w-fit">
-                              <RefreshCw className="h-4 w-4 animate-spin text-emerald-600" />
-                              <span className="text-xs font-semibold">Loading Weather...</span>
-                            </div>
-                          ) : weatherData && (
-                            <div className={`p-4 rounded-2xl bg-gradient-to-br ${getWeatherGradient(weatherData.weathercode, weatherData.is_day)} text-white flex items-center gap-4 shadow-sm border border-white/10 max-w-xs shrink-0`}>
-                              <span className="text-4xl">{getWeatherDescription(weatherData.weathercode, weatherData.is_day).icon}</span>
-                              <div className="text-left">
-                                <span className="text-[9px] font-black uppercase tracking-wider text-white/70 block">Live Weather</span>
-                                <span className="text-xl font-black">{weatherData.temperature}°C</span>
-                                <span className="text-xs font-bold block">{getWeatherDescription(weatherData.weathercode, weatherData.is_day).desc}</span>
-                                <span className="text-[10px] text-white/80 block mt-0.5">💨 {weatherData.windspeed} km/h wind</span>
-                              </div>
-                            </div>
+                {cropSubTab === 'states' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-extrabold text-gray-900">State Suitability Map</h3>
+                      <p className="text-xs text-gray-500">Explore climate details and mapped primary crop varieties for each region.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                      {/* Selection List */}
+                      <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-4">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                          <input
+                            type="text"
+                            placeholder="Search state..."
+                            value={stateSearchText}
+                            onChange={(e) => setStateSearchText(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                          />
+                        </div>
+
+                        <div className="max-h-[350px] overflow-y-auto space-y-1">
+                          {filteredStates.map((st) => (
+                            <button
+                              key={st.id}
+                              onClick={() => setSelectedStateId(st.id.toString())}
+                              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-between ${
+                                selectedStateId === st.id.toString()
+                                  ? 'bg-emerald-50 text-emerald-800'
+                                  : 'text-gray-700 hover:bg-gray-50'
+                              }`}
+                            >
+                              <span>{st.state_name}</span>
+                              <ChevronRight className={`h-4 w-4 text-emerald-600 transition-transform ${selectedStateId === st.id.toString() ? 'translate-x-0.5' : 'opacity-40'}`} />
+                            </button>
+                          ))}
+                          {filteredStates.length === 0 && (
+                            <p className="text-center text-gray-400 text-xs py-4">No states matching that search.</p>
                           )}
                         </div>
+                      </div>
 
-                        <div>
-                          <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Agricultural Overview</h4>
-                          <p className="text-gray-700 text-sm leading-relaxed mt-1.5">{stateDetail.description}</p>
-                        </div>
-
-                        <div>
-                          <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Major Crops Cultivated</h4>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {stateDetail.crops && stateDetail.crops.length > 0 ? (
-                              stateDetail.crops.map((c) => (
-                                <div 
-                                  key={c.id} 
-                                  onClick={() => {
-                                    handleCropClick(c.id);
-                                    setActiveTab('crop-info');
-                                  }}
-                                  className="p-4 rounded-xl border border-gray-100 bg-gray-50 hover:bg-emerald-50/45 hover:border-emerald-200 transition-all cursor-pointer flex items-center space-x-3.5 group"
-                                >
-                                  <div className="bg-emerald-600/10 text-emerald-800 p-2.5 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                                    <Sprout className="h-5 w-5" />
-                                  </div>
-                                  <div>
-                                    <p className="font-bold text-gray-900 text-sm leading-tight group-hover:text-emerald-900">{c.crop_name}</p>
-                                    <p className="text-xs text-gray-400 italic mt-0.5">{c.scientific_name}</p>
-                                    <div className="flex items-center space-x-3 mt-1.5 text-[10px] font-bold text-gray-500">
-                                      <span className="bg-gray-200/60 px-1.5 py-0.5 rounded uppercase">{c.season}</span>
-                                      <span className="flex items-center text-blue-600">
-                                        <Droplet className="h-2.5 w-2.5 mr-0.5" /> {c.water_requirement} Water
-                                      </span>
-                                    </div>
+                      {/* Detail Panel */}
+                      <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-6">
+                        {stateDetail ? (
+                          <div className="space-y-6">
+                            <div className="border-b border-gray-100 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                              <div>
+                                <h3 className="text-2xl font-black text-emerald-900">{stateDetail.state_name}</h3>
+                                <div className="flex items-center space-x-2 mt-2 text-xs font-semibold px-2.5 py-1 rounded bg-emerald-50 text-emerald-700 w-fit">
+                                  <Thermometer className="h-3.5 w-3.5" />
+                                  <span>Climate Zone: {stateDetail.climate}</span>
+                                </div>
+                              </div>
+                              {weatherLoading ? (
+                                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-gray-400 flex items-center gap-3 w-fit">
+                                  <RefreshCw className="h-4 w-4 animate-spin text-emerald-600" />
+                                  <span className="text-xs font-semibold">Loading Weather...</span>
+                                </div>
+                              ) : weatherData && (
+                                <div className={`p-4 rounded-2xl bg-gradient-to-br ${getWeatherGradient(weatherData.weathercode, weatherData.is_day)} text-white flex items-center gap-4 shadow-sm border border-white/10 max-w-xs shrink-0`}>
+                                  <span className="text-4xl">{getWeatherDescription(weatherData.weathercode, weatherData.is_day).icon}</span>
+                                  <div className="text-left">
+                                    <span className="text-[9px] font-black uppercase tracking-wider text-white/70 block">Live Weather</span>
+                                    <span className="text-xl font-black">{weatherData.temperature}°C</span>
+                                    <span className="text-xs font-bold block">{getWeatherDescription(weatherData.weathercode, weatherData.is_day).desc}</span>
+                                    <span className="text-[10px] text-white/80 block mt-0.5">💨 {weatherData.windspeed} km/h wind</span>
                                   </div>
                                 </div>
-                              ))
-                            ) : (
-                              <p className="text-gray-400 text-xs py-2">No crops mapped for this state yet.</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-center text-gray-400 py-8">Select a state on the left to see details.</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 3. CROP INFORMATION MODULE */}
-            {activeTab === 'crop-info' && (
-              <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div>
-                    <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Crops Directory</h2>
-                    <p className="text-sm text-gray-500 mt-1">Detailed database of Indian crops, growing parameters, and soil preferences.</p>
-                  </div>
-                  {/* Filters */}
-                  <div className="flex items-center space-x-2 shrink-0">
-                    <span className="text-xs font-bold text-gray-500 uppercase">Season:</span>
-                    <select
-                      value={cropFilterSeason}
-                      onChange={(e) => setCropFilterSeason(e.target.value)}
-                      className="border border-gray-200 rounded-lg text-xs font-semibold px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    >
-                      <option value="All">All Seasons</option>
-                      <option value="Kharif">Kharif</option>
-                      <option value="Rabi">Rabi</option>
-                      <option value="Annual">Annual</option>
-                      <option value="Perennial">Perennial</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Search box */}
-                <div className="relative max-w-md">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search crop by name or scientific term..."
-                    value={cropSearchText}
-                    onChange={(e) => setCropSearchText(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                  />
-                </div>
-
-                {/* Crops Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredCropsList.map((crop) => (
-                    <div 
-                      key={crop.id}
-                      className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-200"
-                    >
-                      <div>
-                        {/* Placeholder or image */}
-                        <div className="h-44 bg-gradient-to-br from-emerald-800 to-emerald-950 flex items-center justify-center p-6 text-emerald-200 relative">
-                          <Sprout className="h-14 w-14 opacity-25 absolute" />
-                          <div className="text-center relative z-10 space-y-1">
-                            <span className="text-3xl">🌾</span>
-                            <h4 className="font-extrabold text-lg text-white leading-tight mt-2">{crop.crop_name}</h4>
-                            <p className="text-xs text-emerald-300 italic">{crop.scientific_name}</p>
-                          </div>
-                          <span className="absolute top-3 right-3 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded bg-emerald-700/60 text-white border border-emerald-600/30">
-                            {crop.season}
-                          </span>
-                        </div>
-
-                        <div className="p-5 space-y-3.5">
-                          <div className="grid grid-cols-3 gap-2 text-xs">
-                            <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                              <span className="font-bold text-gray-400 block text-[9px] uppercase tracking-wider">Water Need</span>
-                              <span className="font-semibold text-gray-700 mt-0.5 block">{crop.water_requirement}</span>
-                            </div>
-                            <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                              <span className="font-bold text-gray-400 block text-[9px] uppercase tracking-wider">Expected Yield</span>
-                              <span className="font-semibold text-gray-700 mt-0.5 block truncate" title={crop.yield}>{crop.yield}</span>
-                            </div>
-                            <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                              <span className="font-bold text-gray-400 block text-[9px] uppercase tracking-wider">Govt MSP</span>
-                              <span className="font-bold text-emerald-700 mt-0.5 block truncate" title={crop.msp || 'N/A'}>{crop.msp || 'N/A'}</span>
-                            </div>
-                          </div>
-
-                          <div>
-                            <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-1.5">Suitable Soils</span>
-                            <div className="flex flex-wrap gap-1">
-                              {crop.soils && crop.soils.length > 0 ? (
-                                crop.soils.map((s, idx) => (
-                                  <span key={idx} className="bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded text-[10px] font-bold">
-                                    {s}
-                                  </span>
-                                ))
-                              ) : (
-                                <span className="text-gray-400 text-xs italic">No Soils Mapped</span>
                               )}
                             </div>
-                          </div>
-                        </div>
-                      </div>
 
-                      <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
-                        <span className="text-xs font-semibold text-gray-500">
-                          State: <strong className="text-gray-700 font-bold">{crop.state_name}</strong>
-                        </span>
-                        <button
-                          onClick={() => handleCropClick(crop.id)}
-                          className="text-xs font-bold text-emerald-600 hover:text-emerald-800 flex items-center space-x-1"
-                        >
-                          <span>Diseases & Details</span>
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        </button>
+                            <div>
+                              <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Agricultural Overview</h4>
+                              <p className="text-gray-700 text-sm leading-relaxed mt-1.5">{stateDetail.description}</p>
+                            </div>
+
+                            <div>
+                              <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Major Crops Cultivated</h4>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {stateDetail.crops && stateDetail.crops.length > 0 ? (
+                                  stateDetail.crops.map((c) => (
+                                    <div 
+                                      key={c.id} 
+                                      onClick={() => {
+                                        handleCropClick(c.id);
+                                        setCropSubTab('catalog');
+                                      }}
+                                      className="p-4 rounded-xl border border-gray-100 bg-gray-50 hover:bg-emerald-50/45 hover:border-emerald-200 transition-all cursor-pointer flex items-center space-x-3.5 group"
+                                    >
+                                      <div className="bg-emerald-600/10 text-emerald-800 p-2.5 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                                        <Sprout className="h-5 w-5" />
+                                      </div>
+                                      <div>
+                                        <p className="font-bold text-gray-900 text-sm leading-tight group-hover:text-emerald-900">{c.crop_name}</p>
+                                        <p className="text-xs text-gray-400 italic mt-0.5">{c.scientific_name}</p>
+                                        <div className="flex items-center space-x-3 mt-1.5 text-[10px] font-bold text-gray-500">
+                                          <span className="bg-gray-200/60 px-1.5 py-0.5 rounded uppercase">{c.season}</span>
+                                          <span className="flex items-center text-blue-600">
+                                            <Droplet className="h-2.5 w-2.5 mr-0.5" /> {c.water_requirement} Water
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <p className="text-gray-400 text-xs py-2">No crops mapped for this state yet.</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-center text-gray-400 py-8">Select a state on the left to see details.</p>
+                        )}
                       </div>
                     </div>
-                  ))}
-                  {filteredCropsList.length === 0 && (
-                    <div className="col-span-full bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
-                      No crops found matching the criteria.
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {/* Crop Detail Modal */}
                 {selectedCropDetail && (
@@ -3039,75 +3110,188 @@ export default function App() {
               </div>
             )}
 
-            {/* 5. DISEASE MANAGEMENT MODULE */}
+            {/* 5. CROP HEALTH HUB (DISEASES & CHEMICALS) */}
             {activeTab === 'disease-mgmt' && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Disease Management</h2>
-                  <p className="text-sm text-gray-500 mt-1">Identification logs, causative agents, and organic prevention protocols.</p>
+                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Crop Health Hub</h2>
+                  <p className="text-sm text-gray-500 mt-1">Identification logs, causative agents, organic prevention protocols, and chemical treatment guidelines.</p>
                 </div>
 
-                <div className="relative max-w-md">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search by pathogen name, crop, or symptoms..."
-                    value={diseaseSearchText}
-                    onChange={(e) => setDiseaseSearchText(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                  />
+                {/* Sub-tab selection */}
+                <div className="flex space-x-2 bg-emerald-50/50 p-1.5 rounded-xl w-fit border border-emerald-100/40">
+                  <button
+                    onClick={() => setHealthSubTab('diseases')}
+                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${
+                      healthSubTab === 'diseases'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-emerald-800 hover:bg-emerald-100/40'
+                    }`}
+                  >
+                    Disease Catalog
+                  </button>
+                  <button
+                    onClick={() => setHealthSubTab('chemicals')}
+                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${
+                      healthSubTab === 'chemicals'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-emerald-800 hover:bg-emerald-100/40'
+                    }`}
+                  >
+                    Chemical Advisories
+                  </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredDiseases.map((d) => (
-                    <div 
-                      key={d.id}
-                      className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-200"
-                    >
-                      <div>
-                        {/* Title header */}
-                        <div className="bg-gradient-to-r from-red-700 to-rose-900 text-white p-5">
-                          <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-red-800 text-red-200 border border-red-700">
-                            Pathogen Host: {d.crop_name}
-                          </span>
-                          <h3 className="font-extrabold text-lg mt-2 leading-tight">{d.disease_name}</h3>
-                          <p className="text-xs text-red-300 mt-0.5">Cause: {d.causes}</p>
-                        </div>
+                {healthSubTab === 'diseases' && (
+                  <div className="space-y-6">
+                    <div className="relative max-w-md">
+                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search by pathogen name, crop, or symptoms..."
+                        value={diseaseSearchText}
+                        onChange={(e) => setDiseaseSearchText(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                      />
+                    </div>
 
-                        <div className="p-5 space-y-4">
-                          <div>
-                            <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Observed Symptoms</span>
-                            <p className="text-xs text-gray-600 mt-1 line-clamp-3 leading-relaxed" title={d.symptoms}>
-                              {d.symptoms}
-                            </p>
-                          </div>
-                          
-                          <div className="bg-emerald-50/50 border border-emerald-100 p-3.5 rounded-lg">
-                            <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider block">Organic Prevention</span>
-                            <p className="text-xs text-emerald-700 mt-1 line-clamp-2 leading-relaxed" title={d.prevention}>
-                              {d.prevention}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
-                        <button
-                          onClick={() => handleDiseaseClick(d.id)}
-                          className="text-xs font-bold text-emerald-600 hover:text-emerald-800 flex items-center space-x-1"
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {filteredDiseases.map((d) => (
+                        <div 
+                          key={d.id}
+                          className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-200"
                         >
-                          <span>Chemical Advisory</span>
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        </button>
+                          <div>
+                            {/* Title header */}
+                            <div className="bg-gradient-to-r from-red-700 to-rose-900 text-white p-5">
+                              <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-red-800 text-red-200 border border-red-700">
+                                Pathogen Host: {d.crop_name}
+                              </span>
+                              <h3 className="font-extrabold text-lg mt-2 leading-tight">{d.disease_name}</h3>
+                              <p className="text-xs text-red-300 mt-0.5">Cause: {d.causes}</p>
+                            </div>
+
+                            <div className="p-5 space-y-4">
+                              <div>
+                                <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Observed Symptoms</span>
+                                <p className="text-xs text-gray-600 mt-1 line-clamp-3 leading-relaxed" title={d.symptoms}>
+                                  {d.symptoms}
+                                </p>
+                              </div>
+                              
+                              <div className="bg-emerald-50/50 border border-emerald-100 p-3.5 rounded-lg">
+                                <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider block">Organic Prevention</span>
+                                <p className="text-xs text-emerald-700 mt-1 line-clamp-2 leading-relaxed" title={d.prevention}>
+                                  {d.prevention}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+                            <button
+                              onClick={() => handleDiseaseClick(d.id)}
+                              className="text-xs font-bold text-emerald-600 hover:text-emerald-800 flex items-center space-x-1"
+                            >
+                              <span>Chemical Advisory</span>
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {filteredDiseases.length === 0 && (
+                        <div className="col-span-full bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
+                          No diseases cataloged matching that search.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {healthSubTab === 'chemicals' && (
+                  <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div>
+                        <h3 className="text-lg font-extrabold text-gray-900">Chemical & Pesticide Advisories</h3>
+                        <p className="text-xs text-gray-500">Approved chemical names, application methodologies, safety equipment recommendations, and dosages.</p>
+                      </div>
+                      {/* Filter by Type */}
+                      <div className="flex items-center space-x-2 shrink-0">
+                        <span className="text-xs font-bold text-gray-500 uppercase">Chemical Type:</span>
+                        <select
+                          value={chemicalFilterType}
+                          onChange={(e) => setChemicalFilterType(e.target.value)}
+                          className="border border-gray-200 rounded-lg text-xs font-semibold px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                          <option value="All">All Types</option>
+                          <option value="Fungicide">Fungicide</option>
+                          <option value="Insecticide">Insecticide</option>
+                          <option value="Acaricide">Acaricide</option>
+                          <option value="Bactericide">Bactericide</option>
+                          <option value="Bio-Fungicide">Bio-Fungicide</option>
+                        </select>
                       </div>
                     </div>
-                  ))}
-                  {filteredDiseases.length === 0 && (
-                    <div className="col-span-full bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
-                      No diseases cataloged matching that search.
+
+                    <div className="relative max-w-md">
+                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search chemical, target disease, or safety info..."
+                        value={chemicalSearchText}
+                        onChange={(e) => setChemicalSearchText(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                      />
                     </div>
-                  )}
-                </div>
+
+                    {/* List chemical cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {filteredChemicals.map((chem) => (
+                        <div 
+                          key={chem.id}
+                          className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-4"
+                        >
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="font-extrabold text-base text-gray-900 leading-tight">{chem.chemical_name}</h3>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-100 inline-block mt-1">
+                                  {chem.chemical_type}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <span className="font-bold text-[9px] text-gray-400 uppercase block">Dosage</span>
+                                <span className="text-emerald-700 font-extrabold text-sm">{chem.dosage}</span>
+                              </div>
+                            </div>
+
+                            <div className="text-xs">
+                              <span className="text-gray-400 font-bold block uppercase text-[9px]">Target Disease Host</span>
+                              <span className="text-gray-800 font-semibold mt-0.5 block">{chem.disease_name} ({chem.crop_name})</span>
+                            </div>
+
+                            <div className="text-xs">
+                              <span className="text-gray-400 font-bold block uppercase text-[9px]">Application Method</span>
+                              <span className="text-gray-700 mt-0.5 block">{chem.application_method}</span>
+                            </div>
+                          </div>
+
+                          <div className="bg-rose-50/50 border border-rose-100 p-3.5 rounded-lg text-xs">
+                            <span className="text-rose-800 font-bold flex items-center text-[10px] uppercase tracking-wide">
+                              <ShieldAlert className="h-3.5 w-3.5 mr-1" /> Safety Precautions
+                            </span>
+                            <p className="text-rose-700 mt-1 leading-relaxed">{chem.safety_precautions}</p>
+                          </div>
+                        </div>
+                      ))}
+                      {filteredChemicals.length === 0 && (
+                        <div className="col-span-full bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
+                          No chemical recommendations matched the search filter.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Disease details and chemicals modal */}
                 {selectedDiseaseDetail && (
@@ -3182,281 +3366,6 @@ export default function App() {
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 6. CHEMICAL RECOMMENDATION MODULE */}
-            {activeTab === 'chemical-rec' && (
-              <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div>
-                    <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Chemical & Pesticide Advisories</h2>
-                    <p className="text-sm text-gray-500 mt-1">Approved chemical names, application methodologies, safety equipment recommendations, and dosages.</p>
-                  </div>
-                  {/* Filter by Type */}
-                  <div className="flex items-center space-x-2 shrink-0">
-                    <span className="text-xs font-bold text-gray-500 uppercase">Chemical Type:</span>
-                    <select
-                      value={chemicalFilterType}
-                      onChange={(e) => setChemicalFilterType(e.target.value)}
-                      className="border border-gray-200 rounded-lg text-xs font-semibold px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    >
-                      <option value="All">All Types</option>
-                      <option value="Fungicide">Fungicide</option>
-                      <option value="Insecticide">Insecticide</option>
-                      <option value="Acaricide">Acaricide</option>
-                      <option value="Bactericide">Bactericide</option>
-                      <option value="Bio-Fungicide">Bio-Fungicide</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="relative max-w-md">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search chemical, target disease, or safety info..."
-                    value={chemicalSearchText}
-                    onChange={(e) => setChemicalSearchText(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                  />
-                </div>
-
-                {/* List chemical cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredChemicals.map((chem) => (
-                    <div 
-                      key={chem.id}
-                      className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-4"
-                    >
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-extrabold text-base text-gray-900 leading-tight">{chem.chemical_name}</h3>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-100 inline-block mt-1">
-                              {chem.chemical_type}
-                            </span>
-                          </div>
-                          <div className="text-right">
-                            <span className="font-bold text-[9px] text-gray-400 uppercase block">Dosage</span>
-                            <span className="text-emerald-700 font-extrabold text-sm">{chem.dosage}</span>
-                          </div>
-                        </div>
-
-                        <div className="text-xs">
-                          <span className="text-gray-400 font-bold block uppercase text-[9px]">Target Disease Host</span>
-                          <span className="text-gray-800 font-semibold mt-0.5 block">{chem.disease_name} ({chem.crop_name})</span>
-                        </div>
-
-                        <div className="text-xs">
-                          <span className="text-gray-400 font-bold block uppercase text-[9px]">Application Method</span>
-                          <span className="text-gray-700 mt-0.5 block">{chem.application_method}</span>
-                        </div>
-                      </div>
-
-                      <div className="bg-rose-50/50 border border-rose-100 p-3.5 rounded-lg text-xs">
-                        <span className="text-rose-800 font-bold flex items-center text-[10px] uppercase tracking-wide">
-                          <ShieldAlert className="h-3.5 w-3.5 mr-1" /> Safety Precautions
-                        </span>
-                        <p className="text-rose-700 mt-1 leading-relaxed">{chem.safety_precautions}</p>
-                      </div>
-                    </div>
-                  ))}
-                  {filteredChemicals.length === 0 && (
-                    <div className="col-span-full bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
-                      No chemical recommendations matched the search filter.
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* 7. ADVANCED SEARCH MODULE */}
-            {activeTab === 'adv-search' && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Advanced Search</h2>
-                  <p className="text-sm text-gray-500 mt-1">Universal cross-indexing tool. Search across states, crops, soils, diseases, and chemical treatments simultaneously.</p>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-4 items-center max-w-2xl bg-white p-3.5 border border-gray-200 rounded-xl shadow-sm">
-                  <div className="relative flex-1 w-full">
-                    <Search className="absolute left-3 top-2.5 h-4.5 w-4.5 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Type a state, crop variety, soil profile, or disease name..."
-                      value={advSearchQuery}
-                      onChange={(e) => setAdvSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    />
-                  </div>
-                  
-                  <div className="w-full sm:w-auto flex items-center space-x-2 shrink-0">
-                    <span className="text-xs font-bold text-gray-500 uppercase">Search Category:</span>
-                    <select
-                      value={advSearchCategory}
-                      onChange={(e) => setAdvSearchCategory(e.target.value)}
-                      className="border border-gray-200 rounded-lg text-xs font-semibold px-2.5 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 w-full sm:w-auto"
-                    >
-                      <option value="All">All Categories</option>
-                      <option value="states">States</option>
-                      <option value="crops">Crops</option>
-                      <option value="soils">Soils</option>
-                      <option value="diseases">Diseases</option>
-                      <option value="chemicals">Chemicals</option>
-                    </select>
-                  </div>
-                </div>
-
-                {advSearchQuery ? (
-                  <div className="space-y-6">
-                    <p className="text-sm font-semibold text-gray-600">
-                      Found {advResultsCount} results matching <strong className="text-gray-800">"{advSearchQuery}"</strong>:
-                    </p>
-
-                    <div className="space-y-6">
-                      {/* States Results */}
-                      {(advSearchCategory === 'All' || advSearchCategory === 'states') && advResults.states.length > 0 && (
-                        <div className="space-y-2.5">
-                          <h3 className="text-sm font-extrabold text-gray-400 uppercase tracking-wider flex items-center">
-                            <MapPin className="h-4 w-4 mr-1.5 text-emerald-600" /> States ({advResults.states.length})
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {advResults.states.map(s => (
-                              <div key={s.id} className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col justify-between">
-                                <div>
-                                  <h4 className="font-extrabold text-base text-gray-900">{s.state_name}</h4>
-                                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">{s.description}</p>
-                                </div>
-                                <button
-                                  onClick={() => { setSelectedStateId(s.id.toString()); setActiveTab('state-select'); }}
-                                  className="text-xs text-emerald-600 hover:text-emerald-800 font-bold self-end mt-2 flex items-center"
-                                >
-                                  <span>View State details</span>
-                                  <ChevronRight className="h-3 w-3 ml-0.5" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Crops Results */}
-                      {(advSearchCategory === 'All' || advSearchCategory === 'crops') && advResults.crops.length > 0 && (
-                        <div className="space-y-2.5 border-t border-gray-100 pt-5">
-                          <h3 className="text-sm font-extrabold text-gray-400 uppercase tracking-wider flex items-center">
-                            <Sprout className="h-4 w-4 mr-1.5 text-blue-600" /> Crops ({advResults.crops.length})
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {advResults.crops.map(c => (
-                              <div key={c.id} className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm flex justify-between items-center">
-                                <div>
-                                  <h4 className="font-extrabold text-base text-gray-900">{c.crop_name}</h4>
-                                  <p className="text-xs text-gray-400 italic mt-0.5">{c.scientific_name}</p>
-                                </div>
-                                <button
-                                  onClick={() => { handleCropClick(c.id); setActiveTab('crop-info'); }}
-                                  className="text-xs text-emerald-600 hover:text-emerald-800 font-bold flex items-center shrink-0"
-                                >
-                                  <span>View Crop profile</span>
-                                  <ChevronRight className="h-3 w-3 ml-0.5" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Soils Results */}
-                      {(advSearchCategory === 'All' || advSearchCategory === 'soils') && advResults.soils.length > 0 && (
-                        <div className="space-y-2.5 border-t border-gray-100 pt-5">
-                          <h3 className="text-sm font-extrabold text-gray-400 uppercase tracking-wider flex items-center">
-                            <Database className="h-4 w-4 mr-1.5 text-amber-600" /> Soils ({advResults.soils.length})
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {advResults.soils.map(s => (
-                              <div key={s.id} className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
-                                <h4 className="font-extrabold text-base text-gray-900">{s.soil_name}</h4>
-                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{s.characteristics}</p>
-                                <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 inline-block mt-2">
-                                  pH: {s.ph_range}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Diseases Results */}
-                      {(advSearchCategory === 'All' || advSearchCategory === 'diseases') && advResults.diseases.length > 0 && (
-                        <div className="space-y-2.5 border-t border-gray-100 pt-5">
-                          <h3 className="text-sm font-extrabold text-gray-400 uppercase tracking-wider flex items-center">
-                            <ShieldAlert className="h-4 w-4 mr-1.5 text-red-600" /> Diseases ({advResults.diseases.length})
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {advResults.diseases.map(d => (
-                              <div key={d.id} className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm flex justify-between items-center">
-                                <div className="min-w-0">
-                                  <h4 className="font-extrabold text-base text-gray-900 truncate">{d.disease_name}</h4>
-                                  <p className="text-xs text-gray-500 mt-0.5 truncate">{d.symptoms}</p>
-                                </div>
-                                <button
-                                  onClick={() => { handleDiseaseClick(d.id); setActiveTab('disease-mgmt'); }}
-                                  className="text-xs text-emerald-600 hover:text-emerald-800 font-bold flex items-center shrink-0 ml-4"
-                                >
-                                  <span>Advisory details</span>
-                                  <ChevronRight className="h-3 w-3 ml-0.5" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Chemicals Results */}
-                      {(advSearchCategory === 'All' || advSearchCategory === 'chemicals') && advResults.chemicals.length > 0 && (
-                        <div className="space-y-2.5 border-t border-gray-100 pt-5">
-                          <h3 className="text-sm font-extrabold text-gray-400 uppercase tracking-wider flex items-center">
-                            <Sliders className="h-4 w-4 mr-1.5 text-purple-600" /> Chemicals ({advResults.chemicals.length})
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {advResults.chemicals.map(c => (
-                              <div key={c.id} className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col justify-between">
-                                <div className="flex justify-between items-start">
-                                  <h4 className="font-extrabold text-base text-gray-900">{c.chemical_name}</h4>
-                                  <span className="text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-100 px-2 py-0.5 rounded">
-                                    {c.chemical_type}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between items-center mt-3 text-xs">
-                                  <span className="text-gray-500">Dosage: <strong className="text-emerald-700 font-bold">{c.dosage}</strong></span>
-                                  <button
-                                    onClick={() => { handleDiseaseClick(c.disease_id); setActiveTab('disease-mgmt'); }}
-                                    className="text-xs text-emerald-600 hover:text-emerald-800 font-bold flex items-center"
-                                  >
-                                    <span>Target Disease</span>
-                                    <ChevronRight className="h-3 w-3 ml-0.5" />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {advResultsCount === 0 && (
-                        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
-                          No resources found matching your query.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
-                    <Search className="h-10 w-10 mx-auto opacity-30 mb-3" />
-                    <p className="text-sm font-semibold">Start typing in the box above to perform an instant database lookup.</p>
                   </div>
                 )}
               </div>
