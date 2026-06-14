@@ -160,6 +160,8 @@ export default function App() {
   const [selectedStateId, setSelectedStateId] = useState('');
   const [stateDetail, setStateDetail] = useState(null);
   const [stateSearchText, setStateSearchText] = useState('');
+  const [stateDetailsCache, setStateDetailsCache] = useState({});
+  const [weatherCache, setWeatherCache] = useState({});
 
   // 2. Crop Information Module
   const [cropFilterSeason, setCropFilterSeason] = useState('All');
@@ -311,15 +313,21 @@ export default function App() {
 
   const fetchWeatherForState = async (stateName) => {
     if (!stateName) return;
+    if (weatherCache[stateName]) {
+      setWeatherData(weatherCache[stateName]);
+      return;
+    }
     const coords = STATE_COORDINATES[stateName] || { lat: 28.6139, lon: 79.7400 };
     setWeatherLoading(true);
     try {
       const res = await axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current_weather=true`);
       if (res.data && res.data.current_weather) {
-        setWeatherData({
+        const wData = {
           ...res.data.current_weather,
           stateName: stateName
-        });
+        };
+        setWeatherCache(prev => ({ ...prev, [stateName]: wData }));
+        setWeatherData(wData);
       }
     } catch (err) {
       console.error(`Error fetching weather for state ${stateName}:`, err);
@@ -327,12 +335,6 @@ export default function App() {
       setWeatherLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (stateDetail && stateDetail.state_name) {
-      fetchWeatherForState(stateDetail.state_name);
-    }
-  }, [stateDetail]);
 
   useEffect(() => {
     const fetchDashboardWeather = async () => {
@@ -610,14 +612,28 @@ export default function App() {
     }
   };
 
-  // 1. Fetch State Detail
+  // 1. Fetch State Detail & Weather (Optimized Parallel Loading with Cache)
   useEffect(() => {
-    if (selectedStateId) {
+    if (!selectedStateId) return;
+
+    // A. Handle State Detail (Cache lookup or HTTP Fetch)
+    if (stateDetailsCache[selectedStateId]) {
+      setStateDetail(stateDetailsCache[selectedStateId]);
+    } else {
       axios.get(`${API_BASE_URL}/states/${selectedStateId}`)
-        .then(res => setStateDetail(res.data))
+        .then(res => {
+          setStateDetailsCache(prev => ({ ...prev, [selectedStateId]: res.data }));
+          setStateDetail(res.data);
+        })
         .catch(err => console.error(err));
     }
-  }, [selectedStateId]);
+
+    // B. Handle Weather Fetch (Parallel and Instant)
+    const foundState = states.find(st => st.id.toString() === selectedStateId.toString());
+    if (foundState && foundState.state_name) {
+      fetchWeatherForState(foundState.state_name);
+    }
+  }, [selectedStateId, states]);
 
   // Handle Crop Click
   const handleCropClick = (cropId) => {
