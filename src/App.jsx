@@ -283,6 +283,11 @@ export default function App() {
   const [schemeLandSize, setSchemeLandSize] = useState('Marginal');
   const [schemeCropsType, setSchemeCropsType] = useState('Foodgrains');
   const [schemeIrrigation, setSchemeIrrigation] = useState('Rainfed');
+  const [schemeDemographic, setSchemeDemographic] = useState('General');
+  const [schemeIsTaxpayer, setSchemeIsTaxpayer] = useState(false);
+  const [schemeSolarInterest, setSchemeSolarInterest] = useState(false);
+  const [schemeMachineryInterest, setSchemeMachineryInterest] = useState(false);
+  const [schemeStateId, setSchemeStateId] = useState('');
 
   // Agricultural Loading Phrases
   const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
@@ -2722,40 +2727,94 @@ export default function App() {
 
                   {/* Stepper display */}
                   {schemeStep < 4 && (
-                    <div className="flex items-center justify-between text-xs font-black text-gray-450 border-b border-gray-100 pb-3 mb-4">
-                      <span className={schemeStep === 1 ? "text-emerald-700 font-black" : ""}>1. Land size</span>
+                    <div className="flex items-center justify-between text-[10px] sm:text-xs font-black text-gray-400 border-b border-gray-100 pb-3 mb-4">
+                      <span className={schemeStep === 1 ? "text-emerald-800 font-black border-b-2 border-emerald-800 pb-2" : ""}>1. Farmer & Land Profile</span>
                       <span>➔</span>
-                      <span className={schemeStep === 2 ? "text-emerald-700 font-black" : ""}>2. Crops</span>
+                      <span className={schemeStep === 2 ? "text-emerald-800 font-black border-b-2 border-emerald-800 pb-2" : ""}>2. Farming & Irrigation</span>
                       <span>➔</span>
-                      <span className={schemeStep === 3 ? "text-emerald-700 font-black" : ""}>3. Irrigation</span>
+                      <span className={schemeStep === 3 ? "text-emerald-800 font-black border-b-2 border-emerald-800 pb-2" : ""}>3. Exclusions & Interests</span>
                     </div>
                   )}
 
                   {/* Step 1 */}
                   {schemeStep === 1 && (
-                    <div className="space-y-5">
-                      <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider block">Step 1: Choose Your Landholding Size</span>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        {[
-                          { value: 'Marginal', label: 'Marginal (< 1 Ha)', desc: 'Very small landholding. Eligible for maximum support.' },
-                          { value: 'Small', label: 'Small (1-2 Ha)', desc: 'Small size landholder. Eligible for PM-KISAN.' },
-                          { value: 'Large', label: 'Medium/Large (> 2 Ha)', desc: 'Medium or large farming operations.' }
-                        ].map((opt) => (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => setSchemeLandSize(opt.value)}
-                            className={`p-4 border rounded-xl text-left space-y-1 transition-all ${
-                              schemeLandSize === opt.value
-                                ? 'border-emerald-500 bg-emerald-50/55 ring-2 ring-emerald-100'
-                                : 'border-gray-250 hover:border-gray-350'
-                            }`}
-                          >
-                            <span className="font-extrabold text-xs text-gray-900 block">{opt.label}</span>
-                            <span className="text-[10px] text-gray-400 block font-semibold">{opt.desc}</span>
-                          </button>
-                        ))}
+                    <div className="space-y-6">
+                      {/* Landholding Size */}
+                      <div className="space-y-2">
+                        <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider block">Landholding Size</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          {[
+                            { value: 'Marginal', label: 'Marginal (< 1 Ha)', desc: 'Very small landholding. Eligible for maximum support.' },
+                            { value: 'Small', label: 'Small (1-2 Ha)', desc: 'Small size landholder. Eligible for PM-KISAN.' },
+                            { value: 'Large', label: 'Medium/Large (> 2 Ha)', desc: 'Medium or large farming operations.' }
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setSchemeLandSize(opt.value)}
+                              className={`p-4 border rounded-xl text-left space-y-1 transition-all ${
+                                schemeLandSize === opt.value
+                                  ? 'border-emerald-500 bg-emerald-50/55 ring-2 ring-emerald-100'
+                                  : 'border-gray-250 hover:border-gray-350 bg-white'
+                              }`}
+                            >
+                              <span className="font-extrabold text-xs text-gray-900 block">{opt.label}</span>
+                              <span className="text-[10px] text-gray-400 block font-semibold">{opt.desc}</span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
+
+                      {/* State Location & Demographic Row */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* State Selection */}
+                        <div className="space-y-2 text-left">
+                          <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider block flex items-center">
+                            <MapPin className="h-3.5 w-3.5 mr-1 text-gray-400" />
+                            Select State / Location
+                          </span>
+                          <select
+                            value={schemeStateId}
+                            onChange={(e) => setSchemeStateId(e.target.value)}
+                            className="w-full p-3 border border-gray-250 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500 bg-white font-bold text-gray-700 transition-all cursor-pointer"
+                          >
+                            <option value="">Select State</option>
+                            {states.map((st) => (
+                              <option key={st.id} value={st.id}>
+                                {st.state_name}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="text-[10px] text-gray-400 block font-semibold">Enables mapping of state-specific farming benefits.</span>
+                        </div>
+
+                        {/* Demographic Category */}
+                        <div className="space-y-2 text-left">
+                          <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider block">Demographic Category</span>
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { value: 'General', label: 'General / OBC' },
+                              { value: 'SC_ST', label: 'SC / ST' },
+                              { value: 'Woman', label: 'Woman Farmer' }
+                            ].map((opt) => (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => setSchemeDemographic(opt.value)}
+                                className={`py-3 px-2 border rounded-xl text-center transition-all ${
+                                  schemeDemographic === opt.value
+                                    ? 'border-emerald-500 bg-emerald-50/55 ring-2 ring-emerald-100 font-bold bg-emerald-50/20'
+                                    : 'border-gray-250 hover:border-gray-350 bg-white'
+                                }`}
+                              >
+                                <span className="text-[10px] text-gray-900 block font-black">{opt.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                          <span className="text-[10px] text-gray-400 block font-semibold">Women & SC/ST farmers get higher percentages of subsidy support.</span>
+                        </div>
+                      </div>
+
                       <div className="pt-3 flex justify-end">
                         <button
                           onClick={() => setSchemeStep(2)}
@@ -2770,39 +2829,68 @@ export default function App() {
 
                   {/* Step 2 */}
                   {schemeStep === 2 && (
-                    <div className="space-y-5">
-                      <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider block">Step 2: Crop Categories Cultivated</span>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        {[
-                          { value: 'Foodgrains', label: 'Foodgrains & Pulses', desc: 'Rice, wheat, millets, pulses, etc.' },
-                          { value: 'Oilseeds', label: 'Oilseeds Varieties', desc: 'Mustard, groundnut, soybean, sunflower.' },
-                          { value: 'Commercial', label: 'Commercial / Cash Crops', desc: 'Sugarcane, cotton, jute, horticulture.' }
-                        ].map((opt) => (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => setSchemeCropsType(opt.value)}
-                            className={`p-4 border rounded-xl text-left space-y-1 transition-all ${
-                              schemeCropsType === opt.value
-                                ? 'border-emerald-500 bg-emerald-50/55 ring-2 ring-emerald-100'
-                                : 'border-gray-250 hover:border-gray-350'
-                            }`}
-                          >
-                            <span className="font-extrabold text-xs text-gray-900 block">{opt.label}</span>
-                            <span className="text-[10px] text-gray-400 block font-semibold">{opt.desc}</span>
-                          </button>
-                        ))}
+                    <div className="space-y-6">
+                      {/* Crop Categories */}
+                      <div className="space-y-2">
+                        <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider block">Crop Categories Cultivated</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          {[
+                            { value: 'Foodgrains', label: 'Foodgrains & Pulses', desc: 'Rice, wheat, millets, pulses, etc.' },
+                            { value: 'Oilseeds', label: 'Oilseeds Varieties', desc: 'Mustard, groundnut, soybean, sunflower.' },
+                            { value: 'Commercial', label: 'Commercial / Cash Crops', desc: 'Sugarcane, cotton, jute, horticulture.' }
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button; return false;"
+                              onClick={() => setSchemeCropsType(opt.value)}
+                              className={`p-4 border rounded-xl text-left space-y-1 transition-all ${
+                                schemeCropsType === opt.value
+                                  ? 'border-emerald-500 bg-emerald-50/55 ring-2 ring-emerald-100'
+                                  : 'border-gray-250 hover:border-gray-350 bg-white'
+                              }`}
+                            >
+                              <span className="font-extrabold text-xs text-gray-900 block">{opt.label}</span>
+                              <span className="text-[10px] text-gray-400 block font-semibold">{opt.desc}</span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
+
+                      {/* Primary Irrigation Source */}
+                      <div className="space-y-2">
+                        <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider block">Primary Irrigation Source</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {[
+                            { value: 'Rainfed', label: 'Rainfed / Natural Climate', desc: 'Depending solely on monsoon rains. Traditional practices.' },
+                            { value: 'BorewellDrip', label: 'Borewell / Tube-well / Drip system', desc: 'Active groundwater extraction or micro-irrigation system.' }
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setSchemeIrrigation(opt.value)}
+                              className={`p-4 border rounded-xl text-left space-y-1 transition-all ${
+                                schemeIrrigation === opt.value
+                                  ? 'border-emerald-500 bg-emerald-50/55 ring-2 ring-emerald-100'
+                                  : 'border-gray-250 hover:border-gray-350 bg-white'
+                              }`}
+                            >
+                              <span className="font-extrabold text-xs text-gray-900 block">{opt.label}</span>
+                              <span className="text-[10px] text-gray-400 block font-semibold">{opt.desc}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       <div className="pt-3 flex justify-between">
                         <button
                           onClick={() => setSchemeStep(1)}
-                          className="border border-gray-255 text-gray-700 font-bold px-6 py-2.5 rounded-xl hover:bg-gray-50 transition-all"
+                          className="border border-gray-250 text-gray-700 font-bold px-6 py-2.5 rounded-xl hover:bg-gray-50 transition-all text-xs"
                         >
                           Back
                         </button>
                         <button
                           onClick={() => setSchemeStep(3)}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl transition-all shadow-sm flex items-center space-x-1"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl transition-all shadow-sm flex items-center space-x-1 text-xs"
                         >
                           <span>Next Step</span>
                           <ChevronRight className="h-4 w-4" />
@@ -2813,38 +2901,84 @@ export default function App() {
 
                   {/* Step 3 */}
                   {schemeStep === 3 && (
-                    <div className="space-y-5">
-                      <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider block">Step 3: Primary Irrigation Source</span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {[
-                          { value: 'Rainfed', label: 'Rainfed / Natural Climate', desc: 'Depending solely on monsoon rains. Traditional practices.' },
-                          { value: 'BorewellDrip', label: 'Borewell / Tube-well / Drip system', desc: 'Active groundwater extraction or micro-irrigation system.' }
-                        ].map((opt) => (
+                    <div className="space-y-6">
+                      {/* Exclusion Status Toggle */}
+                      <div className="p-5 border border-gray-200 rounded-xl space-y-3 bg-slate-50/50 text-left">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="font-extrabold text-xs text-gray-955 block">Exclusion Criteria (Income Taxpayer)</span>
+                            <span className="text-[10px] text-gray-400 block font-semibold leading-relaxed mt-0.5">
+                              Are you or any member of your immediate family an income taxpayer, professional, or government employee?
+                            </span>
+                          </div>
                           <button
-                            key={opt.value}
                             type="button"
-                            onClick={() => setSchemeIrrigation(opt.value)}
-                            className={`p-4 border rounded-xl text-left space-y-1 transition-all ${
-                              schemeIrrigation === opt.value
-                                ? 'border-emerald-500 bg-emerald-50/55 ring-2 ring-emerald-100'
-                                : 'border-gray-250 hover:border-gray-350'
+                            onClick={() => setSchemeIsTaxpayer(!schemeIsTaxpayer)}
+                            className={`w-12 h-6 flex items-center rounded-full p-1 transition-all duration-300 focus:outline-none ${
+                              schemeIsTaxpayer ? 'bg-emerald-600' : 'bg-gray-300'
                             }`}
                           >
-                            <span className="font-extrabold text-xs text-gray-900 block">{opt.label}</span>
-                            <span className="text-[10px] text-gray-400 block font-semibold">{opt.desc}</span>
+                            <div
+                              className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-all duration-300 ${
+                                schemeIsTaxpayer ? 'translate-x-6' : 'translate-x-0'
+                              }`}
+                            ></div>
                           </button>
-                        ))}
+                        </div>
+                        {schemeIsTaxpayer && (
+                          <div className="p-2.5 bg-rose-50/50 border border-rose-100 rounded-lg text-[10px] text-rose-800 font-semibold leading-relaxed">
+                            ⚠️ Note: Income taxpayers, institutional landowners, and retired/serving government employees are excluded from PM-KISAN.
+                          </div>
+                        )}
                       </div>
+
+                      {/* Special Interests */}
+                      <div className="space-y-2 text-left">
+                        <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider block">Special Agricultural Subsidies Interests</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {[
+                            {
+                              id: 'solar',
+                              label: 'Solar Water Pump (PM-KUSUM)',
+                              desc: 'Looking to install solar irrigation pumps with up to 60-90% capital subsidy.',
+                              state: schemeSolarInterest,
+                              setter: setSchemeSolarInterest
+                            },
+                            {
+                              id: 'machinery',
+                              label: 'Farm Mechanization (SMAM)',
+                              desc: 'Looking for subsidies on tractors, rotavators, tillers, or custom equipment.',
+                              state: schemeMachineryInterest,
+                              setter: setSchemeMachineryInterest
+                            }
+                          ].map((item) => (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => item.setter(!item.state)}
+                              className={`p-4 border rounded-xl text-left space-y-1 transition-all ${
+                                item.state
+                                  ? 'border-emerald-500 bg-emerald-50/55 ring-2 ring-emerald-100 font-medium'
+                                  : 'border-gray-250 hover:border-gray-350 bg-white'
+                              }`}
+                            >
+                              <span className="font-extrabold text-xs text-gray-900 block">{item.label}</span>
+                              <span className="text-[10px] text-gray-400 block font-semibold leading-relaxed">{item.desc}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       <div className="pt-3 flex justify-between">
                         <button
                           onClick={() => setSchemeStep(2)}
-                          className="border border-gray-255 text-gray-705 font-bold px-6 py-2.5 rounded-xl hover:bg-gray-50 transition-all"
+                          className="border border-gray-250 text-gray-750 font-bold px-6 py-2.5 rounded-xl hover:bg-gray-50 transition-all text-xs"
                         >
                           Back
                         </button>
                         <button
                           onClick={() => setSchemeStep(4)}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl transition-all shadow-sm flex items-center space-x-1"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl transition-all shadow-sm flex items-center space-x-1 text-xs"
                         >
                           <span>Calculate Eligibility</span>
                           <ChevronRight className="h-4 w-4" />
@@ -2855,63 +2989,192 @@ export default function App() {
 
                   {/* Step 4: Results */}
                   {schemeStep === 4 && (
-                    <div className="space-y-5">
+                    <div className="space-y-5 text-left">
                       <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider block">Matched Government Schemes:</span>
 
                       {(() => {
-                        const eligibleSchemes = [];
+                        const matchedSchemes = [];
+                        const selectedStateObj = states.find(st => st.id.toString() === schemeStateId.toString());
+                        const stateName = selectedStateObj ? selectedStateObj.state_name : '';
 
-                        if (schemeLandSize === 'Marginal' || schemeLandSize === 'Small') {
-                          eligibleSchemes.push({
-                            name: "PM-KISAN Samman Nidhi",
-                            benefit: "₹6,000 per year direct income support paid in 3 installments.",
-                            desc: "Designed to help marginal and small farmers cover input cultivation costs."
-                          });
+                        // 1. PM-KISAN
+                        const isKisanEligible = (schemeLandSize === 'Marginal' || schemeLandSize === 'Small') && !schemeIsTaxpayer;
+                        let kisanReason = '';
+                        if (schemeIsTaxpayer) {
+                          kisanReason = 'Exclusion criteria: Household income taxpayer status.';
+                        } else if (schemeLandSize === 'Large') {
+                          kisanReason = 'Exclusion criteria: Large landholders (> 2 Ha) are not eligible.';
                         }
-
-                        if (schemeIrrigation === 'BorewellDrip' || schemeLandSize === 'Small' || schemeLandSize === 'Marginal') {
-                          eligibleSchemes.push({
-                            name: "PMKSY (Micro-Irrigation Subsidy)",
-                            benefit: "55% to 80% capital subsidy on installing drip & sprinkler tubes.",
-                            desc: "Improves water efficiency. High recommendation for cash crop growers."
-                          });
-                        }
-
-                        eligibleSchemes.push({
-                          name: "PM Fasal Bima Yojana (PMFBY)",
-                          benefit: "Comprehensive crop insurance with nominal premium (1.5% - 5%).",
-                          desc: "Protects against yield losses from pests, droughts, storms, or floods."
+                        matchedSchemes.push({
+                          name: "PM-KISAN Samman Nidhi",
+                          benefit: "₹6,000 per year direct income support paid in 3 installments.",
+                          desc: "Designed to help marginal and small farmers cover input cultivation costs.",
+                          eligible: isKisanEligible,
+                          reason: kisanReason,
+                          url: "https://pmkisan.gov.in/"
                         });
 
-                        if (schemeCropsType !== 'Commercial' && (schemeLandSize === 'Marginal' || schemeLandSize === 'Small')) {
-                          eligibleSchemes.push({
-                            name: "Paramparagat Krishi Vikas Yojana (PKVY)",
-                            benefit: "₹50,000 assistance per hectare for organic inputs & packaging.",
-                            desc: "Supports clusters of small farmers converting to chemical-free organic farming."
+                        // 2. PMKSY Micro-Irrigation
+                        const isPmksyEligible = schemeIrrigation === 'BorewellDrip';
+                        const pmksySubs = (schemeDemographic === 'Woman' || schemeDemographic === 'SC_ST' || schemeLandSize !== 'Large') ? '55% to 90%' : '45% to 50%';
+                        matchedSchemes.push({
+                          name: "PMKSY (Micro-Irrigation Subsidy)",
+                          benefit: `${pmksySubs} capital subsidy on installing drip & sprinkler systems.`,
+                          desc: "Improves water efficiency. High recommendation for cash crop and vegetable growers.",
+                          eligible: isPmksyEligible,
+                          reason: !isPmksyEligible ? "Requires a modern borewell/drip irrigation system interest." : "",
+                          url: "https://pmksy.gov.in/"
+                        });
+
+                        // 3. PMFBY (Crop Insurance)
+                        matchedSchemes.push({
+                          name: "PM Fasal Bima Yojana (PMFBY)",
+                          benefit: `Comprehensive crop insurance with nominal premium (${schemeCropsType === 'Commercial' ? '5%' : '1.5% - 2%'}).`,
+                          desc: "Protects against yield losses from natural calamities, droughts, storms, or floods.",
+                          eligible: true,
+                          reason: "",
+                          url: "https://pmfby.gov.in/"
+                        });
+
+                        // 4. PKVY (Organic Farming)
+                        const isPkvyEligible = schemeCropsType !== 'Commercial' && schemeLandSize !== 'Large';
+                        matchedSchemes.push({
+                          name: "Paramparagat Krishi Vikas Yojana (PKVY)",
+                          benefit: "₹50,000 assistance per hectare for organic inputs & packaging.",
+                          desc: "Supports clusters of small/marginal farmers converting to chemical-free organic farming.",
+                          eligible: isPkvyEligible,
+                          reason: schemeCropsType === 'Commercial' ? "Only foodgrains and oilseeds qualify for organic cluster assistance." : "Excludes large landholders (> 2 Ha).",
+                          url: "https://pgsindia-ncof.gov.in/pkvy/index.aspx"
+                        });
+
+                        // 5. PM-KUSUM (Solar Pumps) - Optional based on interest
+                        if (schemeSolarInterest || schemeIrrigation === 'BorewellDrip') {
+                          const kusumSubs = (schemeDemographic === 'Woman' || schemeDemographic === 'SC_ST') ? '90%' : '60%';
+                          matchedSchemes.push({
+                            name: "PM-KUSUM (Solar Pump Subsidy)",
+                            benefit: `Up to ${kusumSubs} subsidy (Central + State) on solar water pump installation (Component-B).`,
+                            desc: "Replaces diesel pumps with eco-friendly solar-powered pumps. 30% bank loan option available.",
+                            eligible: true,
+                            reason: "",
+                            url: "https://pmkusum.mnre.gov.in/"
                           });
+                        }
+
+                        // 6. SMAM (Mechanization) - Optional based on interest
+                        if (schemeMachineryInterest) {
+                          const smamSubs = (schemeDemographic === 'Woman' || schemeDemographic === 'SC_ST') ? '50% - 60%' : '40% - 50%';
+                          matchedSchemes.push({
+                            name: "SMAM (Sub-Mission on Agricultural Mechanization)",
+                            benefit: `${smamSubs} subsidy for purchasing tractors, power tillers, and sowing equipment.`,
+                            desc: "Supports acquisition of custom machinery to promote modern agricultural technology.",
+                            eligible: true,
+                            reason: "",
+                            url: "https://agrimachinery.nic.in/"
+                          });
+                        }
+
+                        // 7. State Specific Schemes
+                        if (stateName) {
+                          if (stateName.includes("Telangana")) {
+                            matchedSchemes.push({
+                              name: "Rythu Bandhu Scheme (Telangana)",
+                              benefit: "₹10,000 per acre per year direct crop investment support.",
+                              desc: "Provides financial aid for purchase of seeds, fertilizers, pesticides, and field prep.",
+                              eligible: true,
+                              reason: "",
+                              url: "https://rythubandhu.telangana.gov.in/"
+                            });
+                          } else if (stateName.includes("Andhra Pradesh") || stateName.includes("Andhra")) {
+                            matchedSchemes.push({
+                              name: "YSR Rythu Bharosa (Andhra Pradesh)",
+                              benefit: "₹13,500 per year direct financial assistance (includes tenant farmers).",
+                              desc: "Supports landholder and tenant farmer families in meeting inputs cultivation cost.",
+                              eligible: true,
+                              reason: "",
+                              url: "https://ysrrythubarosa.ap.gov.in/"
+                            });
+                          } else if (stateName.includes("West Bengal")) {
+                            matchedSchemes.push({
+                              name: "Krishak Bandhu (West Bengal)",
+                              benefit: "Up to ₹10,000 per year financial assistance + ₹2 Lakh life insurance.",
+                              desc: "Guarantees direct financial support to all agricultural landholders.",
+                              eligible: true,
+                              reason: "",
+                              url: "https://krishakbandhu.net/"
+                            });
+                          } else if (stateName.includes("Odisha")) {
+                            matchedSchemes.push({
+                              name: "KALIA Scheme (Odisha)",
+                              benefit: "₹25,000 assistance over five cropping seasons for small & marginal farmers.",
+                              desc: "Aims to accelerate agricultural growth and reduce poverty among farmers.",
+                              eligible: true,
+                              reason: "",
+                              url: "https://kalia.odisha.gov.in/"
+                            });
+                          } else {
+                            matchedSchemes.push({
+                              name: `State Crop Support & Credit Card (KCC) - ${stateName}`,
+                              benefit: "4% interest rate on Crop Loans up to ₹3 Lakh + local cooperative fertilizer subsidy.",
+                              desc: `Eligible for state-level cooperative assistance and crop loans in the state of ${stateName}.`,
+                              eligible: true,
+                              reason: "",
+                              url: "https://agricoop.nic.in/"
+                            });
+                          }
                         }
 
                         return (
                           <div className="space-y-4">
-                            {eligibleSchemes.map((sch, sIdx) => (
-                              <div key={sIdx} className="bg-emerald-50/50 border border-emerald-150 rounded-xl p-5 space-y-2 text-xs">
-                                <h5 className="font-extrabold text-emerald-900 text-sm flex items-center justify-between">
-                                  {sch.name}
-                                  <span className="bg-emerald-200 text-emerald-800 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border border-emerald-300/30">
-                                    Eligible
+                            {matchedSchemes.map((sch, sIdx) => (
+                              <div 
+                                key={sIdx} 
+                                className={`border rounded-xl p-5 space-y-2 text-xs transition-all ${
+                                  sch.eligible
+                                    ? 'bg-emerald-50/45 border-emerald-150'
+                                    : 'bg-gray-50/60 border-gray-200 opacity-80'
+                                }`}
+                              >
+                                <h5 className="font-extrabold text-sm flex items-center justify-between">
+                                  <span className={sch.eligible ? 'text-emerald-900 font-extrabold font-sans' : 'text-gray-500 font-sans'}>
+                                    {sch.name}
+                                  </span>
+                                  <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
+                                    sch.eligible
+                                      ? 'bg-emerald-200 text-emerald-800 border-emerald-300/30'
+                                      : 'bg-rose-100 text-rose-800 border-rose-200/30'
+                                  }`}>
+                                    {sch.eligible ? 'Eligible' : 'Not Eligible'}
                                   </span>
                                 </h5>
-                                <p className="text-emerald-700 font-bold text-xs">🛡️ {sch.benefit}</p>
-                                <p className="text-gray-650 text-xs leading-relaxed">{sch.desc}</p>
+                                
+                                {sch.eligible ? (
+                                  <p className="text-emerald-700 font-bold text-xs flex items-center">
+                                    <span className="mr-1">🛡️</span> {sch.benefit}
+                                  </p>
+                                ) : (
+                                  <p className="text-rose-700 font-bold text-xs flex items-center">
+                                    <span className="mr-1">⚠️</span> {sch.reason}
+                                  </p>
+                                )}
+                                
+                                <p className="text-gray-500 text-xs leading-relaxed font-medium">{sch.desc}</p>
+                                
                                 <div className="pt-2 flex justify-end">
-                                  <a
-                                    href="https://pmkisan.gov.in/"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="px-4 py-2 bg-emerald-650 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-all"
-                                  >
-                                    Apply Now
-                                  </a>
+                                  {sch.eligible ? (
+                                    <a
+                                      href={sch.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-all shadow-sm flex items-center space-x-1"
+                                    >
+                                      <span>Apply Now</span>
+                                      <ChevronRight className="h-3.5 w-3.5" />
+                                    </a>
+                                  ) : (
+                                    <span className="px-4 py-2 bg-gray-200 text-gray-400 font-bold rounded-lg text-xs cursor-not-allowed">
+                                      Ineligible
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             ))}
@@ -2926,6 +3189,11 @@ export default function App() {
                             setSchemeLandSize('Marginal');
                             setSchemeCropsType('Foodgrains');
                             setSchemeIrrigation('Rainfed');
+                            setSchemeDemographic('General');
+                            setSchemeIsTaxpayer(false);
+                            setSchemeSolarInterest(false);
+                            setSchemeMachineryInterest(false);
+                            setSchemeStateId('');
                           }}
                           className="bg-gray-150 hover:bg-gray-200 text-gray-700 font-bold px-6 py-2.5 rounded-xl text-xs transition-all shadow-sm"
                         >
