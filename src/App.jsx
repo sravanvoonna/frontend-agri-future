@@ -126,6 +126,19 @@ const getWeatherGradient = (code, isDay = 1) => {
 };
 
 export default function App() {
+  // Language & Translation Helpers
+  const [voiceLanguage, setVoiceLanguage] = useState('en-IN');
+  const language = voiceLanguage.split('-')[0];
+  
+  const handleGlowMouseMove = (e) => {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    card.style.setProperty('--mouse-x', `${x}px`);
+    card.style.setProperty('--mouse-y', `${y}px`);
+  };
+
   // Navigation
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -258,7 +271,6 @@ export default function App() {
   const [schedulerError, setSchedulerError] = useState('');
 
   // Voice Assistant States
-  const [voiceLanguage, setVoiceLanguage] = useState('en-IN');
   const [isListening, setIsListening] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -1527,7 +1539,7 @@ export default function App() {
             <Sprout className="h-6 w-6 animate-pulse" />
           </div>
           <div>
-            <h1 className="font-black text-xl text-white tracking-wide uppercase">AgriFuture</h1>
+            <h1 className="font-black text-xl text-white tracking-wide uppercase brand-typewriter">AgriFuture</h1>
             <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Cerevyn Research AI</p>
           </div>
         </header>
@@ -1560,14 +1572,18 @@ export default function App() {
           {/* Right Card Grid showing core features */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
-              { title: "AI Diagnostics", desc: "Instant leaf disease detection from photos", icon: Bot, color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
-              { title: "State-wise Crops", desc: "Region-matched seasons and crop lists", icon: MapPin, color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
-              { title: "Smart Scheduler", desc: "Customized soil and watering schedules", icon: FileText, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
-              { title: "Voice AI Bot", desc: "Multilingual help in Telugu, Hindi & English", icon: MessageSquare, color: "text-purple-400 bg-purple-500/10 border-purple-500/20" }
+              { title: "AI Diagnostics", desc: "Instant leaf disease detection from photos", icon: Bot, color: "text-blue-400 border-blue-500/15" },
+              { title: "State-wise Crops", desc: "Region-matched seasons and crop lists", icon: MapPin, color: "text-amber-400 border-amber-500/15" },
+              { title: "Smart Scheduler", desc: "Customized soil and watering schedules", icon: FileText, color: "text-emerald-400 border-emerald-500/15" },
+              { title: "Voice AI Bot", desc: "Multilingual help in Telugu, Hindi & English", icon: MessageSquare, color: "text-purple-400 border-purple-500/15" }
             ].map((f, idx) => {
               const Icon = f.icon;
               return (
-                <div key={idx} className={`p-5 rounded-2xl border ${f.color} backdrop-blur-md transition-all duration-300 hover:scale-[1.03] space-y-3`}>
+                <div 
+                  key={idx} 
+                  onMouseMove={handleGlowMouseMove}
+                  className="p-5 rounded-2xl glow-card space-y-3 transition-all duration-300 hover:scale-[1.03] shadow-md select-none"
+                >
                   <div className="p-2.5 w-fit rounded-xl bg-white/5">
                     <Icon className="h-5 w-5" />
                   </div>
@@ -1619,7 +1635,7 @@ export default function App() {
               <Sprout className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="font-extrabold text-lg leading-tight tracking-tight">AgriFuture</h1>
+              <h1 className="font-extrabold text-lg leading-tight tracking-tight brand-typewriter">AgriFuture</h1>
               <p className="text-xs text-emerald-300 font-medium">Advisory System</p>
             </div>
           </div>
@@ -1987,8 +2003,22 @@ export default function App() {
                 ) : (
                   <>
                 {dashboardWeather && (
-                  <div className={`p-6 rounded-2xl bg-gradient-to-br ${getWeatherGradient(dashboardWeather.weathercode, dashboardWeather.is_day)} text-white shadow-md border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-6 transition-all duration-300 hover:shadow-lg animate-fade-in`}>
-                    <div className="flex items-center gap-5">
+                  <div className={`p-6 rounded-2xl bg-gradient-to-br ${getWeatherGradient(dashboardWeather.weathercode, dashboardWeather.is_day)} text-white shadow-md border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-6 transition-all duration-300 hover:shadow-lg animate-fade-in relative overflow-hidden`}>
+                    {/* Dynamic Weather Overlay */}
+                    {(() => {
+                      const code = dashboardWeather.weathercode;
+                      const isRain = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99].includes(code);
+                      const isSun = [0, 1, 2].includes(code);
+                      const isCloud = [3, 45, 48].includes(code);
+                      return (
+                        <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl z-0">
+                          {isRain && <div className="absolute inset-0 animate-rain-effect opacity-20"></div>}
+                          {isSun && <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/0 via-amber-400/5 to-yellow-300/10 mix-blend-screen animate-sun-beams opacity-35"></div>}
+                          {isCloud && <div className="absolute inset-0 bg-white/5 backdrop-blur-[0.5px] animate-clouds-drift opacity-25"></div>}
+                        </div>
+                      );
+                    })()}
+                    <div className="flex items-center gap-5 relative z-10">
                       <span className="text-5xl md:text-6xl">{getWeatherDescription(dashboardWeather.weathercode, dashboardWeather.is_day).icon}</span>
                       <div className="text-left space-y-1">
                         <span className="text-[10px] font-black uppercase tracking-wider text-white/70 bg-white/15 px-2.5 py-0.5 rounded-full inline-block">National Capital Region Weather</span>
@@ -2019,7 +2049,11 @@ export default function App() {
                   ].map((stat, idx) => {
                     const Icon = stat.icon;
                     return (
-                      <div key={idx} className={`p-5 rounded-xl bg-white border shadow-sm flex items-center space-x-4 transition-all duration-200 hover:shadow-md hover:translate-y-[-2px]`}>
+                      <div 
+                        key={idx} 
+                        className="p-5 rounded-xl bg-white border shadow-sm flex items-center space-x-4 transition-all duration-200 hover:shadow-md hover:translate-y-[-2px] animate-fade-in-up opacity-0"
+                        style={{ animationDelay: `${idx * 80}ms`, animationFillMode: 'forwards' }}
+                      >
                         <div className={`p-3 rounded-lg ${stat.color} border shrink-0`}>
                           <Icon className="h-6 w-6" />
                         </div>
@@ -4875,13 +4909,23 @@ export default function App() {
 
                   {/* Diagnosis Progress Bar */}
                   {aiAnalyzing && (
-                    <div className="space-y-2 max-w-sm mx-auto">
-                      <div className="flex justify-between text-xs font-bold text-gray-600">
-                        <span>{aiProgressText}</span>
-                        <span>{aiProgress}%</span>
+                    <div className="space-y-3 max-w-sm mx-auto p-5 bg-white border border-gray-150 rounded-2xl shadow-sm animate-fade-in flex flex-col items-center">
+                      <div className="w-12 h-12 flex items-center justify-center">
+                        <svg width="48" height="48" viewBox="0 0 100 100" className="animate-sprout-grow">
+                          <path d="M 20 82 Q 50 86 80 82" stroke="#78350f" strokeWidth="5" fill="none" strokeLinecap="round" />
+                          <path d="M 50 80 Q 49 62 50 45" stroke="#10b981" strokeWidth="5" fill="none" strokeLinecap="round" strokeDasharray="40" strokeDashoffset="0" />
+                          <path d="M 50 45 Q 36 38 40 32 Q 49 36 50 45" fill="#34d399" stroke="#059669" strokeWidth="1.5" />
+                          <path d="M 50 45 Q 64 42 60 32 Q 51 38 50 45" fill="#34d399" stroke="#059669" strokeWidth="1.5" />
+                        </svg>
                       </div>
-                      <div className="w-full bg-gray-100 rounded-full h-2">
-                        <div className="h-2 rounded-full bg-emerald-600 transition-all duration-300" style={{ width: `${aiProgress}%` }}></div>
+                      <div className="w-full space-y-1.5">
+                        <div className="flex justify-between text-xs font-bold text-gray-600">
+                          <span>{aiProgressText}</span>
+                          <span>{aiProgress}%</span>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-1.5">
+                          <div className="h-1.5 rounded-full bg-emerald-600 transition-all duration-300" style={{ width: `${aiProgress}%` }}></div>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -5091,12 +5135,23 @@ export default function App() {
                   {/* Right Side: Output Results */}
                   <div className="lg:col-span-2 space-y-6">
                     {schedulerLoading ? (
-                      <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm space-y-4 flex flex-col items-center justify-center min-h-[400px]">
-                        <div className="relative flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-16 w-16 border-4 border-emerald-600 border-t-transparent"></div>
-                          <Sprout className="absolute h-6 w-6 text-emerald-500 animate-pulse" />
+                      <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm space-y-4 flex flex-col items-center justify-center min-h-[400px] animate-sprout-grow">
+                        <div className="flex flex-col items-center justify-center mb-2">
+                          <svg width="90" height="90" viewBox="0 0 100 100">
+                            {/* Soil mound */}
+                            <path d="M 20 82 Q 50 86 80 82" stroke="#78350f" strokeWidth="4.5" fill="none" strokeLinecap="round" />
+                            {/* Split seed */}
+                            <path d="M 46 80 Q 48 70 51 80" fill="#b45309" stroke="#78350f" strokeWidth="1" className="animate-seed-split" />
+                            <path d="M 49 80 Q 52 70 54 80" fill="#b45309" stroke="#78350f" strokeWidth="1" className="animate-seed-split" />
+                            {/* Emerging stem */}
+                            <path d="M 50 80 Q 49 60 50 42" stroke="#10b981" strokeWidth="4.5" fill="none" strokeLinecap="round" strokeDasharray="40" strokeDashoffset="40" className="animate-stem-rise" />
+                            {/* First leaf */}
+                            <path d="M 50 42 Q 34 33 39 27 Q 49 32 50 42" fill="#34d399" stroke="#059669" strokeWidth="1.5" className="animate-leaf-left" opacity="0" />
+                            {/* Second leaf */}
+                            <path d="M 50 42 Q 66 38 61 27 Q 51 34 50 42" fill="#34d399" stroke="#059669" strokeWidth="1.5" className="animate-leaf-right" opacity="0" />
+                          </svg>
                         </div>
-                        <p className="text-gray-700 font-bold text-base mt-4">Analysing Farm Chemistry & Rotation Cycle...</p>
+                        <p className="text-gray-700 font-bold text-base mt-2">Analysing Farm Chemistry & Rotation Cycle...</p>
                         <p className="text-gray-400 text-xs max-w-xs leading-relaxed">
                           Cerevyn Research AI is calculating exact nitrogen-phosphorus ratios, water requirements, and organic cultivation dates for your farm.
                         </p>
