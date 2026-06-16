@@ -250,7 +250,8 @@ export default function App() {
     irrigation_type: 'Drip Irrigation',
     state_name: '',
     previous_crop: '',
-    previous_yield: ''
+    previous_yield: '',
+    expected_yield: ''
   });
   const [schedulerResult, setSchedulerResult] = useState(null);
   const [schedulerLoading, setSchedulerLoading] = useState(false);
@@ -840,6 +841,282 @@ export default function App() {
     } finally {
       setSchedulerLoading(false);
     }
+  };
+
+  const downloadSchedulerPdf = () => {
+    if (!schedulerResult) return;
+
+    const printWindow = window.open('', '_blank', 'width=800,height=900');
+    if (!printWindow) {
+      alert("Please allow popups to download the PDF report.");
+      return;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>AgriFuture Cultivation Advisory Report</title>
+        <style>
+          body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: #1f2937;
+            line-height: 1.5;
+            padding: 40px;
+            background-color: #ffffff;
+          }
+          .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #059669;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+          .title-area h1 {
+            color: #065f46;
+            margin: 0;
+            font-size: 24px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .title-area p {
+            color: #059669;
+            margin: 4px 0 0 0;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+          }
+          .meta-info {
+            text-align: right;
+            font-size: 11px;
+            color: #6b7280;
+          }
+          .summary-grid {
+            display: grid;
+            grid-template-cols: repeat(2, 1fr);
+            gap: 15px;
+            background: #f0fdfa;
+            border: 1px solid #ccfbf1;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+          }
+          .summary-item {
+            font-size: 13px;
+          }
+          .summary-item strong {
+            color: #0f766e;
+          }
+          .section-title {
+            color: #111827;
+            font-size: 16px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 35px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 6px;
+          }
+          .feasibility-box {
+            background: #f8fafc;
+            border-left: 4px solid #0284c7;
+            padding: 15px 20px;
+            border-radius: 4px 8px 8px 4px;
+            margin-bottom: 25px;
+          }
+          .feasibility-status {
+            font-weight: 800;
+            font-size: 14px;
+            color: #0369a1;
+            text-transform: uppercase;
+          }
+          .feasibility-analysis {
+            font-size: 13px;
+            color: #334155;
+            margin-top: 6px;
+          }
+          .timeline-stage {
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+          }
+          .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f3f4f6;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+          }
+          .timeline-phase {
+            font-size: 14px;
+            font-weight: 800;
+            color: #065f46;
+          }
+          .timeline-days {
+            font-size: 11px;
+            font-weight: 700;
+            background: #ecfdf5;
+            color: #059669;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            border: 1px solid #d1fae5;
+          }
+          .activities-list {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 13px;
+            color: #4b5563;
+          }
+          .activities-list li {
+            margin-bottom: 8px;
+          }
+          .advice-grid {
+            display: grid;
+            grid-template-cols: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #e5e7eb;
+            font-size: 12px;
+          }
+          .advice-block strong {
+            color: #0f766e;
+            display: block;
+            margin-bottom: 4px;
+          }
+          .tips-list {
+            padding-left: 20px;
+            font-size: 13px;
+            color: #4b5563;
+          }
+          .tips-list li {
+            margin-bottom: 8px;
+          }
+          .warning-box {
+            background: #fffbeb;
+            border: 1px solid #fef3c7;
+            border-left: 4px solid #d97706;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-top: 25px;
+            page-break-inside: avoid;
+          }
+          .warning-box h4 {
+            margin: 0 0 6px 0;
+            color: #92400e;
+            font-size: 13px;
+            font-weight: 800;
+            text-transform: uppercase;
+          }
+          .footer {
+            margin-top: 50px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 15px;
+            text-align: center;
+            font-size: 10px;
+            color: #9ca3af;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title-area">
+            <h1>AgriFuture Cultivation Plan</h1>
+            <p>Smart Advisory Report</p>
+          </div>
+          <div class="meta-info">
+            Generated: ${new Date().toLocaleDateString('en-IN')}<br>
+            Powered by Cerevyn AI
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="summary-item"><strong>Target Crop:</strong> ${schedulerForm.crop_type}</div>
+          <div class="summary-item"><strong>Soil Type:</strong> ${schedulerForm.soil_type}</div>
+          <div class="summary-item"><strong>Farm Size:</strong> ${schedulerForm.acres} Acres</div>
+          <div class="summary-item"><strong>Irrigation:</strong> ${schedulerForm.irrigation_type}</div>
+          <div class="summary-item"><strong>Previous Crop:</strong> ${schedulerForm.previous_crop || 'N/A'}</div>
+          <div class="summary-item"><strong>Previous Yield:</strong> ${schedulerForm.previous_yield ? `${schedulerForm.previous_yield} Quintals` : 'N/A'}</div>
+          <div class="summary-item"><strong>Expected Yield Target:</strong> ${schedulerForm.expected_yield ? `${schedulerForm.expected_yield} Quintals` : 'N/A'}</div>
+          <div class="summary-item"><strong>Location State:</strong> ${schedulerForm.state_name || 'N/A'}</div>
+        </div>
+
+        <div class="section-title">Target Yield Feasibility</div>
+        <div class="feasibility-box">
+          <div class="feasibility-status">${schedulerResult.target_yield_feasibility?.status || 'Advisory Generated'}</div>
+          <div class="feasibility-analysis">${schedulerResult.target_yield_feasibility?.analysis || 'Feasibility analysis of yield target.'}</div>
+        </div>
+
+        <div class="section-title">Cultivation Timeline & Phases</div>
+        ${schedulerResult.crop_schedule?.map((item) =>
+          '<div class="timeline-stage">' +
+          '  <div class="timeline-header">' +
+          '    <span class="timeline-phase">' + item.phase + '</span>' +
+          '    <span class="timeline-days">' + item.timeline + '</span>' +
+          '  </div>' +
+          '  <ul class="activities-list">' +
+          (item.activities?.map(act => '<li>' + act + '</li>').join('') || '') +
+          '  </ul>' +
+          '  <div class="advice-grid">' +
+          '    <div class="advice-block">' +
+          '      <strong>Water Management Advice</strong>' +
+          '      <span>' + item.irrigation_advice + '</span>' +
+          '    </div>' +
+          '    <div class="advice-block">' +
+          '      <strong>Fertilizer & NPK Dosage</strong>' +
+          '      <span>' + item.fertilizer_dosage + '</span>' +
+          '    </div>' +
+          '  </div>' +
+          '</div>'
+        ).join('')}
+
+        ${schedulerResult.soil_and_fertilizer_tips?.length ? `
+          <div class="section-title">Soil & Fertilizer Management Tips</div>
+          <ul class="tips-list">
+            ${schedulerResult.soil_and_fertilizer_tips.map(tip => '<li>' + tip + '</li>').join('')}
+          </ul>
+        ` : ''}
+
+        ${schedulerResult.general_suggestions?.length ? `
+          <div class="section-title">General Suggestions</div>
+          <ul class="tips-list">
+            ${schedulerResult.general_suggestions.map(sug => '<li>' + sug + '</li>').join('')}
+          </ul>
+        ` : ''}
+
+        ${schedulerResult.warnings?.length ? `
+          <div class="warning-box">
+            <h4>Potential Risks & Warnings</h4>
+            <ul style="margin: 0; padding-left: 20px;">
+              ${schedulerResult.warnings.map(warn => '<li>' + warn + '</li>').join('')}
+            </ul>
+          </div>
+        ` : ''}
+
+        <div class="footer">
+          This cultivation advisory report is AI-generated for general guidance. Consult regional agricultural officers for local amendments.<br>
+          © ${new Date().getFullYear()} AgriFuture Advisory System. All rights reserved.
+        </div>
+
+        <script>
+          window.onload = function() {
+            window.print();
+            setTimeout(function() { window.close(); }, 500);
+          }
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   // AI Diagnostic Simulation
@@ -4769,16 +5046,28 @@ export default function App() {
                         />
                       </div>
 
-                      {/* Previous Yield */}
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Previous Yield</label>
-                        <input
-                          type="text"
-                          value={schedulerForm.previous_yield}
-                          onChange={(e) => setSchedulerForm({ ...schedulerForm, previous_yield: e.target.value })}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
-                          placeholder="e.g. 2.5 tons/hectare"
-                        />
+                      {/* Yield Targets */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Previous Yield (Quintals)</label>
+                          <input
+                            type="text"
+                            value={schedulerForm.previous_yield}
+                            onChange={(e) => setSchedulerForm({ ...schedulerForm, previous_yield: e.target.value })}
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                            placeholder="e.g. 15"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Expected Yield (Quintals)</label>
+                          <input
+                            type="text"
+                            value={schedulerForm.expected_yield}
+                            onChange={(e) => setSchedulerForm({ ...schedulerForm, expected_yield: e.target.value })}
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                            placeholder="e.g. 20"
+                          />
+                        </div>
                       </div>
 
                       {schedulerError && (
@@ -4814,11 +5103,41 @@ export default function App() {
                       </div>
                     ) : schedulerResult ? (
                       <div className="space-y-6">
+                        {/* Target Yield Feasibility */}
+                        {schedulerResult.target_yield_feasibility && (
+                          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-2.5">
+                            <h4 className="font-bold text-gray-900 text-sm flex items-center">
+                              <TrendingUp className="h-4.5 w-4.5 text-emerald-600 mr-1.5" />
+                              <span>Target Yield Feasibility</span>
+                            </h4>
+                            <div className="bg-emerald-50/50 border border-emerald-100 rounded-lg p-3.5 text-left">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-gray-500">Status</span>
+                                <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border border-emerald-200">
+                                  {schedulerResult.target_yield_feasibility.status}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-600 leading-relaxed mt-2.5">
+                                {schedulerResult.target_yield_feasibility.analysis}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Timeline */}
                         <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                          <h3 className="font-extrabold text-base text-gray-900 border-b border-gray-100 pb-3 mb-6">
-                            Cultivation Timeline for {schedulerForm.acres} Acres of {schedulerForm.crop_type}
-                          </h3>
+                          <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-6">
+                            <h3 className="font-extrabold text-base text-gray-900">
+                              Cultivation Timeline for {schedulerForm.acres} Acres of {schedulerForm.crop_type}
+                            </h3>
+                            <button
+                              onClick={downloadSchedulerPdf}
+                              className="text-xs font-bold text-emerald-600 hover:text-emerald-800 flex items-center gap-1 border border-emerald-200 rounded-lg px-2.5 py-1.5 bg-emerald-50/40 hover:bg-emerald-50 transition-colors shadow-sm select-none"
+                            >
+                              <FileText className="h-3.5 w-3.5 animate-pulse" />
+                              <span>Download PDF</span>
+                            </button>
+                          </div>
 
                           {/* Vertical Timeline */}
                           <div className="relative border-l-2 border-emerald-100 ml-4 space-y-8 pb-4">
