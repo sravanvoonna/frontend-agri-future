@@ -217,5 +217,20 @@
   animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Waving Hand Animation for Farmer Mascot */
+@keyframes wave-hand {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-15deg);
+  }
+}
+
+.farmer-hand-wave {
+  animation: wave-hand 2s ease-in-out infinite;
+}
+
+
 
 

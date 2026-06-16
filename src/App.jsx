@@ -275,6 +275,8 @@ export default function App() {
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [welcomeTransitioning, setWelcomeTransitioning] = useState(false);
+  const canvasRef = React.useRef(null);
 
   // 12. Weather, Mandi Prices, Profit Calculator & Soil Analyzer States
   const [weatherData, setWeatherData] = useState(null);
@@ -1376,6 +1378,96 @@ export default function App() {
     setIsSpeaking(false);
   };
 
+  const triggerSeedBurst = (clientX, clientY) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles = [];
+    const seedColors = ['#b45309', '#ea580c', '#d97706', '#f59e0b', '#78350f'];
+
+    // Create 70 particles
+    for (let i = 0; i < 70; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 3 + Math.random() * 9;
+      particles.push({
+        x: clientX,
+        y: clientY,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - (1 + Math.random() * 4), // biased upwards
+        radius: 3.5 + Math.random() * 4.5,
+        color: seedColors[Math.floor(Math.random() * seedColors.length)],
+        alpha: 1,
+        life: 0.9 + Math.random() * 0.4,
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 0.18
+      });
+    }
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let anyAlive = false;
+
+      particles.forEach(p => {
+        if (p.alpha <= 0) return;
+        anyAlive = true;
+
+        // Apply physics
+        p.vy += 0.22; // gravity
+        p.vx *= 0.975; // air friction
+        p.vy *= 0.975;
+
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rotation += p.rotationSpeed;
+        p.alpha -= 0.016;
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation);
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        
+        // Draw main seed body (oval-like shape)
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, p.radius, p.radius * 0.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw small green sprout tail
+        ctx.fillStyle = '#22c55e';
+        ctx.beginPath();
+        ctx.arc(p.radius * 0.75, 0, p.radius * 0.25, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      });
+
+      if (anyAlive) {
+        requestAnimationFrame(animate);
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  };
+
+  const handleAccessDashboard = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX || rect.left + rect.width / 2;
+    const y = e.clientY || rect.top + rect.height / 2;
+    
+    triggerSeedBurst(x, y);
+    setWelcomeTransitioning(true);
+    setTimeout(() => {
+      setHasStarted(true);
+    }, 700);
+  };
+
   const startSpeechRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -1528,7 +1620,9 @@ export default function App() {
 
   if (!hasStarted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-950 flex flex-col justify-between p-6 md:p-12 relative overflow-hidden antialiased select-none">
+      <div className={`min-h-screen bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-950 flex flex-col justify-between p-6 md:p-12 relative overflow-hidden antialiased select-none transition-all duration-700 ease-in-out ${welcomeTransitioning ? 'opacity-0 scale-95 translate-y-4 pointer-events-none' : 'opacity-100 scale-100 translate-y-0'}`}>
+        {/* Canvas for seed burst */}
+        <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-50" />
         {/* Glow effect blobs */}
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
@@ -1560,7 +1654,7 @@ export default function App() {
 
             <div className="pt-2">
               <button
-                onClick={() => setHasStarted(true)}
+                onClick={handleAccessDashboard}
                 className="group bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-extrabold px-8 py-4 rounded-2xl shadow-xl hover:shadow-emerald-500/20 transition-all duration-300 transform hover:-translate-y-1 flex items-center space-x-3 text-base select-none border border-emerald-400/20"
               >
                 <span>Access Advisory Dashboard</span>
@@ -2002,41 +2096,140 @@ export default function App() {
                   </div>
                 ) : (
                   <>
-                {dashboardWeather && (
-                  <div className={`p-6 rounded-2xl bg-gradient-to-br ${getWeatherGradient(dashboardWeather.weathercode, dashboardWeather.is_day)} text-white shadow-md border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-6 transition-all duration-300 hover:shadow-lg animate-fade-in relative overflow-hidden`}>
-                    {/* Dynamic Weather Overlay */}
-                    {(() => {
-                      const code = dashboardWeather.weathercode;
-                      const isRain = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99].includes(code);
-                      const isSun = [0, 1, 2].includes(code);
-                      const isCloud = [3, 45, 48].includes(code);
-                      return (
-                        <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl z-0">
-                          {isRain && <div className="absolute inset-0 animate-rain-effect opacity-20"></div>}
-                          {isSun && <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/0 via-amber-400/5 to-yellow-300/10 mix-blend-screen animate-sun-beams opacity-35"></div>}
-                          {isCloud && <div className="absolute inset-0 bg-white/5 backdrop-blur-[0.5px] animate-clouds-drift opacity-25"></div>}
-                        </div>
-                      );
-                    })()}
-                    <div className="flex items-center gap-5 relative z-10">
-                      <span className="text-5xl md:text-6xl">{getWeatherDescription(dashboardWeather.weathercode, dashboardWeather.is_day).icon}</span>
-                      <div className="text-left space-y-1">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-white/70 bg-white/15 px-2.5 py-0.5 rounded-full inline-block">National Capital Region Weather</span>
-                        <h3 className="text-3xl font-black">{dashboardWeather.temperature}°C</h3>
-                        <p className="text-sm font-bold">{getWeatherDescription(dashboardWeather.weathercode, dashboardWeather.is_day).desc}</p>
-                        <p className="text-xs text-white/80">Wind speed: {dashboardWeather.windspeed} km/h • Standard Station coordinates</p>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Waving Farmer Mascot Card (Span 2) */}
+                  <div className="lg:col-span-2 bg-gradient-to-br from-emerald-800 to-emerald-950 p-6 rounded-2xl text-white shadow-md border border-emerald-700/50 flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden group transition-all duration-300 hover:shadow-lg">
+                    {/* Background decorative sprout detail */}
+                    <div className="absolute -right-6 -bottom-6 text-emerald-700/10 transform rotate-12 pointer-events-none">
+                      <Sprout className="h-44 w-44" />
+                    </div>
+                    
+                    <div className="space-y-4 max-w-md relative z-10 text-left">
+                      <span className="inline-block px-3 py-1 bg-emerald-600/50 border border-emerald-500/30 text-emerald-300 rounded-full text-[10px] font-black uppercase tracking-widest">
+                        Advisory Companion AI
+                      </span>
+                      <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+                        Namaste, Swagat Hai! 👋
+                      </h3>
+                      <p className="text-xs text-emerald-100/80 leading-relaxed">
+                        Welcome to your smart farming dashboard. I am here to assist you in designing cultivation schedules, monitoring target yields, identifying leaf pathogens, and checking scheme eligibilities. Let's grow together!
+                      </p>
+                      <div className="flex flex-wrap gap-2.5 pt-1">
+                        <button 
+                          onClick={() => setActiveTab('smart-scheduler')}
+                          className="text-[11px] font-extrabold bg-white text-emerald-950 px-4 py-2.5 rounded-xl hover:bg-emerald-50 transition-all flex items-center gap-1.5 shadow-sm border border-white/20 active:scale-[0.98]"
+                        >
+                          <FileText className="h-3.5 w-3.5 text-emerald-700" />
+                          <span>Cultivation Schedule</span>
+                        </button>
+                        <button 
+                          onClick={() => setChatbotOpen(true)}
+                          className="text-[11px] font-extrabold bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl transition-all border border-emerald-600/50 flex items-center gap-1.5 active:scale-[0.98]"
+                        >
+                          <Bot className="h-3.5 w-3.5 text-emerald-350" />
+                          <span>Ask CropCare Bot</span>
+                        </button>
                       </div>
                     </div>
-                    <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-xl text-left max-w-sm">
-                      <h4 className="text-xs font-black uppercase tracking-wider text-emerald-300">Agricultural Advisory</h4>
-                      <p className="text-xs text-white/90 leading-relaxed mt-1">
-                        {[0, 1, 2].includes(dashboardWeather.weathercode) ? "Ideal conditions for sowing, harvesting, and pesticide application." :
-                         [3, 45, 48].includes(dashboardWeather.weathercode) ? "Cool weather. Monitor crops for fungal activity." :
-                         "Rain expected. Delay irrigation and pesticide spraying. Ensure proper soil drainage."}
-                      </p>
+
+                    {/* SVG Animated Waving Farmer */}
+                    <div className="relative w-40 h-40 shrink-0 flex items-center justify-center bg-emerald-900/40 rounded-2xl border border-emerald-700/30 p-2 overflow-hidden shadow-inner">
+                      <svg className="w-full h-full" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        {/* Glow behind */}
+                        <circle cx="100" cy="100" r="75" fill="url(#farmerGlow)" />
+                        
+                        {/* Farmer Body (Kurta) */}
+                        <path d="M55 180 C 55 145, 145 145, 145 180 Z" fill="#ffffff" stroke="#10b981" strokeWidth="2" />
+                        <path d="M75 145 L 100 165 L 125 145" stroke="#10b981" strokeWidth="2" fill="none" />
+                        
+                        {/* Green/Saffron Scarf (Neckerchief / Gamcha) */}
+                        <path d="M70 142 C 85 148, 115 148, 130 142 C 135 155, 130 175, 120 180 C 100 170, 80 180, 70 142" fill="#f97316" opacity="0.9" />
+                        <path d="M70 142 C 78 155, 75 175, 80 180" stroke="#ea580c" strokeWidth="2" />
+                        
+                        {/* Face */}
+                        <circle cx="100" cy="105" r="32" fill="#fed7aa" stroke="#d97706" strokeWidth="2" />
+                        
+                        {/* Traditional Hat (Pagri/Turban) */}
+                        <path d="M68 95 C 65 80, 80 72, 100 75 C 120 72, 135 80, 132 95 C 135 70, 65 70, 68 95" fill="#f59e0b" />
+                        <path d="M64 88 C 80 65, 120 65, 136 88 C 145 92, 120 72, 100 80 C 80 72, 55 92, 64 88" fill="#ea580c" />
+                        
+                        {/* Eyes */}
+                        <circle cx="90" cy="105" r="3" fill="#1e293b" />
+                        <circle cx="110" cy="105" r="3" fill="#1e293b" />
+                        
+                        {/* Eyebrows */}
+                        <path d="M84 98 C 88 95, 96 97, 96 97" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
+                        <path d="M116 98 C 112 95, 104 97, 104 97" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
+                        
+                        {/* Mustache */}
+                        <path d="M85 118 C 92 114, 100 118, 100 118 C 100 118, 108 114, 115 118 C 120 122, 112 122, 100 120 C 88 122, 80 122, 85 118 Z" fill="#1e293b" />
+                        
+                        {/* Smiling Mouth */}
+                        <path d="M93 124 C 95 128, 105 128, 107 124" stroke="#e11d48" strokeWidth="2.5" strokeLinecap="round" />
+
+                        {/* Waving Hand & Arm */}
+                        <g className="farmer-hand-wave" style={{ transformOrigin: '135px 145px' }}>
+                          {/* Arm sleeve */}
+                          <path d="M135 145 C 150 135, 160 120, 165 105" stroke="#ffffff" strokeWidth="14" strokeLinecap="round" />
+                          <path d="M135 145 C 150 135, 160 120, 165 105" stroke="#10b981" strokeWidth="2" strokeLinecap="round" fill="none" />
+                          {/* Hand/wrist */}
+                          <path d="M165 105 L 170 95" stroke="#fed7aa" strokeWidth="10" strokeLinecap="round" />
+                          {/* Palm/Fingers */}
+                          <circle cx="170" cy="92" r="7" fill="#fed7aa" />
+                          <path d="M166 90 L 164 80" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
+                          <path d="M170 88 L 170 77" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
+                          <path d="M174 89 L 176 78" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
+                          <path d="M178 92 L 182 82" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
+                          <path d="M164 94 L 156 90" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
+                        </g>
+                        
+                        <defs>
+                          <radialGradient id="farmerGlow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                            <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
+                            <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                          </radialGradient>
+                        </defs>
+                      </svg>
                     </div>
                   </div>
-                )}
+
+                  {/* live Weather Card */}
+                  {dashboardWeather && (
+                    <div className={`p-6 rounded-2xl bg-gradient-to-br ${getWeatherGradient(dashboardWeather.weathercode, dashboardWeather.is_day)} text-white shadow-md border border-white/10 flex flex-col justify-between gap-4 transition-all duration-300 hover:shadow-lg animate-fade-in relative overflow-hidden`}>
+                      {/* Dynamic Weather Overlay */}
+                      {(() => {
+                        const code = dashboardWeather.weathercode;
+                        const isRain = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99].includes(code);
+                        const isSun = [0, 1, 2].includes(code);
+                        const isCloud = [3, 45, 48].includes(code);
+                        return (
+                          <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl z-0">
+                            {isRain && <div className="absolute inset-0 animate-rain-effect opacity-20"></div>}
+                            {isSun && <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/0 via-amber-400/5 to-yellow-300/10 mix-blend-screen animate-sun-beams opacity-35"></div>}
+                            {isCloud && <div className="absolute inset-0 bg-white/5 backdrop-blur-[0.5px] animate-clouds-drift opacity-25"></div>}
+                          </div>
+                        );
+                      })()}
+                      <div className="flex items-center gap-5 relative z-10 text-left">
+                        <span className="text-4xl md:text-5xl">{getWeatherDescription(dashboardWeather.weathercode, dashboardWeather.is_day).icon}</span>
+                        <div className="space-y-0.5">
+                          <span className="text-[9px] font-black uppercase tracking-wider text-white/70 bg-white/15 px-2 py-0.5 rounded inline-block">NCR Weather</span>
+                          <h3 className="text-2xl font-black">{dashboardWeather.temperature}°C</h3>
+                          <p className="text-xs font-bold leading-none">{getWeatherDescription(dashboardWeather.weathercode, dashboardWeather.is_day).desc}</p>
+                          <p className="text-[10px] text-white/80">Wind: {dashboardWeather.windspeed} km/h</p>
+                        </div>
+                      </div>
+                      <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3.5 rounded-xl text-left relative z-10">
+                        <h4 className="text-[10px] font-black uppercase tracking-wider text-emerald-300">Agricultural Advisory</h4>
+                        <p className="text-[11px] text-white/90 leading-relaxed mt-1">
+                          {[0, 1, 2].includes(dashboardWeather.weathercode) ? "Ideal conditions for pesticide application and sowing." :
+                           [3, 45, 48].includes(dashboardWeather.weathercode) ? "Cool weather. Monitor crops for fungal pathogens." :
+                           "Rain expected. Delay irrigation & spraying. Ensure soil drainage."}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Stat Cards Grid */}
                 <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
