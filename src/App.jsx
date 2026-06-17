@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import AuthPage from './AuthPage';
+import UserProfile from './UserProfile';
 import { 
   Sprout, 
   MapPin, 
@@ -128,6 +130,105 @@ const getWeatherGradient = (code, isDay = 1) => {
 };
 
 export default function App() {
+  // ── Auth State ──────────────────────────────────────────────
+  const [currentUser, setCurrentUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('agri_user')); } catch { return null; }
+  });
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  // ── Idle Auto-Signout (15 min inactivity) ───────────────────
+  const IDLE_TIMEOUT_MS  = 15 * 60 * 1000;  // 15 minutes
+  const WARN_BEFORE_MS   =  1 * 60 * 1000;  // warn 1 min before
+  const [idleWarning, setIdleWarning]       = useState(false);
+  const [idleCountdown, setIdleCountdown]   = useState(60);
+  const idleTimerRef    = React.useRef(null);
+  const warnTimerRef    = React.useRef(null);
+  const countdownRef    = React.useRef(null);
+
+  const handleAuthSuccess = (user) => setCurrentUser(user);
+
+  const handleSignOut = () => {
+    localStorage.removeItem('agri_token');
+    localStorage.removeItem('agri_user');
+    setCurrentUser(null);
+    setProfileOpen(false);
+    setIdleWarning(false);
+  };
+
+  const clearIdleTimers = () => {
+    if (idleTimerRef.current)  clearTimeout(idleTimerRef.current);
+    if (warnTimerRef.current)  clearTimeout(warnTimerRef.current);
+    if (countdownRef.current)  clearInterval(countdownRef.current);
+  };
+
+  const resetIdleTimer = React.useCallback(() => {
+    if (!localStorage.getItem('agri_token')) return; // not logged in
+    clearIdleTimers();
+    setIdleWarning(false);
+    setIdleCountdown(60);
+
+    // Warn at 14 min
+    warnTimerRef.current = setTimeout(() => {
+      setIdleWarning(true);
+      setIdleCountdown(60);
+      // Tick countdown every second
+      countdownRef.current = setInterval(() => {
+        setIdleCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(countdownRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }, IDLE_TIMEOUT_MS - WARN_BEFORE_MS);
+
+    // Sign out at 15 min
+    idleTimerRef.current = setTimeout(() => {
+      handleSignOut();
+    }, IDLE_TIMEOUT_MS);
+  }, []);
+
+  // Start / stop idle tracking based on login state
+  useEffect(() => {
+    if (!currentUser) { clearIdleTimers(); return; }
+
+    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    events.forEach(e => window.addEventListener(e, resetIdleTimer, { passive: true }));
+    resetIdleTimer(); // start immediately on login
+
+    return () => {
+      events.forEach(e => window.removeEventListener(e, resetIdleTimer));
+      clearIdleTimers();
+    };
+  }, [currentUser, resetIdleTimer]);
+
+  // Verify stored token on mount (silently clear if expired)
+  useEffect(() => {
+    const token = localStorage.getItem('agri_token');
+    if (token && !currentUser) {
+      axios.get(
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+          ? 'http://127.0.0.1:5000/api'
+          : 'https://agri-future-backend.onrender.com/api') + '/auth/me',
+        { headers: { Authorization: `Bearer ${token}` } }
+      ).then(r => setCurrentUser(r.data)).catch(() => handleSignOut());
+    }
+  }, []);
+
+  // Silent activity logger — fires and forgets, no UI disruption
+  const logUserActivity = (action_type, description, extra) => {
+    const token = localStorage.getItem('agri_token');
+    if (!token) return;
+    const base = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://127.0.0.1:5000/api'
+      : 'https://agri-future-backend.onrender.com/api';
+    axios.post(`${base}/auth/activity`, { action_type, description, extra },
+      { headers: { Authorization: `Bearer ${token}` } }
+    ).catch(() => {/* silently ignore */});
+  };
+
+
   // Language & Translation Helpers
   const [voiceLanguage, setVoiceLanguage] = useState('en-IN');
   const language = voiceLanguage.split('-')[0];
@@ -1620,6 +1721,9 @@ export default function App() {
 
   const handleChatSubmit = (e) => {
     e.preventDefault();
+    if (chatInput.trim()) {
+      logUserActivity('chat_message', `Asked: "${chatInput.trim().slice(0, 80)}"`, { query: chatInput.trim() });
+    }
     submitChatWithMessage(chatInput);
     setChatInput('');
   };
@@ -1683,6 +1787,10 @@ export default function App() {
 
   const advResults = getAdvSearchResults();
   const advResultsCount = advResults.states.length + advResults.crops.length + advResults.soils.length + advResults.diseases.length + advResults.chemicals.length;
+
+  if (!currentUser) {
+    return <AuthPage onAuthSuccess={handleAuthSuccess} />;
+  }
 
   if (!hasStarted) {
     return (
@@ -1829,6 +1937,15 @@ export default function App() {
               className="hidden md:flex text-emerald-300 hover:text-white p-1.5 rounded-lg hover:bg-emerald-800 transition-all"
             >
               <UserCheck className="h-5 w-5" />
+            </button>
+            {/* User Avatar button */}
+            <button
+              onClick={() => setProfileOpen(true)}
+              title="My Profile & History"
+              id="user-profile-btn"
+              className="hidden md:flex items-center justify-center h-8 w-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white font-black text-xs shadow-md hover:shadow-lg hover:scale-105 transition-all"
+            >
+              {(currentUser?.name || 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2)}
             </button>
             <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(false)}>
               <X className="h-6 w-6" />
@@ -2021,9 +2138,6 @@ export default function App() {
               {/* Dynamic agricultural phrase */}
               <p className="text-emerald-800 font-extrabold text-base transition-all duration-500 animate-pulse">
                 {loadingPhrases[loadingPhraseIndex]}
-              </p>
-              <p className="text-gray-400 text-xs leading-relaxed max-w-sm">
-                The free-tier backend server on Render spins down when inactive. Please allow **45-90 seconds** for the container to wake up and connect. Subsequent visits and actions will load instantly!
               </p>
             </div>
           </div>
@@ -6256,6 +6370,75 @@ export default function App() {
           </button>
         </div>
       </div>
+
+      {/* ── Idle Session Warning Modal ─────────────────────────── */}
+      {idleWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-slide-up-fade">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-5 text-white">
+              <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center text-2xl shrink-0">
+                  ⏱️
+                </div>
+                <div>
+                  <h3 className="font-black text-base leading-tight">Session Expiring Soon</h3>
+                  <p className="text-orange-100 text-xs font-semibold mt-0.5">You've been inactive for 14 minutes</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Countdown */}
+            <div className="px-6 py-6 text-center space-y-4">
+              <div className="relative inline-flex items-center justify-center">
+                <svg className="h-20 w-20 -rotate-90" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="15.9" fill="none" stroke="#fed7aa" strokeWidth="2.5" />
+                  <circle
+                    cx="18" cy="18" r="15.9" fill="none"
+                    stroke="#f97316" strokeWidth="2.5"
+                    strokeDasharray={`${(idleCountdown / 60) * 100} 100`}
+                    strokeLinecap="round"
+                    style={{ transition: 'stroke-dasharray 1s linear' }}
+                  />
+                </svg>
+                <span className="absolute font-black text-2xl text-orange-600">{idleCountdown}</span>
+              </div>
+              <p className="text-gray-600 text-sm font-medium leading-relaxed">
+                You will be <strong className="text-gray-800">automatically signed out</strong> in{' '}
+                <span className="text-orange-600 font-black">{idleCountdown} second{idleCountdown !== 1 ? 's' : ''}</span>{' '}
+                to keep your account secure.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                onClick={handleSignOut}
+                className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-all"
+                id="idle-signout-btn"
+              >
+                Sign Out Now
+              </button>
+              <button
+                onClick={resetIdleTimer}
+                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black text-sm shadow-md hover:shadow-lg transition-all"
+                id="idle-stay-btn"
+              >
+                Stay Logged In
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Profile Panel */}
+      {profileOpen && (
+        <UserProfile
+          user={currentUser}
+          onSignOut={handleSignOut}
+          onClose={() => setProfileOpen(false)}
+        />
+      )}
     </div>
   );
 }
