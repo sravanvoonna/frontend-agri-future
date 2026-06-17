@@ -21,6 +21,7 @@ import {
   ChevronRight, 
   X,
   FileText,
+  Newspaper,
   Thermometer,
   Droplet,
   TrendingUp,
@@ -305,6 +306,13 @@ export default function App() {
   const [schemeSolarInterest, setSchemeSolarInterest] = useState(false);
   const [schemeMachineryInterest, setSchemeMachineryInterest] = useState(false);
   const [schemeStateId, setSchemeStateId] = useState('');
+  // News Updates States
+  const [news, setNews] = useState([]);
+  const [newsSearchText, setNewsSearchText] = useState('');
+  const [newsFilterCategory, setNewsFilterCategory] = useState('All');
+  const [selectedNewsDetail, setSelectedNewsDetail] = useState(null);
+  const [newsSyncing, setNewsSyncing] = useState(false);
+  const [newsForm, setNewsForm] = useState({ title: '', content: '', category: 'Scheme', source: '', image_url: '' });
 
   // Agricultural Loading Phrases
   const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
@@ -486,16 +494,18 @@ export default function App() {
     };
   };
 
-  // Fetch all basic data on mount
+  // Fetch all basic data on mount and when voiceLanguage changes
   useEffect(() => {
+    setStateDetailsCache({});
     fetchCoreData();
-  }, []);
+  }, [voiceLanguage]);
 
   // Fetch MSP predictions from the backend linear regression model
   const fetchMspPredictions = async (year) => {
     setMspPredictionsLoading(true);
+    const lang = voiceLanguage.split('-')[0];
     try {
-      const res = await axios.get(`${API_BASE_URL}/predict-msp?year=${year}`);
+      const res = await axios.get(`${API_BASE_URL}/predict-msp?year=${year}&lang=${lang}`);
       setMspPredictionsData(res.data);
       // Automatically select the first crop for chart representation if not set yet
       if (res.data.predictions && res.data.predictions.length > 0 && !selectedMspChartCropId) {
@@ -512,7 +522,7 @@ export default function App() {
     if (activeTab === 'gov-msp') {
       fetchMspPredictions(selectedMspYear);
     }
-  }, [activeTab, selectedMspYear]);
+  }, [activeTab, selectedMspYear, voiceLanguage]);
 
   // Dynamically update welcome message when voice language changes
   useEffect(() => {
@@ -531,6 +541,7 @@ export default function App() {
   const fetchCoreData = async () => {
     setLoading(true);
     setErrorMessage('');
+    const lang = voiceLanguage.split('-')[0];
     try {
       // Test backend connection
       const healthRes = await axios.get(API_BASE_URL.replace('/api', ''));
@@ -539,13 +550,14 @@ export default function App() {
       }
 
       // Load core data
-      const [statesRes, cropsRes, soilsRes, diseasesRes, chemicalsRes, statsRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/states`),
-        axios.get(`${API_BASE_URL}/crops`),
-        axios.get(`${API_BASE_URL}/soils`),
-        axios.get(`${API_BASE_URL}/diseases`),
-        axios.get(`${API_BASE_URL}/chemicals`),
-        axios.get(`${API_BASE_URL}/admin/stats`)
+      const [statesRes, cropsRes, soilsRes, diseasesRes, chemicalsRes, statsRes, newsRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/states?lang=${lang}`),
+        axios.get(`${API_BASE_URL}/crops?lang=${lang}`),
+        axios.get(`${API_BASE_URL}/soils?lang=${lang}`),
+        axios.get(`${API_BASE_URL}/diseases?lang=${lang}`),
+        axios.get(`${API_BASE_URL}/chemicals?lang=${lang}`),
+        axios.get(`${API_BASE_URL}/admin/stats`),
+        axios.get(`${API_BASE_URL}/news?lang=${lang}`)
       ]);
 
       setStates(statesRes.data);
@@ -554,6 +566,7 @@ export default function App() {
       setDiseases(diseasesRes.data);
       setChemicals(chemicalsRes.data);
       setApiStats(statsRes.data);
+      setNews(newsRes.data);
       
       try {
         localStorage.setItem('cached_states', JSON.stringify(statesRes.data));
@@ -562,6 +575,7 @@ export default function App() {
         localStorage.setItem('cached_diseases', JSON.stringify(diseasesRes.data));
         localStorage.setItem('cached_chemicals', JSON.stringify(chemicalsRes.data));
         localStorage.setItem('cached_stats', JSON.stringify(statsRes.data));
+        localStorage.setItem('cached_news', JSON.stringify(newsRes.data));
       } catch (storageErr) {
         console.error('Failed to write to localStorage cache:', storageErr);
       }
@@ -579,6 +593,7 @@ export default function App() {
       const cachedDiseases = localStorage.getItem('cached_diseases');
       const cachedChemicals = localStorage.getItem('cached_chemicals');
       const cachedStats = localStorage.getItem('cached_stats');
+      const cachedNews = localStorage.getItem('cached_news');
 
       if (cachedStates && cachedCrops) {
         setStates(JSON.parse(cachedStates));
@@ -587,6 +602,7 @@ export default function App() {
         setDiseases(JSON.parse(cachedDiseases));
         setChemicals(JSON.parse(cachedChemicals));
         if (cachedStats) setApiStats(JSON.parse(cachedStats));
+        if (cachedNews) setNews(JSON.parse(cachedNews));
         
         setApiOnline(false);
         setErrorMessage('Offline Mode - Serving locally cached agricultural database.');
@@ -606,14 +622,16 @@ export default function App() {
 
   // Re-fetch stats and list data after admin updates
   const refreshData = async () => {
+    const lang = voiceLanguage.split('-')[0];
     try {
-      const [statesRes, cropsRes, soilsRes, diseasesRes, chemicalsRes, statsRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/states`),
-        axios.get(`${API_BASE_URL}/crops`),
-        axios.get(`${API_BASE_URL}/soils`),
-        axios.get(`${API_BASE_URL}/diseases`),
-        axios.get(`${API_BASE_URL}/chemicals`),
-        axios.get(`${API_BASE_URL}/admin/stats`)
+      const [statesRes, cropsRes, soilsRes, diseasesRes, chemicalsRes, statsRes, newsRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/states?lang=${lang}`),
+        axios.get(`${API_BASE_URL}/crops?lang=${lang}`),
+        axios.get(`${API_BASE_URL}/soils?lang=${lang}`),
+        axios.get(`${API_BASE_URL}/diseases?lang=${lang}`),
+        axios.get(`${API_BASE_URL}/chemicals?lang=${lang}`),
+        axios.get(`${API_BASE_URL}/admin/stats`),
+        axios.get(`${API_BASE_URL}/news?lang=${lang}`)
       ]);
 
       setStates(statesRes.data);
@@ -622,8 +640,25 @@ export default function App() {
       setDiseases(diseasesRes.data);
       setChemicals(chemicalsRes.data);
       setApiStats(statsRes.data);
+      setNews(newsRes.data);
     } catch (err) {
       console.error('Error refreshing data:', err);
+    }
+  };
+
+  const handleSyncNews = async () => {
+    setNewsSyncing(true);
+    try {
+      const res = await axios.post(`${API_BASE_URL}/news/sync`);
+      if (res.data && res.data.success) {
+        alert(res.data.message);
+        await refreshData();
+      }
+    } catch (err) {
+      console.error("Failed to sync news:", err);
+      alert("Error checking for updates. Make sure the backend server is running.");
+    } finally {
+      setNewsSyncing(false);
     }
   };
 
@@ -631,11 +666,12 @@ export default function App() {
   useEffect(() => {
     if (!selectedStateId) return;
 
+    const lang = voiceLanguage.split('-')[0];
     // A. Handle State Detail (Cache lookup or HTTP Fetch)
     if (stateDetailsCache[selectedStateId]) {
       setStateDetail(stateDetailsCache[selectedStateId]);
     } else {
-      axios.get(`${API_BASE_URL}/states/${selectedStateId}`)
+      axios.get(`${API_BASE_URL}/states/${selectedStateId}?lang=${lang}`)
         .then(res => {
           setStateDetailsCache(prev => ({ ...prev, [selectedStateId]: res.data }));
           setStateDetail(res.data);
@@ -648,11 +684,12 @@ export default function App() {
     if (foundState && foundState.state_name) {
       fetchWeatherForState(foundState.state_name);
     }
-  }, [selectedStateId, states]);
+  }, [selectedStateId, states, voiceLanguage]);
 
   // Handle Crop Click
   const handleCropClick = (cropId) => {
-    axios.get(`${API_BASE_URL}/crops/${cropId}`)
+    const lang = voiceLanguage.split('-')[0];
+    axios.get(`${API_BASE_URL}/crops/${cropId}?lang=${lang}`)
       .then(res => {
         setSelectedCropDetail(res.data);
       })
@@ -661,7 +698,8 @@ export default function App() {
 
   // Handle Disease Click
   const handleDiseaseClick = (diseaseId) => {
-    axios.get(`${API_BASE_URL}/diseases/${diseaseId}`)
+    const lang = voiceLanguage.split('-')[0];
+    axios.get(`${API_BASE_URL}/diseases/${diseaseId}?lang=${lang}`)
       .then(res => {
         setSelectedDiseaseDetail(res.data);
       })
@@ -682,8 +720,9 @@ export default function App() {
 
   useEffect(() => {
     if (wizardCropId) {
+      const lang = voiceLanguage.split('-')[0];
       // Fetch crop details to get its diseases
-      axios.get(`${API_BASE_URL}/crops/${wizardCropId}`)
+      axios.get(`${API_BASE_URL}/crops/${wizardCropId}?lang=${lang}`)
         .then(res => {
           setWizardDiseases(res.data.diseases || []);
           setWizardDiseaseId('');
@@ -691,18 +730,19 @@ export default function App() {
         })
         .catch(err => console.error(err));
     }
-  }, [wizardCropId]);
+  }, [wizardCropId, voiceLanguage]);
 
   useEffect(() => {
     if (wizardDiseaseId) {
+      const lang = voiceLanguage.split('-')[0];
       // Fetch disease details to get chemicals
-      axios.get(`${API_BASE_URL}/diseases/${wizardDiseaseId}`)
+      axios.get(`${API_BASE_URL}/diseases/${wizardDiseaseId}?lang=${lang}`)
         .then(res => {
           setWizardChemicals(res.data.chemicals || []);
         })
         .catch(err => console.error(err));
     }
-  }, [wizardDiseaseId]);
+  }, [wizardDiseaseId, voiceLanguage]);
 
   const resetWizard = () => {
     setWizardStep(1);
@@ -726,6 +766,7 @@ export default function App() {
     setSoilForm({ soil_name: '', characteristics: '', ph_range: '' });
     setDiseaseForm({ disease_name: '', symptoms: '', causes: '', prevention: '', crop_id: crops[0]?.id || '', image_url: '' });
     setChemicalForm({ chemical_name: '', chemical_type: 'Fungicide', dosage: '', application_method: '', safety_precautions: '', disease_id: diseases[0]?.id || '' });
+    setNewsForm({ title: '', content: '', category: 'Scheme', source: '', image_url: '' });
 
     setCrudModalOpen(true);
   };
@@ -782,6 +823,14 @@ export default function App() {
         safety_precautions: item.safety_precautions,
         disease_id: item.disease_id
       });
+    } else if (type === 'news') {
+      setNewsForm({
+        title: item.title,
+        content: item.content,
+        category: item.category,
+        source: item.source || '',
+        image_url: item.image_url || ''
+      });
     }
 
     setCrudModalOpen(true);
@@ -825,6 +874,9 @@ export default function App() {
     } else if (adminActiveSubTab === 'chemicals') {
       payload = chemicalForm;
       if (!payload.chemical_name || !payload.disease_id) return setCrudError('Chemical name and Target Disease are required');
+    } else if (adminActiveSubTab === 'news') {
+      payload = newsForm;
+      if (!payload.title || !payload.content) return setCrudError('News title and content are required');
     }
 
     try {
@@ -846,8 +898,9 @@ export default function App() {
     setSchedulerError('');
     setSchedulerResult(null);
 
+    const lang = voiceLanguage.split('-')[0];
     try {
-      const response = await axios.post(`${API_BASE_URL}/gemini/schedule`, schedulerForm);
+      const response = await axios.post(`${API_BASE_URL}/gemini/schedule?lang=${lang}`, schedulerForm);
       setSchedulerResult(response.data);
     } catch (err) {
       console.error(err);
@@ -1196,7 +1249,8 @@ export default function App() {
     formData.append('image', aiImageFile);
     formData.append('crop_name', suspectedCrop);
 
-    axios.post(`${API_BASE_URL}/gemini/diagnose`, formData, {
+    const lang = voiceLanguage.split('-')[0];
+    axios.post(`${API_BASE_URL}/gemini/diagnose?lang=${lang}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -1762,6 +1816,7 @@ export default function App() {
             { id: 'crop-info', label: 'Crops Directory', icon: Sprout },
             { id: 'gov-msp', label: 'Govt Crops & MSP', icon: TrendingUp },
             { id: 'gov-schemes', label: 'Govt Schemes Eligibility', icon: CheckCircle2 },
+            { id: 'news-updates', label: 'Agri News & Alerts', icon: Newspaper },
             { id: 'soil-info', label: 'Soil Details', icon: Database },
             { id: 'disease-mgmt', label: 'Crop Health Hub', icon: ShieldAlert },
             { id: 'disease-finder', label: 'Advisory Disease Finder', icon: HelpCircle },
@@ -2334,8 +2389,211 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+
+                {/* Live Government News & Alerts Widget */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col space-y-4">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <div>
+                      <h3 className="font-extrabold text-base text-gray-900 flex items-center gap-2">
+                        <Newspaper className="h-5 w-5 text-emerald-600" />
+                        <span>Live Government News & Alerts</span>
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5 text-left">Real-time agricultural news and advisories synced from government portals.</p>
+                    </div>
+                    <div className="flex items-center space-x-2 shrink-0">
+                      <button
+                        onClick={handleSyncNews}
+                        disabled={newsSyncing}
+                        className={`text-xs px-3 py-1.5 rounded-lg border border-gray-200 font-bold bg-gray-50 hover:bg-gray-100 text-gray-700 flex items-center gap-1.5 transition-all ${newsSyncing ? 'opacity-50' : ''}`}
+                      >
+                        <RefreshCw className={`h-3 w-3 ${newsSyncing ? 'animate-spin' : ''}`} />
+                        <span>{newsSyncing ? 'Syncing...' : 'Sync Latest'}</span>
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('news-updates')}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-800 flex items-center gap-0.5"
+                      >
+                        <span>View All</span>
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {news.length === 0 ? (
+                    <div className="text-center py-8 text-xs text-gray-400 italic">
+                      No news updates loaded. Click "Sync Latest" to fetch from PIB.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {news.slice(0, 3).map((n) => (
+                        <div
+                          key={n.id}
+                          onClick={() => setSelectedNewsDetail(n)}
+                          className="p-4 rounded-xl border border-gray-150 bg-gray-50/50 hover:bg-emerald-50/20 hover:border-emerald-200 transition-all cursor-pointer flex flex-col justify-between text-left group animate-fade-in"
+                        >
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${
+                                n.category === 'Weather' ? 'bg-rose-50 text-rose-800 border border-rose-100' :
+                                n.category === 'Scheme' ? 'bg-emerald-50 text-emerald-800 border border-emerald-100' :
+                                n.category === 'Market Trend' ? 'bg-blue-50 text-blue-800 border border-blue-100' :
+                                n.category === 'Technology' ? 'bg-purple-50 text-purple-800 border border-purple-100' :
+                                'bg-gray-100 text-gray-800 border border-gray-200'
+                              }`}>
+                                {n.category}
+                              </span>
+                              <span className="text-[10px] text-gray-400 font-semibold">{n.published_date}</span>
+                            </div>
+                            <h4 className="font-extrabold text-sm text-gray-900 group-hover:text-emerald-700 transition-colors line-clamp-2 leading-snug">
+                              {n.title}
+                            </h4>
+                            <p className="text-[11px] text-gray-500 line-clamp-2 leading-relaxed">
+                              {n.content}
+                            </p>
+                          </div>
+                          <span className="text-[10px] font-bold text-emerald-600 group-hover:text-emerald-800 flex items-center gap-0.5 mt-3">
+                            <span>Read Alert</span>
+                            <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                   </>
                 )}
+              </div>
+            )}
+
+            {/* AGRI NEWS & ALERTS MODULE */}
+            {activeTab === 'news-updates' && (
+              <div className="space-y-6 text-left">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Agri News & Bulletins</h2>
+                    <p className="text-sm text-gray-500 mt-1">Official releases, weather warnings, scheme announcements, and market insights.</p>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <button
+                      onClick={handleSyncNews}
+                      disabled={newsSyncing}
+                      className={`text-xs px-4 py-2 rounded-xl border border-gray-200 font-extrabold bg-white hover:bg-gray-50 text-gray-700 flex items-center gap-1.5 shadow-sm transition-all ${
+                        newsSyncing ? 'opacity-50' : ''
+                      }`}
+                    >
+                      <RefreshCw className={`h-4 w-4 text-emerald-600 ${newsSyncing ? 'animate-spin' : ''}`} />
+                      <span>{newsSyncing ? 'Checking Govt Feeds...' : 'Sync Live Govt News'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filters and Search Bar */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-emerald-50/20 p-4 rounded-2xl border border-emerald-100/30">
+                  {/* Category Pills */}
+                  <div className="flex flex-wrap gap-2">
+                    {['All', 'Weather', 'Scheme', 'Market Trend', 'Technology', 'General'].map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setNewsFilterCategory(cat)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                          newsFilterCategory === cat
+                            ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                            : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        {cat === 'All' ? 'All Updates' : cat}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Search Input */}
+                  <div className="relative w-full md:w-80">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search news by keyword..."
+                      value={newsSearchText}
+                      onChange={(e) => setNewsSearchText(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* News Grid */}
+                {(() => {
+                  const filteredNews = news.filter((n) => {
+                    const matchesCategory = newsFilterCategory === 'All' || n.category === newsFilterCategory;
+                    const matchesSearch = n.title.toLowerCase().includes(newsSearchText.toLowerCase()) || 
+                                          n.content.toLowerCase().includes(newsSearchText.toLowerCase()) ||
+                                          (n.source && n.source.toLowerCase().includes(newsSearchText.toLowerCase()));
+                    return matchesCategory && matchesSearch;
+                  });
+
+                  if (filteredNews.length === 0) {
+                    return (
+                      <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center text-gray-400 italic shadow-sm">
+                        <Newspaper className="h-12 w-12 mx-auto opacity-35 mb-3" />
+                        <span>No news bulletins match the selected filters or search terms.</span>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {filteredNews.map((n) => (
+                        <div
+                          key={n.id}
+                          className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300 group"
+                        >
+                          <div>
+                            {/* Image Header */}
+                            <div className="h-44 overflow-hidden relative bg-emerald-950">
+                              <img
+                                src={n.image_url || "https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=800"}
+                                alt={n.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
+                              />
+                              <span className={`absolute top-4 left-4 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg shadow-sm border ${
+                                n.category === 'Weather' ? 'bg-rose-50 text-rose-800 border-rose-100' :
+                                n.category === 'Scheme' ? 'bg-emerald-50 text-emerald-800 border-emerald-100' :
+                                n.category === 'Market Trend' ? 'bg-blue-50 text-blue-800 border-blue-100' :
+                                n.category === 'Technology' ? 'bg-purple-50 text-purple-800 border-purple-100' :
+                                'bg-gray-50 text-gray-800 border-gray-200'
+                              }`}>
+                                {n.category}
+                              </span>
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-5 space-y-3">
+                              <div className="flex justify-between items-center text-[10px] font-bold text-gray-400">
+                                <span>{n.source || 'Official Source'}</span>
+                                <span>{n.published_date}</span>
+                              </div>
+                              <h4 className="font-extrabold text-base text-gray-900 leading-snug group-hover:text-emerald-700 transition-colors line-clamp-2">
+                                {n.title}
+                              </h4>
+                              <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">
+                                {n.content}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="p-5 pt-0">
+                            <button
+                              onClick={() => setSelectedNewsDetail(n)}
+                              className="w-full py-2.5 px-4 rounded-xl border border-gray-200 hover:border-emerald-250 hover:bg-emerald-50/20 text-xs font-extrabold text-emerald-700 transition-all flex items-center justify-center gap-1 group/btn"
+                            >
+                              <span>Read Full Article</span>
+                              <ChevronRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-0.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
@@ -4081,6 +4339,8 @@ export default function App() {
                   </div>
                 )}
 
+
+
                 {/* Disease details and chemicals modal */}
                 {selectedDiseaseDetail && (
                   <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-30 flex items-center justify-center p-4">
@@ -4446,7 +4706,7 @@ export default function App() {
                       className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm flex items-center space-x-1.5"
                     >
                       <Plus className="h-4.5 w-4.5" />
-                      <span>Create new {adminActiveSubTab.slice(0, -1)}</span>
+                      <span>Create new {adminActiveSubTab === 'news' ? 'news update' : adminActiveSubTab.slice(0, -1)}</span>
                     </button>
                   </div>
                 </div>
@@ -4458,7 +4718,8 @@ export default function App() {
                     { id: 'crops', label: 'Crops' },
                     { id: 'soils', label: 'Soils' },
                     { id: 'diseases', label: 'Diseases' },
-                    { id: 'chemicals', label: 'Chemicals' }
+                    { id: 'chemicals', label: 'Chemicals' },
+                    { id: 'news', label: 'News Updates' }
                   ].map((subTab) => (
                     <button
                       key={subTab.id}
@@ -4612,6 +4873,44 @@ export default function App() {
                         </tbody>
                       </table>
                     )}
+
+                    {adminActiveSubTab === 'news' && (
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-50 border-b border-gray-100 text-gray-400 font-extrabold text-xs uppercase tracking-wider">
+                          <tr>
+                            <th className="px-6 py-4">Title</th>
+                            <th className="px-6 py-4">Category</th>
+                            <th className="px-6 py-4">Source</th>
+                            <th className="px-6 py-4">Published Date</th>
+                            <th className="px-6 py-4 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
+                          {news.map((n) => (
+                            <tr key={n.id} className="hover:bg-gray-50/50">
+                              <td className="px-6 py-4 font-bold text-gray-900 truncate max-w-xs">{n.title}</td>
+                              <td className="px-6 py-4 text-xs">
+                                <span className={`px-2 py-0.5 rounded font-bold uppercase tracking-wider text-[9px] ${
+                                  n.category === 'Weather' ? 'bg-rose-50 text-rose-800' :
+                                  n.category === 'Scheme' ? 'bg-emerald-50 text-emerald-800' :
+                                  n.category === 'Market Trend' ? 'bg-blue-50 text-blue-800' :
+                                  n.category === 'Technology' ? 'bg-purple-50 text-purple-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {n.category}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-xs font-semibold">{n.source}</td>
+                              <td className="px-6 py-4 text-xs font-semibold text-gray-500">{n.published_date}</td>
+                              <td className="px-6 py-4 text-right space-x-3">
+                                <button type="button" onClick={() => openEditModal('news', n)} className="text-blue-600 hover:text-blue-800 inline-block"><Edit2 className="h-4 w-4" /></button>
+                                <button type="button" onClick={() => handleDelete('news', n.id)} className="text-red-600 hover:text-red-800 inline-block"><Trash2 className="h-4 w-4" /></button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
                   </div>
                 </div>
 
@@ -4621,7 +4920,7 @@ export default function App() {
                     <div className="bg-white rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
                       <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-emerald-900 text-white">
                         <h3 className="text-lg font-black uppercase tracking-wide">
-                          {crudMode === 'add' ? 'Create' : 'Modify'} {adminActiveSubTab.slice(0, -1)}
+                          {crudMode === 'add' ? 'Create' : 'Modify'} {adminActiveSubTab === 'news' ? 'News Update' : adminActiveSubTab.slice(0, -1)}
                         </h3>
                         <button 
                           onClick={() => setCrudModalOpen(false)}
@@ -4966,6 +5265,72 @@ export default function App() {
                                 onChange={(e) => setChemicalForm({ ...chemicalForm, safety_precautions: e.target.value })}
                                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white h-20 resize-none"
                                 placeholder="Wear rubber gloves and safety goggles..."
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* NEWS FORM */}
+                        {adminActiveSubTab === 'news' && (
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">News Title</label>
+                              <input
+                                type="text"
+                                value={newsForm.title}
+                                onChange={(e) => setNewsForm({ ...newsForm, title: e.target.value })}
+                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                                placeholder="e.g. Govt releases crop subsidy"
+                                required
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Category</label>
+                                <select
+                                  value={newsForm.category}
+                                  onChange={(e) => setNewsForm({ ...newsForm, category: e.target.value })}
+                                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                                >
+                                  <option value="Scheme">Scheme</option>
+                                  <option value="Weather">Weather</option>
+                                  <option value="Market Trend">Market Trend</option>
+                                  <option value="Technology">Technology</option>
+                                  <option value="General">General</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Source</label>
+                                <input
+                                  type="text"
+                                  value={newsForm.source}
+                                  onChange={(e) => setNewsForm({ ...newsForm, source: e.target.value })}
+                                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                                  placeholder="e.g. Ministry of Agriculture"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cover Image URL</label>
+                              <input
+                                type="text"
+                                value={newsForm.image_url}
+                                onChange={(e) => setNewsForm({ ...newsForm, image_url: e.target.value })}
+                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                                placeholder="e.g. https://images.unsplash.com/..."
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Article Content</label>
+                              <textarea
+                                value={newsForm.content}
+                                onChange={(e) => setNewsForm({ ...newsForm, content: e.target.value })}
+                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white h-32 resize-none"
+                                placeholder="Write the news article text here..."
+                                required
                               />
                             </div>
                           </div>
@@ -5492,6 +5857,70 @@ export default function App() {
 
           </main>
         )}
+
+        {/* News detail modal */}
+        {(() => {
+          const activeNews = selectedNewsDetail ? (news.find(n => n.id === selectedNewsDetail.id) || selectedNewsDetail) : null;
+          return activeNews && (
+            <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-30 flex items-center justify-center p-4 text-left">
+              <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
+                {/* Banner header with image */}
+                <div className="h-48 relative shrink-0">
+                  <img 
+                    src={activeNews.image_url || "https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=800"} 
+                    alt={activeNews.title} 
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent flex flex-col justify-end p-6 text-white">
+                    <span className={`w-fit text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md mb-2 ${
+                      activeNews.category === 'Weather' ? 'bg-rose-500 text-white' :
+                      activeNews.category === 'Scheme' ? 'bg-emerald-500 text-white' :
+                      activeNews.category === 'Market Trend' ? 'bg-blue-500 text-white' :
+                      activeNews.category === 'Technology' ? 'bg-purple-500 text-white' :
+                      'bg-gray-50 text-white'
+                    }`}>
+                      {activeNews.category}
+                    </span>
+                    <h3 className="text-lg md:text-xl font-extrabold leading-snug">{activeNews.title}</h3>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedNewsDetail(null)}
+                    className="absolute top-4 right-4 bg-black/50 hover:bg-black/80 text-white p-2 rounded-full transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 space-y-6">
+                  <div className="flex justify-between items-center text-xs text-gray-500 font-semibold border-b border-gray-100 pb-3">
+                    <span className="flex items-center gap-1">
+                      <span className="text-gray-400">Source:</span>
+                      <span className="text-emerald-700 font-extrabold">{activeNews.source || 'Official Source'}</span>
+                    </span>
+                    <span>Published: {activeNews.published_date}</span>
+                  </div>
+
+                  <div className="space-y-4">
+                    <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line font-medium">
+                      {activeNews.content}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="p-6 pt-0 border-t border-gray-100 mt-auto bg-gray-50/50 flex justify-end">
+                  <button
+                    onClick={() => setSelectedNewsDetail(null)}
+                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition-all shadow-sm"
+                  >
+                    Close Bulletin
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Admin Password Prompt Modal */}
         {adminPasswordModalOpen && (
