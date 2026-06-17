@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import { 
   Sprout, 
   MapPin, 
@@ -130,6 +131,15 @@ export default function App() {
   // Language & Translation Helpers
   const [voiceLanguage, setVoiceLanguage] = useState('en-IN');
   const language = voiceLanguage.split('-')[0];
+  const { t, i18n } = useTranslation();
+
+  // Language change handler - changes i18n language for whole site
+  const handleLanguageChange = (langCode) => {
+    i18n.changeLanguage(langCode);
+    // Also sync voice language
+    const voiceLangMap = { en: 'en-IN', te: 'te-IN', hi: 'hi-IN', mr: 'mr-IN' };
+    setVoiceLanguage(voiceLangMap[langCode] || 'en-IN');
+  };
   
   const handleGlowMouseMove = (e) => {
     const card = e.currentTarget;
@@ -182,7 +192,7 @@ export default function App() {
   const [cropSearchText, setCropSearchText] = useState('');
   const [selectedCropDetail, setSelectedCropDetail] = useState(null);
 
-  // 2b. Govt MSP Support Module
+  // 2b. {t('govtMsp')} Support Module
   const [mspSearchText, setMspSearchText] = useState('');
   const [mspFilterSeason, setMspFilterSeason] = useState('All');
 
@@ -532,6 +542,8 @@ export default function App() {
         welcomeMsg = 'नमस्ते! मैं क्रॉपकेयर एआई (CropCare AI) हूँ। मुझसे खेती से जुड़ा कोई भी सवाल पूछें, या मिट्टी की सेहत, उर्वरकों और फसल के रोगों के बारे में जानकारी पाएं!';
       } else if (voiceLanguage === 'te-IN') {
         welcomeMsg = 'నమస్తే! నేను క్రాప్‌కేర్ AI (CropCare AI). నన్ను వ్యవసాయానికి సంబంధించిన ఏవైనా ప్రశ్నలు అడగండి, లేదా నేల ఆరోగ్యం, ఎరువులు మరియు పంట తెగుళ్ల గురించి తెలుసుకోండి!';
+      } else if (voiceLanguage === 'mr-IN') {
+        welcomeMsg = 'नमस्कार! मी क्रॉपकेअर एआय (CropCare AI) आहे. मला शेतीशी संबंधित कोणताही प्रश्न विचारा, किंवा मातीचे आरोग्य, खते आणि पिकांच्या रोगांबद्दल माहिती मिळवा!';
       }
       setChatMessages([{ role: 'model', parts: [welcomeMsg] }]);
     }
@@ -1111,7 +1123,7 @@ export default function App() {
           <div class="summary-item"><strong>Irrigation:</strong> ${schedulerForm.irrigation_type}</div>
           <div class="summary-item"><strong>Previous Crop:</strong> ${schedulerForm.previous_crop || 'N/A'}</div>
           <div class="summary-item"><strong>Previous Yield:</strong> ${schedulerForm.previous_yield ? `${schedulerForm.previous_yield} Quintals` : 'N/A'}</div>
-          <div class="summary-item"><strong>Expected Yield Target:</strong> ${schedulerForm.expected_yield ? `${schedulerForm.expected_yield} Quintals` : 'N/A'}</div>
+          <div class="summary-item"><strong>{t('expectedYield')} Target:</strong> ${schedulerForm.expected_yield ? `${schedulerForm.expected_yield} Quintals` : 'N/A'}</div>
           <div class="summary-item"><strong>Location State:</strong> ${schedulerForm.state_name || 'N/A'}</div>
         </div>
 
@@ -1682,13 +1694,28 @@ export default function App() {
         <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
 
         {/* Top Header branding */}
-        <header className="flex items-center space-x-3 relative z-10 font-sans">
-          <div className="bg-emerald-600 p-2.5 rounded-xl text-white shadow-lg border border-emerald-500/30">
-            <Sprout className="h-6 w-6 animate-pulse" />
+        <header className="flex items-center justify-between relative z-10 font-sans w-full">
+          <div className="flex items-center space-x-3">
+            <div className="bg-emerald-600 p-2.5 rounded-xl text-white shadow-lg border border-emerald-500/30">
+              <Sprout className="h-6 w-6 animate-pulse" />
+            </div>
+            <div>
+              <h1 className="font-black text-xl text-white tracking-wide uppercase brand-typewriter">AgriFuture</h1>
+              <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Cerevyn Research AI</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-black text-xl text-white tracking-wide uppercase brand-typewriter">AgriFuture</h1>
-            <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Cerevyn Research AI</p>
+          {/* Top-right Language Selector - fixes i18n language for whole site */}
+          <div className="relative">
+            <select
+              value={i18n.language}
+              onChange={(e) => handleLanguageChange(e.target.value)}
+              className="bg-emerald-800/60 backdrop-blur-md border border-emerald-700/50 text-emerald-100 rounded-xl px-4 py-2 text-xs md:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-lg hover:bg-emerald-700/80 hover:text-white transition-all"
+            >
+              <option value="en" className="bg-emerald-950 text-white font-semibold">🇬🇧 English</option>
+              <option value="te" className="bg-emerald-950 text-white font-semibold">🇮🇳 తెలుగు</option>
+              <option value="hi" className="bg-emerald-950 text-white font-semibold">🇮🇳 हिंदी</option>
+              <option value="mr" className="bg-emerald-950 text-white font-semibold">🇮🇳 मराठी</option>
+            </select>
           </div>
         </header>
 
@@ -1697,13 +1724,13 @@ export default function App() {
           {/* Left Text details */}
           <div className="space-y-6 text-left">
             <span className="inline-block px-3.5 py-1.5 bg-emerald-800/60 border border-emerald-700/50 text-emerald-300 rounded-full text-xs font-bold uppercase tracking-wider">
-              Smart Cultivation & Support System
+              {t('smartSupportSystem')}
             </span>
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight">
-              Future of <span className="text-emerald-400">Farming</span>, Guided by AI.
+              {t('welcomeHeader')}
             </h2>
             <p className="text-sm text-emerald-100/70 leading-relaxed">
-              Empowering farmers in India with real-time crop MSP lookups, AI plant disease diagnostics, automated schedules, and friendly voice-enabled advice in local languages.
+              {t('welcomeDesc')}
             </p>
 
             <div className="pt-2">
@@ -1711,7 +1738,7 @@ export default function App() {
                 onClick={handleAccessDashboard}
                 className="group bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-extrabold px-8 py-4 rounded-2xl shadow-xl hover:shadow-emerald-500/20 transition-all duration-300 transform hover:-translate-y-1 flex items-center space-x-3 text-base select-none border border-emerald-400/20"
               >
-                <span>Access Advisory Dashboard</span>
+                <span>{t('accessAdvisoryDashboard')}</span>
                 <ChevronRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1 text-emerald-200" />
               </button>
             </div>
@@ -1720,10 +1747,10 @@ export default function App() {
           {/* Right Card Grid showing core features */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
-              { title: "AI Diagnostics", desc: "Instant leaf disease detection from photos", icon: Bot, color: "text-blue-400 border-blue-500/15" },
-              { title: "State-wise Crops", desc: "Region-matched seasons and crop lists", icon: MapPin, color: "text-amber-400 border-amber-500/15" },
-              { title: "Smart Scheduler", desc: "Customized soil and watering schedules", icon: FileText, color: "text-emerald-400 border-emerald-500/15" },
-              { title: "Voice AI Bot", desc: "Multilingual help in Telugu, Hindi & English", icon: MessageSquare, color: "text-purple-400 border-purple-500/15" }
+              { titleKey: 'aiDiagnosticsTitle', descKey: 'aiDiagnosticsDesc', icon: Bot, color: "text-blue-400 border-blue-500/15" },
+              { titleKey: 'stateWiseCropsTitle', descKey: 'stateWiseCropsDesc', icon: MapPin, color: "text-amber-400 border-amber-500/15" },
+              { titleKey: 'smartSchedulerTitle', descKey: 'smartSchedulerDesc', icon: FileText, color: "text-emerald-400 border-emerald-500/15" },
+              { titleKey: 'voiceAiBotTitle', descKey: 'voiceAiBotDesc', icon: MessageSquare, color: "text-purple-400 border-purple-500/15" }
             ].map((f, idx) => {
               const Icon = f.icon;
               return (
@@ -1736,8 +1763,8 @@ export default function App() {
                     <Icon className="h-5 w-5" />
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-sm text-white">{f.title}</h4>
-                    <p className="text-[11px] text-emerald-100/50 leading-normal mt-1">{f.desc}</p>
+                    <h4 className="font-extrabold text-sm text-white">{t(f.titleKey)}</h4>
+                    <p className="text-[11px] text-emerald-100/50 leading-normal mt-1">{t(f.descKey)}</p>
                   </div>
                 </div>
               );
@@ -1784,7 +1811,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="font-extrabold text-lg leading-tight tracking-tight brand-typewriter">AgriFuture</h1>
-              <p className="text-xs text-emerald-300 font-medium">Advisory System</p>
+              <p className="text-xs text-emerald-300 font-medium">{t('advisorySystem')}</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -1798,7 +1825,7 @@ export default function App() {
                   setActiveTab('admin-panel');
                 }
               }}
-              title="Admin Panel"
+              title={t('adminPanel')}
               className="hidden md:flex text-emerald-300 hover:text-white p-1.5 rounded-lg hover:bg-emerald-800 transition-all"
             >
               <UserCheck className="h-5 w-5" />
@@ -1812,16 +1839,16 @@ export default function App() {
         {/* Navigation Tabs */}
         <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
           {[
-            { id: 'dashboard', label: 'Dashboard', icon: Layers },
-            { id: 'crop-info', label: 'Crops Directory', icon: Sprout },
-            { id: 'gov-msp', label: 'Govt Crops & MSP', icon: TrendingUp },
-            { id: 'gov-schemes', label: 'Govt Schemes Eligibility', icon: CheckCircle2 },
-            { id: 'news-updates', label: 'Agri News & Alerts', icon: Newspaper },
-            { id: 'soil-info', label: 'Soil Details', icon: Database },
-            { id: 'disease-mgmt', label: 'Crop Health Hub', icon: ShieldAlert },
-            { id: 'disease-finder', label: 'Advisory Disease Finder', icon: HelpCircle },
-            { id: 'smart-scheduler', label: 'Smart Scheduler', icon: FileText },
-            { id: 'ai-detection', label: 'AI Crop Diagnosis', icon: Bot }
+            { id: 'dashboard', labelKey: 'dashboard', icon: Layers },
+            { id: 'crop-info', labelKey: 'cropsDirectory', icon: Sprout },
+            { id: 'gov-msp', labelKey: 'govtCropsMsp', icon: TrendingUp },
+            { id: 'gov-schemes', labelKey: 'govtSchemes', icon: CheckCircle2 },
+            { id: 'news-updates', labelKey: 'agriNewsAlerts', icon: Newspaper },
+            { id: 'soil-info', labelKey: 'soilDetails', icon: Database },
+            { id: 'disease-mgmt', labelKey: 'cropHealthHub', icon: ShieldAlert },
+            { id: 'disease-finder', labelKey: 'advisoryDiseaseFinder', icon: HelpCircle },
+            { id: 'smart-scheduler', labelKey: 'smartScheduler', icon: FileText },
+            { id: 'ai-detection', labelKey: 'aiCropDiagnosis', icon: Bot }
           ].map((tab) => {
             const Icon = tab.icon;
             return (
@@ -1844,11 +1871,37 @@ export default function App() {
                 }`}
               >
                 <Icon className={`h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110 ${activeTab === tab.id ? 'text-emerald-300' : 'text-emerald-400'}`} />
-                <span>{tab.label}</span>
+                <span>{t(tab.labelKey)}</span>
               </button>
             );
           })}
         </nav>
+
+        {/* Language Selector in Sidebar */}
+        <div className="px-4 py-3 border-t border-emerald-800">
+          <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-2">{t('languageSelect')}</p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {[
+              { code: 'en', label: 'English', flag: '🇬🇧' },
+              { code: 'te', label: 'తెలుగు', flag: '🇮🇳' },
+              { code: 'hi', label: 'हिंदी', flag: '🇮🇳' },
+              { code: 'mr', label: 'मराठी', flag: '🇮🇳' }
+            ].map(({ code, label, flag }) => (
+              <button
+                key={code}
+                onClick={() => handleLanguageChange(code)}
+                className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  i18n.language === code
+                    ? 'bg-emerald-500 text-white shadow-md ring-1 ring-emerald-300'
+                    : 'bg-emerald-800 text-emerald-200 hover:bg-emerald-700 hover:text-white'
+                }`}
+              >
+                <span>{flag}</span>
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
       </aside>
 
@@ -1902,7 +1955,7 @@ export default function App() {
                   setActiveTab('admin-panel');
                 }
               }}
-              title="Admin Panel"
+              title={t('adminPanel')}
               className="text-emerald-300 hover:text-white p-1 rounded hover:bg-emerald-800 transition-all animate-fade-in"
             >
               <UserCheck className="h-5 w-5" />
@@ -1918,7 +1971,7 @@ export default function App() {
           <div className="bg-rose-50 border-l-4 border-rose-500 p-4 m-6 rounded shadow-sm flex items-start space-x-3 animate-fade-in shrink-0">
             <AlertTriangle className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="text-sm font-bold text-rose-800">Connection Trouble</h3>
+              <h3 className="text-sm font-bold text-rose-800">{t('connectionTrouble')}</h3>
               <p className="text-xs text-rose-700 mt-1">{errorMessage}</p>
             </div>
             <button onClick={() => setErrorMessage('')} className="text-rose-400 hover:text-rose-600">
@@ -1981,9 +2034,9 @@ export default function App() {
               <div className="space-y-6">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Agriculture Dashboard</h2>
+                    <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">{t('agricultureDashboard')}</h2>
                     <p className="text-sm text-gray-500 mt-1">
-                      {globalSearchQuery ? `Search results for "${globalSearchQuery}"` : "Real-time stats and advisory database for farming operations."}
+                      {globalSearchQuery ? `${t('searchResultsFor')} "${globalSearchQuery}"` : t('realtimeStats')}
                     </p>
                   </div>
                   {/* Dashboard Quick Search */}
@@ -2126,13 +2179,6 @@ export default function App() {
                                   >
                                     <span>Target Disease</span>
                                     <ChevronRight className="h-3 w-3 ml-0.5" />
-                                  </button>   <span className="text-gray-500">Dosage: <strong className="text-emerald-700 font-bold">{c.dosage}</strong></span>
-                                  <button
-                                    onClick={() => { handleDiseaseClick(c.disease_id); setActiveTab('disease-mgmt'); }}
-                                    className="text-xs text-emerald-600 hover:text-emerald-800 font-bold flex items-center"
-                                  >
-                                    <span>Target Disease</span>
-                                    <ChevronRight className="h-3 w-3 ml-0.5" />
                                   </button>
                                 </div>
                               </div>
@@ -2164,10 +2210,10 @@ export default function App() {
                         Advisory Companion AI
                       </span>
                       <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight">
-                        Namaste, Swagat Hai! 👋
+                        {t('namasteWelcome')}
                       </h3>
                       <p className="text-xs text-emerald-100/80 leading-relaxed">
-                        Welcome to your smart farming dashboard. I am here to assist you in designing cultivation schedules, monitoring target yields, identifying leaf pathogens, and checking scheme eligibilities. Let's grow together!
+                        {t('welcomeDashboardMsg')}
                       </p>
                       <div className="flex flex-wrap gap-2.5 pt-1">
                         <button 
@@ -2175,14 +2221,14 @@ export default function App() {
                           className="text-[11px] font-extrabold bg-white text-emerald-950 px-4 py-2.5 rounded-xl hover:bg-emerald-50 transition-all flex items-center gap-1.5 shadow-sm border border-white/20 active:scale-[0.98]"
                         >
                           <FileText className="h-3.5 w-3.5 text-emerald-700" />
-                          <span>Cultivation Schedule</span>
+                          <span>{t('cultivationSchedule')}</span>
                         </button>
                         <button 
                           onClick={() => setChatbotOpen(true)}
                           className="text-[11px] font-extrabold bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl transition-all border border-emerald-600/50 flex items-center gap-1.5 active:scale-[0.98]"
                         >
                           <Bot className="h-3.5 w-3.5 text-emerald-350" />
-                          <span>Ask CropCare Bot</span>
+                          <span>{t('askCropCareAi')}</span>
                         </button>
                       </div>
                     </div>
@@ -2470,8 +2516,8 @@ export default function App() {
               <div className="space-y-6 text-left">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Agri News & Bulletins</h2>
-                    <p className="text-sm text-gray-500 mt-1">Official releases, weather warnings, scheme announcements, and market insights.</p>
+                    <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">{t('agriNewsBulletins')}</h2>
+                    <p className="text-sm text-gray-500 mt-1">{t('agriNewsDesc')}</p>
                   </div>
                   
                   <div className="flex items-center space-x-2 shrink-0">
@@ -2483,7 +2529,7 @@ export default function App() {
                       }`}
                     >
                       <RefreshCw className={`h-4 w-4 text-emerald-600 ${newsSyncing ? 'animate-spin' : ''}`} />
-                      <span>{newsSyncing ? 'Checking Govt Feeds...' : 'Sync Live Govt News'}</span>
+                      <span>{newsSyncing ? t('checkingFeeds') : t('syncLiveNews')}</span>
                     </button>
                   </div>
                 </div>
@@ -2502,7 +2548,7 @@ export default function App() {
                             : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                         }`}
                       >
-                        {cat === 'All' ? 'All Updates' : cat}
+                        {cat === 'All' ? t('allUpdates') : cat}
                       </button>
                     ))}
                   </div>
@@ -2512,7 +2558,7 @@ export default function App() {
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                     <input
                       type="text"
-                      placeholder="Search news by keyword..."
+                      placeholder={t('searchNewsPlaceholder')}
                       value={newsSearchText}
                       onChange={(e) => setNewsSearchText(e.target.value)}
                       className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
@@ -2534,7 +2580,7 @@ export default function App() {
                     return (
                       <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center text-gray-400 italic shadow-sm">
                         <Newspaper className="h-12 w-12 mx-auto opacity-35 mb-3" />
-                        <span>No news bulletins match the selected filters or search terms.</span>
+                        <span>{t('noNewsFound')}</span>
                       </div>
                     );
                   }
@@ -2568,7 +2614,7 @@ export default function App() {
                             {/* Content */}
                             <div className="p-5 space-y-3">
                               <div className="flex justify-between items-center text-[10px] font-bold text-gray-400">
-                                <span>{n.source || 'Official Source'}</span>
+                                <span>{n.source || t('officialSource')}</span>
                                 <span>{n.published_date}</span>
                               </div>
                               <h4 className="font-extrabold text-base text-gray-900 leading-snug group-hover:text-emerald-700 transition-colors line-clamp-2">
@@ -2585,7 +2631,7 @@ export default function App() {
                               onClick={() => setSelectedNewsDetail(n)}
                               className="w-full py-2.5 px-4 rounded-xl border border-gray-200 hover:border-emerald-250 hover:bg-emerald-50/20 text-xs font-extrabold text-emerald-700 transition-all flex items-center justify-center gap-1 group/btn"
                             >
-                              <span>Read Full Article</span>
+                              <span>{t('readFullArticle')}</span>
                               <ChevronRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-0.5" />
                             </button>
                           </div>
@@ -2601,8 +2647,8 @@ export default function App() {
             {activeTab === 'crop-info' && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Crops Directory</h2>
-                  <p className="text-sm text-gray-500 mt-1">Explore suitability mappings, crop information directory, and cultivation preferences.</p>
+                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">{t('cropsDirectoryTitle')}</h2>
+                  <p className="text-sm text-gray-500 mt-1">{t('cropsDirectoryDesc')}</p>
                 </div>
 
                 {/* Sub-tab selection */}
@@ -2615,7 +2661,7 @@ export default function App() {
                         : 'text-emerald-800 hover:bg-emerald-100/40'
                     }`}
                   >
-                    Browse Crop Catalog
+                    {t('browseCropCatalog')}
                   </button>
                   <button
                     onClick={() => setCropSubTab('states')}
@@ -2625,7 +2671,7 @@ export default function App() {
                         : 'text-emerald-800 hover:bg-emerald-100/40'
                     }`}
                   >
-                    Explore State Suitability
+                    {t('exploreStateSuitability')}
                   </button>
                 </div>
 
@@ -2633,18 +2679,18 @@ export default function App() {
                   <div className="space-y-6">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <div>
-                        <h3 className="text-lg font-extrabold text-gray-900">Crop Catalog</h3>
-                        <p className="text-xs text-gray-500">Search and filter detailed parameters of Indian crop varieties.</p>
+                        <h3 className="text-lg font-extrabold text-gray-900">{t('cropCatalog')}</h3>
+                        <p className="text-xs text-gray-500">{t('cropCatalogDesc')}</p>
                       </div>
                       {/* Filters */}
                       <div className="flex items-center space-x-2 shrink-0">
-                        <span className="text-xs font-bold text-gray-500 uppercase">Season:</span>
+                        <span className="text-xs font-bold text-gray-500 uppercase">{t('seasonLabel')}:</span>
                         <select
                           value={cropFilterSeason}
                           onChange={(e) => setCropFilterSeason(e.target.value)}
                           className="border border-gray-200 rounded-lg text-xs font-semibold px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         >
-                          <option value="All">All Seasons</option>
+                          <option value="All">{t('allSeasons')}</option>
                           <option value="Kharif">Kharif</option>
                           <option value="Rabi">Rabi</option>
                           <option value="Annual">Annual</option>
@@ -2658,7 +2704,7 @@ export default function App() {
                       <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                       <input
                         type="text"
-                        placeholder="Search crop by name or scientific term..."
+                        placeholder={t('searchCropPlaceholder')}
                         value={cropSearchText}
                         onChange={(e) => setCropSearchText(e.target.value)}
                         className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
@@ -2689,21 +2735,21 @@ export default function App() {
                             <div className="p-5 space-y-3.5">
                               <div className="grid grid-cols-3 gap-2 text-xs">
                                 <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                                  <span className="font-bold text-gray-400 block text-[9px] uppercase tracking-wider">Water Need</span>
+                                  <span className="font-bold text-gray-400 block text-[9px] uppercase tracking-wider">{t('waterNeed')}</span>
                                   <span className="font-semibold text-gray-700 mt-0.5 block">{crop.water_requirement}</span>
                                 </div>
                                 <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                                  <span className="font-bold text-gray-400 block text-[9px] uppercase tracking-wider">Expected Yield</span>
+                                  <span className="font-bold text-gray-400 block text-[9px] uppercase tracking-wider">{t('expectedYield')}</span>
                                   <span className="font-semibold text-gray-700 mt-0.5 block truncate" title={crop.yield}>{crop.yield}</span>
                                 </div>
                                 <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                                  <span className="font-bold text-gray-400 block text-[9px] uppercase tracking-wider">Govt MSP</span>
+                                  <span className="font-bold text-gray-400 block text-[9px] uppercase tracking-wider">{t('govtMsp')}</span>
                                   <span className="font-bold text-emerald-700 mt-0.5 block truncate" title={crop.msp || 'N/A'}>{crop.msp || 'N/A'}</span>
                                 </div>
                               </div>
 
                               <div>
-                                <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-1.5">Suitable Soils</span>
+                                <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-1.5">{t('suitableSoils')}</span>
                                 <div className="flex flex-wrap gap-1">
                                   {crop.soils && crop.soils.length > 0 ? (
                                     crop.soils.map((s, idx) => (
@@ -2712,7 +2758,7 @@ export default function App() {
                                       </span>
                                     ))
                                   ) : (
-                                    <span className="text-gray-400 text-xs italic">No Soils Mapped</span>
+                                    <span className="text-gray-400 text-xs italic">{t('noSoilsMapped')}</span>
                                   )}
                                 </div>
                               </div>
@@ -2721,13 +2767,13 @@ export default function App() {
 
                           <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
                             <span className="text-xs font-semibold text-gray-500">
-                              State: <strong className="text-gray-700 font-bold">{crop.state_name}</strong>
+                              {t('stateLabel')}: <strong className="text-gray-700 font-bold">{crop.state_name}</strong>
                             </span>
                             <button
                               onClick={() => handleCropClick(crop.id)}
                               className="text-xs font-bold text-emerald-600 hover:text-emerald-800 flex items-center space-x-1"
                             >
-                              <span>Diseases & Details</span>
+                              <span>{t('diseasesDetails')}</span>
                               <ChevronRight className="h-3.5 w-3.5" />
                             </button>
                           </div>
@@ -2735,7 +2781,7 @@ export default function App() {
                       ))}
                       {filteredCropsList.length === 0 && (
                         <div className="col-span-full bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
-                          No crops found matching the criteria.
+                          {t('noCropsFound')}
                         </div>
                       )}
                     </div>
@@ -2745,8 +2791,8 @@ export default function App() {
                 {cropSubTab === 'states' && (
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-lg font-extrabold text-gray-900">State Suitability Map</h3>
-                      <p className="text-xs text-gray-500">Explore climate details and mapped primary crop varieties for each region.</p>
+                      <h3 className="text-lg font-extrabold text-gray-900">{t('stateSuitabilityMap')}</h3>
+                      <p className="text-xs text-gray-500">{t('stateSuitabilityMapDesc')}</p>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -2756,7 +2802,7 @@ export default function App() {
                           <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                           <input
                             type="text"
-                            placeholder="Search state..."
+                            placeholder={t('searchStatePlaceholder')}
                             value={stateSearchText}
                             onChange={(e) => setStateSearchText(e.target.value)}
                             className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
@@ -2779,7 +2825,7 @@ export default function App() {
                             </button>
                           ))}
                           {filteredStates.length === 0 && (
-                            <p className="text-center text-gray-400 text-xs py-4">No states matching that search.</p>
+                            <p className="text-center text-gray-400 text-xs py-4">{t('noStatesMatching')}</p>
                           )}
                         </div>
                       </div>
@@ -2793,7 +2839,7 @@ export default function App() {
                                 <h3 className="text-2xl font-black text-emerald-900">{stateDetail.state_name}</h3>
                                 <div className="flex items-center space-x-2 mt-2 text-xs font-semibold px-2.5 py-1 rounded bg-emerald-50 text-emerald-700 w-fit">
                                   <Thermometer className="h-3.5 w-3.5" />
-                                  <span>Climate Zone: {stateDetail.climate}</span>
+                                  <span>{t('climateZone')}: {stateDetail.climate}</span>
                                 </div>
                               </div>
                               {weatherLoading ? (
@@ -2805,22 +2851,22 @@ export default function App() {
                                 <div className={`p-4 rounded-2xl bg-gradient-to-br ${getWeatherGradient(weatherData.weathercode, weatherData.is_day)} text-white flex items-center gap-4 shadow-sm border border-white/10 max-w-xs shrink-0`}>
                                   <span className="text-4xl">{getWeatherDescription(weatherData.weathercode, weatherData.is_day).icon}</span>
                                   <div className="text-left">
-                                    <span className="text-[9px] font-black uppercase tracking-wider text-white/70 block">Live Weather</span>
+                                    <span className="text-[9px] font-black uppercase tracking-wider text-white/70 block">{t('liveWeather')}</span>
                                     <span className="text-xl font-black">{weatherData.temperature}°C</span>
                                     <span className="text-xs font-bold block">{getWeatherDescription(weatherData.weathercode, weatherData.is_day).desc}</span>
-                                    <span className="text-[10px] text-white/80 block mt-0.5">💨 {weatherData.windspeed} km/h wind</span>
+                                    <span className="text-[10px] text-white/80 block mt-0.5">💨 {weatherData.windspeed} km/h {t('wind')}</span>
                                   </div>
                                 </div>
                               )}
                             </div>
 
                             <div>
-                              <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Agricultural Overview</h4>
+                              <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider">{t('agriculturalOverview')}</h4>
                               <p className="text-gray-700 text-sm leading-relaxed mt-1.5">{stateDetail.description}</p>
                             </div>
 
                             <div>
-                              <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Major Crops Cultivated</h4>
+                              <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">{t('majorCropsCultivated')}</h4>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {stateDetail.crops && stateDetail.crops.length > 0 ? (
                                   stateDetail.crops.map((c) => (
@@ -2841,20 +2887,20 @@ export default function App() {
                                         <div className="flex items-center space-x-3 mt-1.5 text-[10px] font-bold text-gray-500">
                                           <span className="bg-gray-200/60 px-1.5 py-0.5 rounded uppercase">{c.season}</span>
                                           <span className="flex items-center text-blue-600">
-                                            <Droplet className="h-2.5 w-2.5 mr-0.5" /> {c.water_requirement} Water
+                                            <Droplet className="h-2.5 w-2.5 mr-0.5" /> {c.water_requirement} {t('waterSuffix')}
                                           </span>
                                         </div>
                                       </div>
                                     </div>
                                   ))
                                 ) : (
-                                  <p className="text-gray-400 text-xs py-2">No crops mapped for this state yet.</p>
+                                  <p className="text-gray-400 text-xs py-2">{t('noCropsMapped')}</p>
                                 )}
                               </div>
                             </div>
                           </div>
                         ) : (
-                          <p className="text-center text-gray-400 py-8">Select a state on the left to see details.</p>
+                          <p className="text-center text-gray-400 py-8">{t('selectStateLeft')}</p>
                         )}
                       </div>
                     </div>
@@ -2867,7 +2913,7 @@ export default function App() {
                     <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
                       <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-emerald-900 text-white">
                         <div>
-                          <h3 className="text-xl font-black">{selectedCropDetail.crop_name} Details</h3>
+                          <h3 className="text-xl font-black">{selectedCropDetail.crop_name} {t('details')}</h3>
                           <p className="text-xs text-emerald-300 italic">{selectedCropDetail.scientific_name}</p>
                         </div>
                         <button 
@@ -2881,29 +2927,29 @@ export default function App() {
                       <div className="p-6 space-y-6">
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
-                            <span className="font-extrabold text-xs text-gray-400 uppercase tracking-wider block">Seasonality</span>
+                            <span className="font-extrabold text-xs text-gray-400 uppercase tracking-wider block">{t('seasonality')}</span>
                             <span className="font-semibold text-gray-800 mt-1 block">{selectedCropDetail.season}</span>
                           </div>
                           <div>
-                            <span className="font-extrabold text-xs text-gray-400 uppercase tracking-wider block">Origin State</span>
+                            <span className="font-extrabold text-xs text-gray-400 uppercase tracking-wider block">{t('originState')}</span>
                             <span className="font-semibold text-gray-800 mt-1 block">{selectedCropDetail.state_name}</span>
                           </div>
                           <div>
-                            <span className="font-extrabold text-xs text-gray-400 uppercase tracking-wider block">Water requirement</span>
+                            <span className="font-extrabold text-xs text-gray-400 uppercase tracking-wider block">{t('waterRequirement')}</span>
                             <span className="font-semibold text-gray-800 mt-1 block">{selectedCropDetail.water_requirement}</span>
                           </div>
                           <div>
-                            <span className="font-extrabold text-xs text-gray-400 uppercase tracking-wider block">Expected Yield</span>
+                            <span className="font-extrabold text-xs text-gray-400 uppercase tracking-wider block">{t('expectedYield')}</span>
                             <span className="font-semibold text-gray-800 mt-1 block">{selectedCropDetail.yield}</span>
                           </div>
                           <div>
-                            <span className="font-extrabold text-xs text-gray-400 uppercase tracking-wider block">Govt Support Price (MSP)</span>
+                            <span className="font-extrabold text-xs text-gray-400 uppercase tracking-wider block">{t('govtSupportPriceMsp')}</span>
                             <span className="font-bold text-emerald-700 mt-1 block">{selectedCropDetail.msp || 'N/A'}</span>
                           </div>
                         </div>
 
                         <div>
-                          <span className="font-extrabold text-xs text-gray-400 uppercase tracking-wider block mb-2">Suitable Soils</span>
+                          <span className="font-extrabold text-xs text-gray-400 uppercase tracking-wider block mb-2">{t('suitableSoils')}</span>
                           <div className="flex flex-wrap gap-1.5">
                             {selectedCropDetail.soils && selectedCropDetail.soils.map((s, idx) => (
                               <span key={idx} className="bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-md text-xs font-semibold">
@@ -2914,14 +2960,14 @@ export default function App() {
                         </div>
 
                         <div className="border-t border-gray-100 pt-5">
-                          <h4 className="font-bold text-sm text-gray-800 mb-3">Known Crop Pathogens & Diseases</h4>
+                          <h4 className="font-bold text-sm text-gray-800 mb-3">{t('knownDiseases')}</h4>
                           <div className="space-y-3">
                             {selectedCropDetail.diseases && selectedCropDetail.diseases.length > 0 ? (
                               selectedCropDetail.diseases.map((d) => (
                                 <div key={d.id} className="p-4 bg-gray-50 border border-gray-200 rounded-xl flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                                   <div>
                                     <p className="font-bold text-gray-900 text-sm">{d.disease_name}</p>
-                                    <p className="text-xs text-gray-500 mt-1 line-clamp-1"><strong className="font-bold text-gray-700">Symptoms:</strong> {d.symptoms}</p>
+                                    <p className="text-xs text-gray-500 mt-1 line-clamp-1"><strong className="font-bold text-gray-700">{t('symptomsLabel')}:</strong> {d.symptoms}</p>
                                   </div>
                                   <button
                                     onClick={() => {
@@ -2931,12 +2977,12 @@ export default function App() {
                                     }}
                                     className="text-xs font-bold text-emerald-600 hover:text-emerald-800 hover:underline shrink-0"
                                   >
-                                    View Treatment
+                                    {t('viewTreatment')}
                                   </button>
                                 </div>
                               ))
                             ) : (
-                              <p className="text-gray-400 text-xs italic">No disease mappings currently added for this crop.</p>
+                              <p className="text-gray-400 text-xs italic">{t('noDiseasesMapped')}</p>
                             )}
                           </div>
                         </div>
@@ -2956,7 +3002,7 @@ export default function App() {
                     Government Supported Crops & MSP Scheme
                   </h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    Check which crops are backed by the Government of India's Minimum Support Price (MSP) scheme and see recommended prices.
+                    Check which crops are backed by the Government of India's {t('minimumSupportPrice')} (MSP) scheme and see recommended prices.
                   </p>
                 </div>
 
@@ -2969,7 +3015,7 @@ export default function App() {
                         <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                         <input
                           type="text"
-                          placeholder="Search supported crops..."
+                          placeholder={t('searchSupportedCrops')}
                           value={mspSearchText}
                           onChange={(e) => setMspSearchText(e.target.value)}
                           className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
@@ -2983,7 +3029,7 @@ export default function App() {
                           onChange={(e) => setMspFilterSeason(e.target.value)}
                           className="border border-gray-200 rounded-lg text-xs font-semibold px-3 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         >
-                          <option value="All">All Seasons</option>
+                          <option value="All">{t('allSeasons')}</option>
                           <option value="Kharif">Kharif</option>
                           <option value="Rabi">Rabi</option>
                           <option value="Annual">Annual</option>
@@ -3005,8 +3051,8 @@ export default function App() {
                         return (
                           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400 shadow-sm">
                             <Sprout className="h-12 w-12 text-gray-200 mx-auto mb-3" />
-                            <h4 className="font-bold text-gray-700 text-base">No Supported Crops Found</h4>
-                            <p className="text-xs text-gray-400 mt-1">Try adjusting your search query or season filter.</p>
+                            <h4 className="font-bold text-gray-700 text-base">{t('noSupportedCropsFound')}</h4>
+                            <p className="text-xs text-gray-400 mt-1">{t('tryAdjustingSearch')}</p>
                           </div>
                         );
                       }
@@ -3038,25 +3084,25 @@ export default function App() {
 
                               <div className="bg-emerald-50/40 border border-emerald-100/50 rounded-xl p-3.5 flex items-center justify-between">
                                 <div>
-                                  <span className="text-[10px] font-bold text-emerald-800/60 uppercase tracking-wide block">Minimum Support Price</span>
+                                  <span className="text-[10px] font-bold text-emerald-800/60 uppercase tracking-wide block">{t('minimumSupportPrice')}</span>
                                   <span className="text-lg font-black text-emerald-700">{c.msp}</span>
                                 </div>
                                 <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-600 text-white shadow-sm">
-                                  Govt Backed
+                                  {t('govtBacked')}
                                 </span>
                               </div>
 
                               <div className="text-xs border-t border-gray-50 pt-3 space-y-1.5 text-gray-600 font-medium">
                                 <div className="flex justify-between">
-                                  <span>Water Requirement:</span>
+                                  <span>{t('waterRequirementLabel')}:</span>
                                   <span className="text-gray-900 font-semibold">{c.water_requirement}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span>Average Yield:</span>
+                                  <span>{t('averageYield')}:</span>
                                   <span className="text-gray-900 font-semibold">{c.yield}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span>Suitable Soils:</span>
+                                  <span>{t('suitableSoils')}:</span>
                                   <span className="text-gray-900 font-semibold max-w-[150px] truncate" title={c.soils?.join(', ')}>
                                     {c.soils?.join(', ') || 'N/A'}
                                   </span>
@@ -3071,7 +3117,7 @@ export default function App() {
                                 }}
                                 className="w-full py-2 bg-gray-50 hover:bg-emerald-50 text-gray-700 hover:text-emerald-700 font-bold rounded-lg text-xs transition-all border border-gray-100 hover:border-emerald-200"
                               >
-                                View Detailed Guide & Diseases
+                                {t('viewDetailedGuide')}
                               </button>
                             </div>
                           ))}
@@ -3104,7 +3150,7 @@ export default function App() {
                       {mspPredictionsLoading ? (
                         <div className="flex flex-col items-center justify-center py-8 space-y-2">
                           <RefreshCw className="h-6 w-6 animate-spin text-emerald-600" />
-                          <span className="text-xs text-gray-400 font-semibold">Running ML Trend Model...</span>
+                          <span className="text-xs text-gray-400 font-semibold">{t('runningMlModel')}</span>
                         </div>
                       ) : mspPredictionsData ? (
                         <div className="space-y-4">
@@ -3113,14 +3159,14 @@ export default function App() {
                             <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-3 flex items-center justify-between shadow-sm">
                               <div className="space-y-1 text-left">
                                 <span className="text-[8px] font-black text-emerald-800 uppercase tracking-widest bg-emerald-100 px-1.5 py-0.5 rounded">
-                                  Best Crop of {selectedMspYear}
+                                  {t('bestCropOf')} {selectedMspYear}
                                 </span>
                                 <h5 className="font-bold text-gray-950 text-sm mt-1">{mspPredictionsData.best_crop.crop_name}</h5>
-                                <span className="text-[10px] text-gray-400 font-medium block">Season: {mspPredictionsData.best_crop.season}</span>
+                                <span className="text-[10px] text-gray-400 font-medium block">{t('seasonPrefix')}: {mspPredictionsData.best_crop.season}</span>
                               </div>
                               <div className="text-right">
                                 <span className="text-emerald-700 font-black text-base block">+{mspPredictionsData.best_crop.growth_rate_pct}%</span>
-                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wide">Predicted Growth</span>
+                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wide">{t('predictedGrowth')}</span>
                               </div>
                             </div>
                           )}
@@ -3186,7 +3232,7 @@ export default function App() {
                             return (
                               <div className="space-y-2 mt-4 bg-gray-50/70 border border-gray-150 p-2.5 rounded-xl text-left">
                                 <div className="flex items-center justify-between">
-                                  <label className="text-[9px] font-extrabold text-gray-500 uppercase">Crop Trend Line:</label>
+                                  <label className="text-[9px] font-extrabold text-gray-500 uppercase">{t('cropTrendLine')}:</label>
                                   <select
                                     value={selectedMspChartCropId || ""}
                                     onChange={(e) => setSelectedMspChartCropId(parseInt(e.target.value))}
@@ -3235,9 +3281,9 @@ export default function App() {
                                     <text x={getX(2036) - 10} y={height - 4} className="text-[7px] font-extrabold text-emerald-600">2036</text>
                                   </svg>
                                   <div className="flex justify-between text-[7px] font-extrabold text-gray-400 uppercase px-1 mt-1">
-                                    <span className="flex items-center gap-0.5"><span className="h-1 w-2 bg-gray-400 rounded-sm inline-block"></span> Hist</span>
-                                    <span className="flex items-center gap-0.5"><span className="h-1 w-2 bg-blue-500 rounded-sm inline-block"></span> Base</span>
-                                    <span className="flex items-center gap-0.5"><span className="h-1 w-2 bg-emerald-500 rounded-sm inline-block"></span> Pred</span>
+                                    <span className="flex items-center gap-0.5"><span className="h-1 w-2 bg-gray-400 rounded-sm inline-block"></span> {t('hist')}</span>
+                                    <span className="flex items-center gap-0.5"><span className="h-1 w-2 bg-blue-500 rounded-sm inline-block"></span> {t('base')}</span>
+                                    <span className="flex items-center gap-0.5"><span className="h-1 w-2 bg-emerald-500 rounded-sm inline-block"></span> {t('pred')}</span>
                                   </div>
                                 </div>
                               </div>
@@ -3247,7 +3293,7 @@ export default function App() {
                           {/* List of predicted prices for all crops */}
                           <div className="space-y-2 text-left">
                             <h5 className="text-[9px] font-extrabold text-gray-500 uppercase tracking-wider">
-                              Predicted Prices ({selectedMspYear}):
+                              {t('predictedPrices')} ({selectedMspYear}):
                             </h5>
                             <div className="border border-gray-150 rounded-xl max-h-[160px] overflow-y-auto divide-y divide-gray-100">
                               {mspPredictionsData.predictions.map(pred => (
@@ -3266,7 +3312,7 @@ export default function App() {
                           </div>
                         </div>
                       ) : (
-                        <div className="text-center text-xs text-gray-450 py-4">No prediction data available.</div>
+                        <div className="text-center text-xs text-gray-450 py-4">{t('noPredictionData')}</div>
                       )}
                     </div>
 
@@ -3283,9 +3329,9 @@ export default function App() {
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                               </span>
-                              Live Mandi Prices: {selectedCrop.crop_name}
+                              {t('liveMandiPricesPrefix')}: {selectedCrop.crop_name}
                             </h4>
-                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider">Updates live</span>
+                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider">{t('updatesLive')}</span>
                           </div>
                           
                           <div className="space-y-2.5">
@@ -3293,7 +3339,7 @@ export default function App() {
                               <div key={idx} className="flex justify-between items-center text-xs p-2.5 bg-gray-50/70 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
                                 <div>
                                   <span className="font-bold text-gray-800 block">{m.mandi}</span>
-                                  <span className="text-[9px] text-gray-400">Standard Quality</span>
+                                  <span className="text-[9px] text-gray-400">{t('standardQuality')}</span>
                                 </div>
                                 <div className="text-right">
                                   <span className="font-black text-gray-900 text-sm block">₹{m.price}</span>
@@ -3301,12 +3347,12 @@ export default function App() {
                                     m.trend === 'up' ? 'text-emerald-600' : m.trend === 'down' ? 'text-rose-600' : 'text-gray-500'
                                   }`}>
                                     {m.trend === 'up' ? '▲' : m.trend === 'down' ? '▼' : '■'}
-                                    {m.change !== 0 ? `${Math.abs(m.change)}` : 'Stable'}
+                                    {m.change !== 0 ? `${Math.abs(m.change)}` : t('stable')}
                                   </span>
                                 </div>
                               </div>
                             )) : (
-                              <p className="text-center text-xs text-gray-400 py-2">Loading live prices...</p>
+                              <p className="text-center text-xs text-gray-400 py-2">{t('loadingLivePrices')}</p>
                             )}
                           </div>
                         </div>
@@ -3988,7 +4034,7 @@ export default function App() {
             {activeTab === 'soil-info' && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Soil Profiles & Chemistry</h2>
+                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">{t('soilProfilesTitle')}</h2>
                   <p className="text-sm text-gray-500 mt-1">Catalog of soil classifications, characteristics, pH ratings, and nutrient indexes.</p>
                 </div>
 
@@ -4024,13 +4070,13 @@ export default function App() {
                             </div>
 
                             <div className="text-left">
-                              <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Characteristics & Nutrients</span>
+                              <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">{t('characteristicsNutrients')}</span>
                               <p className="text-xs text-gray-600 leading-relaxed mt-1">{soil.characteristics}</p>
                             </div>
                           </div>
 
                           <div className="border-t border-gray-100 pt-3.5 text-left">
-                            <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-1.5">Suitable Crops for Cultivation</span>
+                            <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block mb-1.5">{t('suitableCropsLabel')}</span>
                             <div className="flex flex-wrap gap-1">
                               {soil.suitable_crops && soil.suitable_crops.length > 0 ? (
                                 soil.suitable_crops.map((c, idx) => (
@@ -4127,7 +4173,7 @@ export default function App() {
                         const recs = getSoilRecommendations();
                         return (
                           <div className="space-y-4 border-t border-gray-150 pt-4 text-xs">
-                            <h4 className="font-extrabold text-[10px] text-gray-400 uppercase tracking-wider">Recommended Fertilizer Dosage (Per Acre):</h4>
+                            <h4 className="font-extrabold text-[10px] text-gray-400 uppercase tracking-wider">{t('fertilizerDosage')}</h4>
                             <div className="grid grid-cols-3 gap-2 text-center font-bold">
                               <div className="bg-orange-50 border border-orange-100 rounded-xl p-2">
                                 <span className="font-extrabold text-sm text-orange-850 block">{recs.urea} Bags</span>
@@ -4160,7 +4206,7 @@ export default function App() {
             {activeTab === 'disease-mgmt' && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Crop Health Hub</h2>
+                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">{t('cropHealthHubTitle')}</h2>
                   <p className="text-sm text-gray-500 mt-1">Identification logs, causative agents, organic prevention protocols, and chemical treatment guidelines.</p>
                 </div>
 
@@ -4219,14 +4265,14 @@ export default function App() {
 
                             <div className="p-5 space-y-4">
                               <div>
-                                <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Observed Symptoms</span>
+                                <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">{t('observedSymptoms')}</span>
                                 <p className="text-xs text-gray-600 mt-1 line-clamp-3 leading-relaxed" title={d.symptoms}>
                                   {d.symptoms}
                                 </p>
                               </div>
                               
                               <div className="bg-emerald-50/50 border border-emerald-100 p-3.5 rounded-lg">
-                                <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider block">Organic Prevention</span>
+                                <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider block">{t('organicPrevention')}</span>
                                 <p className="text-xs text-emerald-700 mt-1 line-clamp-2 leading-relaxed" title={d.prevention}>
                                   {d.prevention}
                                 </p>
@@ -4423,7 +4469,7 @@ export default function App() {
             {activeTab === 'disease-finder' && (
               <div className="space-y-6 max-w-4xl mx-auto">
                 <div className="text-center space-y-2">
-                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Crop Disease Finder Wizard</h2>
+                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">{t('diseaseFinderTitle')}</h2>
                   <p className="text-sm text-gray-500 max-w-md mx-auto">Interactive advisory pipeline to diagnose crop issues and retrieve chemical recipes.</p>
                 </div>
 
@@ -4461,7 +4507,7 @@ export default function App() {
                   {wizardStep === 1 && (
                     <div className="space-y-6">
                       <div className="text-center max-w-sm mx-auto space-y-2">
-                        <h3 className="font-extrabold text-lg text-gray-900">Where is your farm located?</h3>
+                        <h3 className="font-extrabold text-lg text-gray-900">{t('farmLocationQuestion')}</h3>
                         <p className="text-xs text-gray-500">Different regions have specialized crops and weather variations.</p>
                       </div>
 
@@ -4493,7 +4539,7 @@ export default function App() {
                   {wizardStep === 2 && (
                     <div className="space-y-6 animate-fade-in">
                       <div className="text-center max-w-sm mx-auto space-y-2">
-                        <h3 className="font-extrabold text-lg text-gray-900">What crop are you cultivating?</h3>
+                        <h3 className="font-extrabold text-lg text-gray-900">{t('cropCultivatingQuestion')}</h3>
                         <p className="text-xs text-gray-500">Only showing major crops grown in your selected state.</p>
                       </div>
 
@@ -4542,7 +4588,7 @@ export default function App() {
                   {wizardStep === 3 && (
                     <div className="space-y-6 animate-fade-in">
                       <div className="text-center max-w-sm mx-auto space-y-2">
-                        <h3 className="font-extrabold text-lg text-gray-900">Select observed disease</h3>
+                        <h3 className="font-extrabold text-lg text-gray-900">{t('selectObservedDisease')}</h3>
                         <p className="text-xs text-gray-500">Pick the symptoms that match the issues seen on your crops.</p>
                       </div>
 
@@ -4567,7 +4613,7 @@ export default function App() {
                                 </div>
                               </div>
                               <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                                <strong className="font-bold text-gray-700">Symptoms:</strong> {d.symptoms}
+                                <strong className="font-bold text-gray-700">{t('symptomsLabel')}:</strong> {d.symptoms}
                               </p>
                             </div>
                           ))}
@@ -4601,7 +4647,7 @@ export default function App() {
                     <div className="space-y-6 animate-fade-in">
                       <div className="text-center space-y-1 bg-emerald-50 border border-emerald-100 p-5 rounded-2xl">
                         <CheckCircle2 className="h-10 w-10 text-emerald-600 mx-auto" />
-                        <h3 className="font-extrabold text-xl text-emerald-900 mt-2">Advisory Generated Successfully!</h3>
+                        <h3 className="font-extrabold text-xl text-emerald-900 mt-2">{t('advisoryGeneratedSuccess')}</h3>
                         <p className="text-xs text-emerald-700">Here are your localized chemical treatment instructions.</p>
                       </div>
 
@@ -4620,7 +4666,7 @@ export default function App() {
                             </div>
                             <div className="text-xs space-y-2 text-gray-600 leading-relaxed">
                               <p><strong>Causative Agent:</strong> {diseases.find(d => d.id === parseInt(wizardDiseaseId))?.causes}</p>
-                              <p><strong>Symptoms:</strong> {diseases.find(d => d.id === parseInt(wizardDiseaseId))?.symptoms}</p>
+                              <p><strong>{t('symptomsLabel')}:</strong> {diseases.find(d => d.id === parseInt(wizardDiseaseId))?.symptoms}</p>
                               <p><strong>Prevention:</strong> {diseases.find(d => d.id === parseInt(wizardDiseaseId))?.prevention}</p>
                             </div>
                           </div>
@@ -4686,7 +4732,7 @@ export default function App() {
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Admin Management Panel</h2>
+                    <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">{t('adminPanelTitle')}</h2>
                     <p className="text-sm text-gray-500 mt-1">Add, update, or remove entries from the centralized advisory database.</p>
                   </div>
                   {/* Action buttons */}
@@ -4771,7 +4817,7 @@ export default function App() {
                             <th className="px-6 py-4">Crop Name</th>
                             <th className="px-6 py-4">Scientific Name</th>
                             <th className="px-6 py-4">Season</th>
-                            <th className="px-6 py-4">Govt MSP</th>
+                            <th className="px-6 py-4">{t('govtMsp')}</th>
                             <th className="px-6 py-4">State Location</th>
                             <th className="px-6 py-4 text-right">Actions</th>
                           </tr>
@@ -5033,7 +5079,7 @@ export default function App() {
 
                             <div className="grid grid-cols-2 gap-4">
                               <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Expected Yield</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('expectedYield')}</label>
                                 <input
                                   type="text"
                                   value={cropForm.yield}
@@ -5043,7 +5089,7 @@ export default function App() {
                                 />
                               </div>
                               <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Govt Support Price (MSP)</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('govtSupportPriceMsp')}</label>
                                 <input
                                   type="text"
                                   value={cropForm.msp}
@@ -5440,7 +5486,7 @@ export default function App() {
                           <Upload className="h-6 w-6" />
                         </div>
                         <div>
-                          <p className="font-bold text-gray-900 text-sm">Drag and drop plant photograph here</p>
+                          <p className="font-bold text-gray-900 text-sm">{t('dragDropPhoto')}</p>
                           <p className="text-xs text-gray-400 mt-1">Accepts PNG, JPG, or JPEG (Max 5MB)</p>
                         </div>
                         <label className="inline-block px-4 py-2 border border-gray-200 text-gray-600 hover:bg-gray-100 rounded-lg text-xs font-bold cursor-pointer transition-all">
@@ -5507,7 +5553,7 @@ export default function App() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                         <div>
-                          <strong className="text-emerald-950 font-bold block">Typical Symptoms:</strong>
+                          <strong className="text-emerald-950 font-bold block">Typical {t('symptomsLabel')}:</strong>
                           <p className="text-emerald-800 mt-1 leading-relaxed">{aiResult.symptoms}</p>
                         </div>
                         <div>
@@ -5545,7 +5591,7 @@ export default function App() {
             {activeTab === 'smart-scheduler' && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Smart Cultivation Scheduler</h2>
+                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">{t('aiSchedulerTitle')}</h2>
                   <p className="text-sm text-gray-500 mt-1">Get custom cultivation steps, watering timelines, and fertilizer schedules generated in real-time by AI.</p>
                 </div>
 
@@ -5661,7 +5707,7 @@ export default function App() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Expected Yield (Quintals)</label>
+                          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('expectedYield')} (Quintals)</label>
                           <input
                             type="text"
                             value={schedulerForm.expected_yield}
@@ -5779,13 +5825,13 @@ export default function App() {
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-50 text-xs">
                                     {item.irrigation_advice && (
                                       <div className="bg-blue-50/50 border border-blue-100/30 p-2.5 rounded-lg">
-                                        <strong className="text-blue-900 font-bold block mb-0.5">Water Management</strong>
+                                        <strong className="text-blue-900 font-bold block mb-0.5">{t('waterManagement')}</strong>
                                         <span className="text-blue-700">{item.irrigation_advice}</span>
                                       </div>
                                     )}
                                     {item.fertilizer_dosage && (
                                       <div className="bg-purple-50/50 border border-purple-100/30 p-2.5 rounded-lg">
-                                        <strong className="text-purple-900 font-bold block mb-0.5">NPK & Fertilizer Dosage</strong>
+                                        <strong className="text-purple-900 font-bold block mb-0.5">{t('npkFertilizer')}</strong>
                                         <span className="text-purple-700">{item.fertilizer_dosage}</span>
                                       </div>
                                     )}
@@ -5802,7 +5848,7 @@ export default function App() {
                           <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-3">
                             <h4 className="font-bold text-gray-900 text-sm flex items-center">
                               <Database className="h-4.5 w-4.5 text-amber-700 mr-1.5" />
-                              <span>Soil & Fertilizer Tips</span>
+                              <span>{t('soilFertilizerTips')}</span>
                             </h4>
                             <ul className="list-disc pl-4 text-xs text-gray-600 space-y-1.5">
                               {schedulerResult.soil_and_fertilizer_tips && schedulerResult.soil_and_fertilizer_tips.map((tip, idx) => (
@@ -5815,7 +5861,7 @@ export default function App() {
                           <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-3">
                             <h4 className="font-bold text-gray-900 text-sm flex items-center">
                               <Sparkles className="h-4.5 w-4.5 text-emerald-600 mr-1.5" />
-                              <span>General Suggestions</span>
+                              <span>{t('generalSuggestions')}</span>
                             </h4>
                             <ul className="list-disc pl-4 text-xs text-gray-600 space-y-1.5">
                               {schedulerResult.general_suggestions && schedulerResult.general_suggestions.map((sug, idx) => (
@@ -5830,7 +5876,7 @@ export default function App() {
                           <div className="bg-rose-50 border border-rose-100 p-5 rounded-xl space-y-3 shadow-inner">
                             <h4 className="font-bold text-rose-900 text-sm flex items-center">
                               <ShieldAlert className="h-4.5 w-4.5 text-rose-700 mr-1.5" />
-                              <span>Potential Risks & Warnings</span>
+                              <span>{t('potentialRisks')}</span>
                             </h4>
                             <ul className="list-disc pl-4 text-xs text-rose-700 space-y-1.5">
                               {schedulerResult.warnings.map((warn, idx) => (
@@ -5843,9 +5889,9 @@ export default function App() {
                     ) : (
                       <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400 shadow-sm flex flex-col items-center justify-center min-h-[400px]">
                         <FileText className="h-12 w-12 text-gray-200 mb-3" />
-                        <h4 className="font-bold text-gray-700 text-base">Plan Output Panel</h4>
+                        <h4 className="font-bold text-gray-700 text-base">{t('planOutputPanel')}</h4>
                         <p className="text-xs text-gray-400 mt-1 max-w-xs">
-                          Configure your farm parameters on the left and click **Generate Plan** to receive your AI-powered advice schedule here.
+                          {t('planOutputDesc')}
                         </p>
                       </div>
                     )}
@@ -5927,7 +5973,7 @@ export default function App() {
           <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-30 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl flex flex-col animate-fade-in">
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-emerald-950 text-white">
-                <h3 className="text-base font-black uppercase tracking-wide">Admin Access Required</h3>
+                <h3 className="text-base font-black uppercase tracking-wide">{t('adminAccessRequired')}</h3>
                 <button 
                   onClick={() => setAdminPasswordModalOpen(false)}
                   className="text-emerald-200 hover:text-white p-1 rounded-lg hover:bg-emerald-900"
@@ -5945,7 +5991,7 @@ export default function App() {
                 )}
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Enter Admin Password</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{t('enterAdminPassword')}</label>
                   <input
                     type="password"
                     value={adminPasswordInput}
@@ -5963,13 +6009,13 @@ export default function App() {
                     onClick={() => setAdminPasswordModalOpen(false)}
                     className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-50"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                   <button
                     type="submit"
                     className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold shadow-sm"
                   >
-                    Authenticate
+                    {t('authenticate')}
                   </button>
                 </div>
               </form>
@@ -5993,7 +6039,7 @@ export default function App() {
                   </div>
                   <div>
                     <h3 className="font-extrabold text-xs leading-none">CropCare AI</h3>
-                    <span className="text-[9px] text-emerald-300 font-medium">Agricultural Advisor</span>
+                    <span className="text-[9px] text-emerald-300 font-medium">{t('agriculturalAdvisor')}</span>
                   </div>
                 </div>
                 <button 
@@ -6035,14 +6081,19 @@ export default function App() {
                   <select
                     value={voiceLanguage}
                     onChange={(e) => {
-                      setVoiceLanguage(e.target.value);
+                      const newVoiceLang = e.target.value;
+                      setVoiceLanguage(newVoiceLang);
                       stopSpeaking();
+                      // Also sync i18n language
+                      const i18nLangMap = { 'en-IN': 'en', 'hi-IN': 'hi', 'te-IN': 'te', 'mr-IN': 'mr' };
+                      i18n.changeLanguage(i18nLangMap[newVoiceLang] || 'en');
                     }}
                     className="border border-gray-200 rounded px-1 py-0.5 text-[9px] font-bold bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   >
                     <option value="en-IN">English</option>
                     <option value="hi-IN">हिन्दी</option>
                     <option value="te-IN">తెలుగు</option>
+                    <option value="mr-IN">मराठी</option>
                   </select>
                 </div>
 
@@ -6110,7 +6161,7 @@ export default function App() {
                   <div className="flex justify-start animate-pulse">
                     <div className="bg-white text-gray-400 border border-gray-150 px-3 py-2 rounded-xl rounded-tl-none text-[9px] font-semibold flex items-center space-x-1 shadow-sm">
                       <RefreshCw className="h-2.5 w-2.5 animate-spin text-emerald-600" />
-                      <span>Thinking...</span>
+                      <span>{t('thinking')}</span>
                     </div>
                   </div>
                 )}
@@ -6124,7 +6175,7 @@ export default function App() {
                       <span className="w-0.5 h-2.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></span>
                     </div>
                     <span className="text-[9px] font-semibold text-rose-800">
-                      Listening...
+                      {t('listening')}
                     </span>
                   </div>
                 )}
@@ -6137,8 +6188,8 @@ export default function App() {
                       <span className="w-0.5 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
                       <span className="w-0.5 h-3 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></span>
                     </div>
-                    <span className="text-[9px] font-semibold text-blue-800">Speaking...</span>
-                    <button onClick={stopSpeaking} className="text-blue-500 hover:text-blue-700 text-[7px] font-extrabold border border-blue-200 px-1 py-0.5 rounded bg-white shrink-0 ml-auto">STOP</button>
+                    <span className="text-[9px] font-semibold text-blue-800">{t('speaking')}</span>
+                    <button onClick={stopSpeaking} className="text-blue-500 hover:text-blue-700 text-[7px] font-extrabold border border-blue-200 px-1 py-0.5 rounded bg-white shrink-0 ml-auto">{t('stop')}</button>
                   </div>
                 )}
               </div>
@@ -6153,7 +6204,7 @@ export default function App() {
                       ? 'bg-rose-100 border-rose-300 text-rose-600 animate-pulse'
                       : 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100'
                   }`}
-                  title="Speak your question"
+                  title={t('speakQuestion')}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
@@ -6167,7 +6218,7 @@ export default function App() {
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   disabled={chatLoading}
-                  placeholder="Ask CropCare AI..."
+                  placeholder={t('askCropCareAi')}
                   className="flex-1 border border-gray-250 rounded-xl px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                 />
                 <button
@@ -6175,7 +6226,7 @@ export default function App() {
                   disabled={!chatInput.trim() || chatLoading}
                   className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold px-3.5 py-1.5 rounded-xl transition-all shadow-md shrink-0 text-xs"
                 >
-                  Send
+                  {t('send')}
                 </button>
               </form>
             </div>
