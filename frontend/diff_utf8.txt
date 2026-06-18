@@ -1,0 +1,425 @@
+diff --git a/src/App.jsx b/src/App.jsx
+index 5f5be0d..6a1149e 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -1286,0 +1287,18 @@ export default function App() {
++  const filteredSearchCrops = crops.filter(c => 
++    c.crop_name.toLowerCase().includes(globalSearchQuery.toLowerCase()) || 
++    (c.scientific_name && c.scientific_name.toLowerCase().includes(globalSearchQuery.toLowerCase()))
++  );
++  const filteredSearchSoils = soils.filter(s => 
++    s.soil_name.toLowerCase().includes(globalSearchQuery.toLowerCase()) || 
++    (s.characteristics && s.characteristics.toLowerCase().includes(globalSearchQuery.toLowerCase()))
++  );
++  const filteredSearchDiseases = diseases.filter(d => 
++    d.disease_name.toLowerCase().includes(globalSearchQuery.toLowerCase()) || 
++    (d.symptoms && d.symptoms.toLowerCase().includes(globalSearchQuery.toLowerCase()))
++  );
++  const filteredSearchChemicals = chemicals.filter(c => 
++    c.chemical_name.toLowerCase().includes(globalSearchQuery.toLowerCase()) || 
++    (c.chemical_type && c.chemical_type.toLowerCase().includes(globalSearchQuery.toLowerCase()))
++  );
++  const totalSearchResults = filteredSearchCrops.length + filteredSearchSoils.length + filteredSearchDiseases.length + filteredSearchChemicals.length;
++
+@@ -1313,0 +1332 @@ export default function App() {
++            { id: 'gov-schemes', label: 'Govt Schemes Eligibility', icon: CheckCircle2 },
+@@ -1465 +1484,3 @@ export default function App() {
+-                    <p className="text-sm text-gray-500 mt-1">Real-time stats and advisory database for farming operations.</p>
++                    <p className="text-sm text-gray-500 mt-1">
++                      {globalSearchQuery ? `Search results for "${globalSearchQuery}"` : "Real-time stats and advisory database for farming operations."}
++                    </p>
+@@ -1474,6 +1495,2 @@ export default function App() {
+-                      onChange={(e) => {
+-                        setGlobalSearchQuery(e.target.value);
+-                        setAdvSearchQuery(e.target.value);
+-                        setActiveTab('adv-search');
+-                      }}
+-                      className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
++                      onChange={(e) => setGlobalSearchQuery(e.target.value)}
++                      className="w-full pl-9 pr-10 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+@@ -1480,0 +1498,8 @@ export default function App() {
++                    {globalSearchQuery && (
++                      <button 
++                        onClick={() => setGlobalSearchQuery('')}
++                        className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-650"
++                      >
++                        <X className="h-4 w-4" />
++                      </button>
++                    )}
+@@ -1483,0 +1509,137 @@ export default function App() {
++                {globalSearchQuery ? (
++                  <div className="space-y-6 animate-fade-in text-left">
++                    <div className="flex justify-between items-center bg-emerald-50 border border-emerald-150 p-4 rounded-xl">
++                      <span className="text-xs font-bold text-emerald-800">
++                        ≡ƒöì Found {totalSearchResults} matching resources across categories.
++                      </span>
++                      <button 
++                        onClick={() => setGlobalSearchQuery('')}
++                        className="text-xs text-emerald-700 hover:text-emerald-950 font-black flex items-center"
++                      >
++                        Clear Results
++                      </button>
++                    </div>
++
++                    <div className="space-y-6">
++                      {/* Crops Results */}
++                      {filteredSearchCrops.length > 0 && (
++                        <div className="space-y-2.5">
++                          <h3 className="text-sm font-extrabold text-gray-400 uppercase tracking-wider flex items-center">
++                            <Sprout className="h-4 w-4 mr-1.5 text-emerald-600" /> Crops ({filteredSearchCrops.length})
++                          </h3>
++                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
++                            {filteredSearchCrops.map(c => (
++                              <div key={c.id} className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm flex justify-between items-center">
++                                <div>
++                                  <h4 className="font-extrabold text-base text-gray-900">{c.crop_name}</h4>
++                                  <p className="text-xs text-gray-400 italic mt-0.5">{c.scientific_name}</p>
++                                </div>
++                                <button
++                                  onClick={() => { handleCropClick(c.id); setActiveTab('crop-info'); }}
++                                  className="text-xs text-emerald-600 hover:text-emerald-800 font-bold flex items-center shrink-0 ml-4"
++                                >
++                                  <span>View Crop Profile</span>
++                                  <ChevronRight className="h-3 w-3 ml-0.5" />
++                                </button>
++                              </div>
++                            ))}
++                          </div>
++                        </div>
++                      )}
++
++                      {/* Soils Results */}
++                      {filteredSearchSoils.length > 0 && (
++                        <div className="space-y-2.5 border-t border-gray-100 pt-5">
++                          <h3 className="text-sm font-extrabold text-gray-400 uppercase tracking-wider flex items-center">
++                            <Database className="h-4 w-4 mr-1.5 text-amber-600" /> Soils ({filteredSearchSoils.length})
++                          </h3>
++                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
++                            {filteredSearchSoils.map(s => (
++                              <div key={s.id} className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
++                                <h4 className="font-extrabold text-base text-gray-900">{s.soil_name}</h4>
++                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{s.characteristics}</p>
++                                <div className="flex justify-between items-center mt-2">
++                                  <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 inline-block">
++                                    pH: {s.ph_range}
++                                  </span>
++                                  <button
++                                    onClick={() => { setActiveTab('soil-info'); }}
++                                    className="text-xs text-emerald-600 hover:text-emerald-800 font-bold flex items-center shrink-0"
++                                  >
++                                    <span>View Soil Details</span>
++                                    <ChevronRight className="h-3 w-3 ml-0.5" />
++                                  </button>
++                                </div>
++                              </div>
++                            ))}
++                          </div>
++                        </div>
++                      )}
++
++                      {/* Diseases Results */}
++                      {filteredSearchDiseases.length > 0 && (
++                        <div className="space-y-2.5 border-t border-gray-100 pt-5">
++                          <h3 className="text-sm font-extrabold text-gray-400 uppercase tracking-wider flex items-center">
++                            <ShieldAlert className="h-4 w-4 mr-1.5 text-red-655" /> Diseases ({filteredSearchDiseases.length})
++                          </h3>
++                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
++                            {filteredSearchDiseases.map(d => (
++                              <div key={d.id} className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm flex justify-between items-center">
++                                <div className="min-w-0">
++                                  <h4 className="font-extrabold text-base text-gray-900 truncate">{d.disease_name}</h4>
++                                  <p className="text-xs text-gray-500 mt-0.5 truncate">{d.symptoms}</p>
++                                </div>
++                                <button
++                                  onClick={() => { handleDiseaseClick(d.id); setActiveTab('disease-mgmt'); }}
++                                  className="text-xs text-emerald-600 hover:text-emerald-800 font-bold flex items-center shrink-0 ml-4"
++                                >
++                                  <span>Advisory Details</span>
++                                  <ChevronRight className="h-3 w-3 ml-0.5" />
++                                </button>
++                              </div>
++                            ))}
++                          </div>
++                        </div>
++                      )}
++
++                      {/* Chemicals Results */}
++                      {filteredSearchChemicals.length > 0 && (
++                        <div className="space-y-2.5 border-t border-gray-100 pt-5">
++                          <h3 className="text-sm font-extrabold text-gray-400 uppercase tracking-wider flex items-center">
++                            <Sliders className="h-4 w-4 mr-1.5 text-purple-600" /> Chemicals ({filteredSearchChemicals.length})
++                          </h3>
++                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
++                            {filteredSearchChemicals.map(c => (
++                              <div key={c.id} className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col justify-between">
++                                <div className="flex justify-between items-start">
++                                  <h4 className="font-extrabold text-base text-gray-900">{c.chemical_name}</h4>
++                                  <span className="text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-100 px-2 py-0.5 rounded">
++                                    {c.chemical_type}
++                                  </span>
++                                </div>
++                                <div className="flex justify-between items-center mt-3 text-xs">
++                                  <span className="text-gray-500">Dosage: <strong className="text-emerald-700 font-bold">{c.dosage}</strong></span>
++                                  <button
++                                    onClick={() => { handleDiseaseClick(c.disease_id); setActiveTab('disease-mgmt'); }}
++                                    className="text-xs text-emerald-600 hover:text-emerald-800 font-bold flex items-center"
++                                  >
++                                    <span>Target Disease</span>
++                                    <ChevronRight className="h-3 w-3 ml-0.5" />
++                                  </button>
++                                </div>
++                              </div>
++                            ))}
++                          </div>
++                        </div>
++                      )}
++
++                      {totalSearchResults === 0 && (
++                        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-450 italic">
++                          <Search className="h-10 w-10 mx-auto opacity-30 mb-3" />
++                          No crops, soils, diseases, or chemical treatments matched "{globalSearchQuery}".
++                        </div>
++                      )}
++                    </div>
++                  </div>
++                ) : (
++                  <>
+@@ -1604,0 +1767,2 @@ export default function App() {
++                  </>
++                )}
+@@ -2464,0 +2629,235 @@ export default function App() {
++            {/* 4b. GOVT SCHEMES ELIGIBILITY MODULE */}
++            {activeTab === 'gov-schemes' && (
++              <div className="space-y-6">
++                <div>
++                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Government Schemes Eligibility</h2>
++                  <p className="text-sm text-gray-500 mt-1">Interactive wizard to match your farm parameters with current central government subsidy schemes.</p>
++                </div>
++
++                <div className="max-w-3xl bg-white rounded-2xl border border-gray-200 p-8 shadow-md mx-auto text-left space-y-6 animate-fade-in">
++                  <div className="border-b border-gray-100 pb-3">
++                    <h3 className="font-extrabold text-lg text-gray-900 flex items-center">
++                      <TrendingUp className="h-5 w-5 text-emerald-600 mr-2" />
++                      Govt Scheme Eligibility Helper
++                    </h3>
++                    <p className="text-xs text-gray-500 mt-1">Verify your eligibility for Central Government agricultural subsidies and support schemes.</p>
++                  </div>
++
++                  {/* Stepper display */}
++                  {schemeStep < 4 && (
++                    <div className="flex items-center justify-between text-xs font-black text-gray-450 border-b border-gray-100 pb-3 mb-4">
++                      <span className={schemeStep === 1 ? "text-emerald-700 font-black" : ""}>1. Land size</span>
++                      <span>Γ₧ö</span>
++                      <span className={schemeStep === 2 ? "text-emerald-700 font-black" : ""}>2. Crops</span>
++                      <span>Γ₧ö</span>
++                      <span className={schemeStep === 3 ? "text-emerald-700 font-black" : ""}>3. Irrigation</span>
++                    </div>
++                  )}
++
++                  {/* Step 1 */}
++                  {schemeStep === 1 && (
++                    <div className="space-y-5">
++                      <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider block">Step 1: Choose Your Landholding Size</span>
++                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
++                        {[
++                          { value: 'Marginal', label: 'Marginal (< 1 Ha)', desc: 'Very small landholding. Eligible for maximum support.' },
++                          { value: 'Small', label: 'Small (1-2 Ha)', desc: 'Small size landholder. Eligible for PM-KISAN.' },
++                          { value: 'Large', label: 'Medium/Large (> 2 Ha)', desc: 'Medium or large farming operations.' }
++                        ].map((opt) => (
++                          <button
++                            key={opt.value}
++                            type="button"
++                            onClick={() => setSchemeLandSize(opt.value)}
++                            className={`p-4 border rounded-xl text-left space-y-1 transition-all ${
++                              schemeLandSize === opt.value
++                                ? 'border-emerald-500 bg-emerald-50/55 ring-2 ring-emerald-100'
++                                : 'border-gray-250 hover:border-gray-350'
++                            }`}
++                          >
++                            <span className="font-extrabold text-xs text-gray-900 block">{opt.label}</span>
++                            <span className="text-[10px] text-gray-400 block font-semibold">{opt.desc}</span>
++                          </button>
++                        ))}
++                      </div>
++                      <div className="pt-3 flex justify-end">
++                        <button
++                          onClick={() => setSchemeStep(2)}
++                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl transition-all shadow-sm flex items-center space-x-1"
++                        >
++                          <span>Next Step</span>
++                          <ChevronRight className="h-4 w-4" />
++                        </button>
++                      </div>
++                    </div>
++                  )}
++
++                  {/* Step 2 */}
++                  {schemeStep === 2 && (
++                    <div className="space-y-5">
++                      <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider block">Step 2: Crop Categories Cultivated</span>
++                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
++                        {[
++                          { value: 'Foodgrains', label: 'Foodgrains & Pulses', desc: 'Rice, wheat, millets, pulses, etc.' },
++                          { value: 'Oilseeds', label: 'Oilseeds Varieties', desc: 'Mustard, groundnut, soybean, sunflower.' },
++                          { value: 'Commercial', label: 'Commercial / Cash Crops', desc: 'Sugarcane, cotton, jute, horticulture.' }
++                        ].map((opt) => (
++                          <button
++                            key={opt.value}
++                            type="button"
++                            onClick={() => setSchemeCropsType(opt.value)}
++                            className={`p-4 border rounded-xl text-left space-y-1 transition-all ${
++                              schemeCropsType === opt.value
++                                ? 'border-emerald-500 bg-emerald-50/55 ring-2 ring-emerald-100'
++                                : 'border-gray-250 hover:border-gray-350'
++                            }`}
++                          >
++                            <span className="font-extrabold text-xs text-gray-900 block">{opt.label}</span>
++                            <span className="text-[10px] text-gray-400 block font-semibold">{opt.desc}</span>
++                          </button>
++                        ))}
++                      </div>
++                      <div className="pt-3 flex justify-between">
++                        <button
++                          onClick={() => setSchemeStep(1)}
++                          className="border border-gray-255 text-gray-700 font-bold px-6 py-2.5 rounded-xl hover:bg-gray-50 transition-all"
++                        >
++                          Back
++                        </button>
++                        <button
++                          onClick={() => setSchemeStep(3)}
++                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl transition-all shadow-sm flex items-center space-x-1"
++                        >
++                          <span>Next Step</span>
++                          <ChevronRight className="h-4 w-4" />
++                        </button>
++                      </div>
++                    </div>
++                  )}
++
++                  {/* Step 3 */}
++                  {schemeStep === 3 && (
++                    <div className="space-y-5">
++                      <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider block">Step 3: Primary Irrigation Source</span>
++                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
++                        {[
++                          { value: 'Rainfed', label: 'Rainfed / Natural Climate', desc: 'Depending solely on monsoon rains. Traditional practices.' },
++                          { value: 'BorewellDrip', label: 'Borewell / Tube-well / Drip system', desc: 'Active groundwater extraction or micro-irrigation system.' }
++                        ].map((opt) => (
++                          <button
++                            key={opt.value}
++                            type="button"
++                            onClick={() => setSchemeIrrigation(opt.value)}
++                            className={`p-4 border rounded-xl text-left space-y-1 transition-all ${
++                              schemeIrrigation === opt.value
++                                ? 'border-emerald-500 bg-emerald-50/55 ring-2 ring-emerald-100'
++                                : 'border-gray-250 hover:border-gray-350'
++                            }`}
++                          >
++                            <span className="font-extrabold text-xs text-gray-900 block">{opt.label}</span>
++                            <span className="text-[10px] text-gray-400 block font-semibold">{opt.desc}</span>
++                          </button>
++                        ))}
++                      </div>
++                      <div className="pt-3 flex justify-between">
++                        <button
++                          onClick={() => setSchemeStep(2)}
++                          className="border border-gray-255 text-gray-705 font-bold px-6 py-2.5 rounded-xl hover:bg-gray-50 transition-all"
++                        >
++                          Back
++                        </button>
++                        <button
++                          onClick={() => setSchemeStep(4)}
++                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl transition-all shadow-sm flex items-center space-x-1"
++                        >
++                          <span>Calculate Eligibility</span>
++                          <ChevronRight className="h-4 w-4" />
++                        </button>
++                      </div>
++                    </div>
++                  )}
++
++                  {/* Step 4: Results */}
++                  {schemeStep === 4 && (
++                    <div className="space-y-5">
++                      <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider block">Matched Government Schemes:</span>
++
++                      {(() => {
++                        const eligibleSchemes = [];
++
++                        if (schemeLandSize === 'Marginal' || schemeLandSize === 'Small') {
++                          eligibleSchemes.push({
++                            name: "PM-KISAN Samman Nidhi",
++                            benefit: "Γé╣6,000 per year direct income support paid in 3 installments.",
++                            desc: "Designed to help marginal and small farmers cover input cultivation costs."
++                          });
++                        }
++
++                        if (schemeIrrigation === 'BorewellDrip' || schemeLandSize === 'Small' || schemeLandSize === 'Marginal') {
++                          eligibleSchemes.push({
++                            name: "PMKSY (Micro-Irrigation Subsidy)",
++                            benefit: "55% to 80% capital subsidy on installing drip & sprinkler tubes.",
++                            desc: "Improves water efficiency. High recommendation for cash crop growers."
++                          });
++                        }
++
++                        eligibleSchemes.push({
++                          name: "PM Fasal Bima Yojana (PMFBY)",
++                          benefit: "Comprehensive crop insurance with nominal premium (1.5% - 5%).",
++                          desc: "Protects against yield losses from pests, droughts, storms, or floods."
++                        });
++
++                        if (schemeCropsType !== 'Commercial' && (schemeLandSize === 'Marginal' || schemeLandSize === 'Small')) {
++                          eligibleSchemes.push({
++                            name: "Paramparagat Krishi Vikas Yojana (PKVY)",
++                            benefit: "Γé╣50,000 assistance per hectare for organic inputs & packaging.",
++                            desc: "Supports clusters of small farmers converting to chemical-free organic farming."
++                          });
++                        }
++
++                        return (
++                          <div className="space-y-4">
++                            {eligibleSchemes.map((sch, sIdx) => (
++                              <div key={sIdx} className="bg-emerald-50/50 border border-emerald-150 rounded-xl p-5 space-y-2 text-xs">
++                                <h5 className="font-extrabold text-emerald-900 text-sm flex items-center justify-between">
++                                  {sch.name}
++                                  <span className="bg-emerald-200 text-emerald-800 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border border-emerald-300/30">
++                                    Eligible
++                                  </span>
++                                </h5>
++                                <p className="text-emerald-700 font-bold text-xs">≡ƒ¢í∩╕Å {sch.benefit}</p>
++                                <p className="text-gray-650 text-xs leading-relaxed">{sch.desc}</p>
++                                <div className="pt-2 flex justify-end">
++                                  <a
++                                    href="https://pmkisan.gov.in/"
++                                    target="_blank"
++                                    rel="noreferrer"
++                                    className="px-4 py-2 bg-emerald-650 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-all"
++                                  >
++                                    Apply Now
++                                  </a>
++                                </div>
++                              </div>
++                            ))}
++                          </div>
++                        );
++                      })()}
++
++                      <div className="flex justify-center border-t border-gray-150 pt-5">
++                        <button
++                          onClick={() => {
++                            setSchemeStep(1);
++                            setSchemeLandSize('Marginal');
++                            setSchemeCropsType('Foodgrains');
++                            setSchemeIrrigation('Rainfed');
++                          }}
++                          className="bg-gray-150 hover:bg-gray-200 text-gray-700 font-bold px-6 py-2.5 rounded-xl text-xs transition-all shadow-sm"
++                        >
++                          Check Again / Restart
++                        </button>
++                      </div>
++                    </div>
++                  )}
++                </div>
++              </div>
++            )}
++

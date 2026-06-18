@@ -1,0 +1,65 @@
+const TRANSLATIONS = {\r
+45:   en: {\r
+46:     dashboard: "Dashboard",\r
+47:     cropsDirectory: "Crops Directory",\r
+48:     govtCropsMsp: "Govt Crops & MSP",\r
+49:     govtSchemes: "Govt Schemes Eligibility",\r
+50:     soilDetails: "Soil Details",\r
+51:     cropHealthHub: "Crop Health Hub",\r
+52:     advisoryDiseaseFinder: "Advisory Disease Finder",\r
+53:     smartScheduler: "Smart Scheduler",\r
+54:     aiCropDiagnosis: "AI Crop Diagnosis",\r
+55:     adminPanel: "Admin Panel",\r
+56:     languageSelect: "Language",\r
+57:     smartSupportSystem: "Smart Cultivation & Support System",\r
+58:     welcomeHeader: "Future of Farming, Guided by AI.",\r
+
+<truncated 45282 bytes>
+:         avgYieldTonsPerHectare = parseFloat(yieldMatches[0]);\r
+726:       }\r
+727:     }\r
+728:     \r
+729:     const yieldTonsPerAcre = avgYieldTonsPerHectare / 2.47;\r
+730:     const yieldQuintalsPerAcre = yieldTonsPerAcre * 10;\r
+731:     \r
+732:     const acres = parseFloat(calcAcres) || 0;\r
+733:     const costPerAcre = parseFloat(calcCostPerAcre) || 0;\r
+734:     \r
+735:     const totalYieldQuintals = yieldQuintalsPerAcre * acres;\r
+736:     const totalCost = costPerAcre * acres;\r
+737:     const totalRevenue = totalYieldQuintals * mspPerQuintal;\r
+738:     const netProfit = totalRevenue - totalCost;\r
+739:     const profitMarginPct = totalRevenue > 0 ? (netProfit / totalRevenue) * 105 : 0;\r
+740:     \r
+741:     return {\r
+742:       yieldPerAcre: yieldQuintalsPerAcre.toFixed(1),\r
+743:       totalYield: totalYieldQuintals.toFixed(1),\r
+744:       totalCost: Math.round(totalCost),\r
+745:       totalRevenue: Math.round(totalRevenue),\r
+746:       netProfit: Math.round(netProfit),\r
+747:       profitMarginPct: Math.min(100, Math.max(0, Math.round(profitMarginPct)))\r
+748:     };\r
+749:   };\r
+750: \r
+751:   const getSoilRecommendations = () => {\r
+752:     const ph = parseFloat(soilAnalPh) || 7.0;\r
+753:     \r
+754:     let ureaBags = 2.0;\r
+755:     if (soilAnalN === 'Low') ureaBags = 3.0;\r
+756:     else if (soilAnalN === 'High') ureaBags = 1.0;\r
+757:     \r
+758:     let sspBags = 2.5;\r
+759:     if (soilAnalP === 'Low') sspBags = 4.0;\r
+760:     else if (soilAnalP === 'High') sspBags = 1.0;\r
+761:     \r
+762:     let mopBags = 1.0;\r
+763:     if (soilAnalK === 'Low') mopBags = 1.5;\r
+764:     else if (soilAnalK === 'High') mopBags = 0.5;\r
+765:     \r
+766:     let amendment = "";\r
+767:     let colorClass = "text-emerald-700 bg-emerald-50 border-emerald-200";\r
+768:     if (ph < 6.0) {\r
+769:       amendment = "Highly acidic. Apply Lime (Calcium Carbonate) at 1.5 - 2.0 tons per acre to neu
+<truncated 1653 bytes>
+
+NOTE: The output was truncated because it was too long. Use a more targeted query or a smaller range to get the information you need."}
