@@ -1491,7 +1491,7 @@ export default function App() {
 
       const response = await axios.post('https://api.sarvam.ai/text-to-speech', {
         text: cleanText,
-        speaker: 'priya', // Excellent Tier 1 Female voice
+        speaker: 'ishita', // Sarvam AI female voice
         target_language_code: lang,
         model: 'bulbul:v3',
         pace: 1.0,
