@@ -3,25 +3,25 @@ import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import AuthPage from './AuthPage';
 import UserProfile from './UserProfile';
-import { 
-  Sprout, 
-  MapPin, 
-  Search, 
-  Activity, 
-  ShieldAlert, 
-  Database, 
-  UserCheck, 
-  Bot, 
-  Upload, 
-  RefreshCw, 
-  Trash2, 
-  Edit2, 
-  Plus, 
-  Info, 
-  Check, 
-  AlertTriangle, 
-  Layers, 
-  ChevronRight, 
+import {
+  Sprout,
+  MapPin,
+  Search,
+  Activity,
+  ShieldAlert,
+  Database,
+  UserCheck,
+  Bot,
+  Upload,
+  RefreshCw,
+  Trash2,
+  Edit2,
+  Plus,
+  Info,
+  Check,
+  AlertTriangle,
+  Layers,
+  ChevronRight,
   X,
   FileText,
   Newspaper,
@@ -137,13 +137,13 @@ export default function App() {
   const [profileOpen, setProfileOpen] = useState(false);
 
   // ── Idle Auto-Signout (15 min inactivity) ───────────────────
-  const IDLE_TIMEOUT_MS  = 15 * 60 * 1000;  // 15 minutes
-  const WARN_BEFORE_MS   =  1 * 60 * 1000;  // warn 1 min before
-  const [idleWarning, setIdleWarning]       = useState(false);
-  const [idleCountdown, setIdleCountdown]   = useState(60);
-  const idleTimerRef    = React.useRef(null);
-  const warnTimerRef    = React.useRef(null);
-  const countdownRef    = React.useRef(null);
+  const IDLE_TIMEOUT_MS = 15 * 60 * 1000;  // 15 minutes
+  const WARN_BEFORE_MS = 1 * 60 * 1000;  // warn 1 min before
+  const [idleWarning, setIdleWarning] = useState(false);
+  const [idleCountdown, setIdleCountdown] = useState(60);
+  const idleTimerRef = React.useRef(null);
+  const warnTimerRef = React.useRef(null);
+  const countdownRef = React.useRef(null);
 
   const handleAuthSuccess = (user) => setCurrentUser(user);
 
@@ -156,9 +156,9 @@ export default function App() {
   };
 
   const clearIdleTimers = () => {
-    if (idleTimerRef.current)  clearTimeout(idleTimerRef.current);
-    if (warnTimerRef.current)  clearTimeout(warnTimerRef.current);
-    if (countdownRef.current)  clearInterval(countdownRef.current);
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    if (warnTimerRef.current) clearTimeout(warnTimerRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
   };
 
   const resetIdleTimer = React.useCallback(() => {
@@ -225,7 +225,7 @@ export default function App() {
       : 'https://agri-future-backend.onrender.com/api';
     axios.post(`${base}/auth/activity`, { action_type, description, extra },
       { headers: { Authorization: `Bearer ${token}` } }
-    ).catch(() => {/* silently ignore */});
+    ).catch(() => {/* silently ignore */ });
   };
 
 
@@ -241,7 +241,7 @@ export default function App() {
     const voiceLangMap = { en: 'en-IN', te: 'te-IN', hi: 'hi-IN', mr: 'mr-IN' };
     setVoiceLanguage(voiceLangMap[langCode] || 'en-IN');
   };
-  
+
   const handleGlowMouseMove = (e) => {
     const card = e.currentTarget;
     const rect = card.getBoundingClientRect();
@@ -263,7 +263,7 @@ export default function App() {
   const [soils, setSoils] = useState([]);
   const [diseases, setDiseases] = useState([]);
   const [chemicals, setChemicals] = useState([]);
-  
+
   // Dashboard & System States
   const [apiStats, setApiStats] = useState({
     total_states: 0,
@@ -395,7 +395,7 @@ export default function App() {
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [dashboardWeather, setDashboardWeather] = useState(null);
   const [dashboardWeatherLoading, setDashboardWeatherLoading] = useState(false);
-  
+
   const [mandiPrices, setMandiPrices] = useState({});
   const [calcAcres, setCalcAcres] = useState('1');
   const [calcCostPerAcre, setCalcCostPerAcre] = useState('15000');
@@ -497,7 +497,7 @@ export default function App() {
           if (!crop.msp || crop.msp === 'N/A') return;
           const basePriceMatch = crop.msp.match(/\d+[\d,.]*/);
           const basePrice = basePriceMatch ? parseFloat(basePriceMatch[0].replace(/,/g, '')) : 2000;
-          
+
           if (!updated[crop.id]) {
             updated[crop.id] = [
               { mandi: 'Azadpur Mandi (Delhi)', price: Math.round(basePrice * 1.05), change: 0, trend: 'stable' },
@@ -532,7 +532,7 @@ export default function App() {
     if (!crop) return null;
     const mspMatch = crop.msp ? crop.msp.match(/\d+[\d,.]*/) : null;
     const mspPerQuintal = mspMatch ? parseFloat(mspMatch[0].replace(/,/g, '')) : 2000;
-    
+
     const yieldMatches = crop.yield ? crop.yield.match(/\d+[\d,.]*/g) : null;
     let avgYieldTonsPerHectare = 3.5;
     if (yieldMatches) {
@@ -542,19 +542,19 @@ export default function App() {
         avgYieldTonsPerHectare = parseFloat(yieldMatches[0]);
       }
     }
-    
+
     const yieldTonsPerAcre = avgYieldTonsPerHectare / 2.47;
     const yieldQuintalsPerAcre = yieldTonsPerAcre * 10;
-    
+
     const acres = parseFloat(calcAcres) || 0;
     const costPerAcre = parseFloat(calcCostPerAcre) || 0;
-    
+
     const totalYieldQuintals = yieldQuintalsPerAcre * acres;
     const totalCost = costPerAcre * acres;
     const totalRevenue = totalYieldQuintals * mspPerQuintal;
     const netProfit = totalRevenue - totalCost;
     const profitMarginPct = totalRevenue > 0 ? (netProfit / totalRevenue) * 105 : 0;
-    
+
     return {
       yieldPerAcre: yieldQuintalsPerAcre.toFixed(1),
       totalYield: totalYieldQuintals.toFixed(1),
@@ -567,19 +567,19 @@ export default function App() {
 
   const getSoilRecommendations = () => {
     const ph = parseFloat(soilAnalPh) || 7.0;
-    
+
     let ureaBags = 2.0;
     if (soilAnalN === 'Low') ureaBags = 3.0;
     else if (soilAnalN === 'High') ureaBags = 1.0;
-    
+
     let sspBags = 2.5;
     if (soilAnalP === 'Low') sspBags = 4.0;
     else if (soilAnalP === 'High') sspBags = 1.0;
-    
+
     let mopBags = 1.0;
     if (soilAnalK === 'Low') mopBags = 1.5;
     else if (soilAnalK === 'High') mopBags = 0.5;
-    
+
     let amendment = "";
     let colorClass = "text-emerald-700 bg-emerald-50 border-emerald-200";
     if (ph < 6.0) {
@@ -595,7 +595,7 @@ export default function App() {
       amendment = "Optimal pH range. Maintain organic carbon levels using well-rotted Farmyard Manure (FYM) or green manuring.";
       colorClass = "text-emerald-800 bg-emerald-50 border-emerald-200";
     }
-    
+
     return {
       urea: ureaBags,
       ssp: sspBags,
@@ -680,7 +680,7 @@ export default function App() {
       setChemicals(chemicalsRes.data);
       setApiStats(statsRes.data);
       setNews(newsRes.data);
-      
+
       try {
         localStorage.setItem('cached_states', JSON.stringify(statesRes.data));
         localStorage.setItem('cached_crops', JSON.stringify(cropsRes.data));
@@ -692,14 +692,14 @@ export default function App() {
       } catch (storageErr) {
         console.error('Failed to write to localStorage cache:', storageErr);
       }
-      
+
       // Default selections
       if (statesRes.data.length > 0) {
         setSelectedStateId(statesRes.data[0].id.toString());
       }
     } catch (err) {
       console.error('Error fetching API data, trying offline cache:', err);
-      
+
       const cachedStates = localStorage.getItem('cached_states');
       const cachedCrops = localStorage.getItem('cached_crops');
       const cachedSoils = localStorage.getItem('cached_soils');
@@ -716,10 +716,10 @@ export default function App() {
         setChemicals(JSON.parse(cachedChemicals));
         if (cachedStats) setApiStats(JSON.parse(cachedStats));
         if (cachedNews) setNews(JSON.parse(cachedNews));
-        
+
         setApiOnline(false);
         setErrorMessage('Offline Mode - Serving locally cached agricultural database.');
-        
+
         const parsedStates = JSON.parse(cachedStates);
         if (parsedStates.length > 0) {
           setSelectedStateId(parsedStates[0].id.toString());
@@ -872,7 +872,7 @@ export default function App() {
     setCrudMode('add');
     setCrudItem(null);
     setCrudError('');
-    
+
     // Clear forms
     setStateForm({ state_name: '', climate: '', description: '' });
     setCropForm({ crop_name: '', scientific_name: '', season: 'Kharif', water_requirement: 'Medium', yield: '', msp: '', state_ids: states[0] ? [states[0].id] : [], image_url: '', soil_ids: [] });
@@ -1236,26 +1236,26 @@ export default function App() {
 
         <div class="section-title">Cultivation Timeline & Phases</div>
         ${schedulerResult.crop_schedule?.map((item) =>
-          '<div class="timeline-stage">' +
-          '  <div class="timeline-header">' +
-          '    <span class="timeline-phase">' + item.phase + '</span>' +
-          '    <span class="timeline-days">' + item.timeline + '</span>' +
-          '  </div>' +
-          '  <ul class="activities-list">' +
-          (item.activities?.map(act => '<li>' + act + '</li>').join('') || '') +
-          '  </ul>' +
-          '  <div class="advice-grid">' +
-          '    <div class="advice-block">' +
-          '      <strong>Water Management Advice</strong>' +
-          '      <span>' + item.irrigation_advice + '</span>' +
-          '    </div>' +
-          '    <div class="advice-block">' +
-          '      <strong>Fertilizer & NPK Dosage</strong>' +
-          '      <span>' + item.fertilizer_dosage + '</span>' +
-          '    </div>' +
-          '  </div>' +
-          '</div>'
-        ).join('')}
+      '<div class="timeline-stage">' +
+      '  <div class="timeline-header">' +
+      '    <span class="timeline-phase">' + item.phase + '</span>' +
+      '    <span class="timeline-days">' + item.timeline + '</span>' +
+      '  </div>' +
+      '  <ul class="activities-list">' +
+      (item.activities?.map(act => '<li>' + act + '</li>').join('') || '') +
+      '  </ul>' +
+      '  <div class="advice-grid">' +
+      '    <div class="advice-block">' +
+      '      <strong>Water Management Advice</strong>' +
+      '      <span>' + item.irrigation_advice + '</span>' +
+      '    </div>' +
+      '    <div class="advice-block">' +
+      '      <strong>Fertilizer & NPK Dosage</strong>' +
+      '      <span>' + item.fertilizer_dosage + '</span>' +
+      '    </div>' +
+      '  </div>' +
+      '</div>'
+    ).join('')}
 
         ${schedulerResult.soil_and_fertilizer_tips?.length ? `
           <div class="section-title">Soil & Fertilizer Management Tips</div>
@@ -1321,7 +1321,7 @@ export default function App() {
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
       if (file.type.startsWith('image/')) {
@@ -1368,30 +1368,30 @@ export default function App() {
         'Content-Type': 'multipart/form-data'
       }
     })
-    .then(res => {
-      clearInterval(progressInterval);
-      setAiProgress(100);
-      setAiProgressText('Diagnosis report finalized!');
-      setAiResult(res.data);
-      setAiAnalyzing(false);
-    })
-    .catch(err => {
-      clearInterval(progressInterval);
-      setAiAnalyzing(false);
-      setAiProgress(0);
-      
-      const errorData = err.response?.data || {};
-      if (errorData.code === 'API_KEY_MISSING') {
-        setGeminiApiKeyMissing(true);
-      } else {
-        const errorMsg = errorData.error || err.message;
-        if (errorMsg.includes('429') || errorMsg.toLowerCase().includes('quota')) {
-          setAiError('Cerevyn Research Azure AI rate limit or quota exceeded. Please wait a minute and try again.');
+      .then(res => {
+        clearInterval(progressInterval);
+        setAiProgress(100);
+        setAiProgressText('Diagnosis report finalized!');
+        setAiResult(res.data);
+        setAiAnalyzing(false);
+      })
+      .catch(err => {
+        clearInterval(progressInterval);
+        setAiAnalyzing(false);
+        setAiProgress(0);
+
+        const errorData = err.response?.data || {};
+        if (errorData.code === 'API_KEY_MISSING') {
+          setGeminiApiKeyMissing(true);
         } else {
-          setAiError(`Diagnostics error: ${errorMsg}`);
+          const errorMsg = errorData.error || err.message;
+          if (errorMsg.includes('429') || errorMsg.toLowerCase().includes('quota')) {
+            setAiError('Cerevyn Research Azure AI rate limit or quota exceeded. Please wait a minute and try again.');
+          } else {
+            setAiError(`Diagnostics error: ${errorMsg}`);
+          }
         }
-      }
-    });
+      });
   };
 
   const detectLanguage = (text) => {
@@ -1410,14 +1410,14 @@ export default function App() {
 
   const fallbackSpeakText = (text, lang) => {
     if (!window.speechSynthesis) return;
-    
+
     try {
       window.speechSynthesis.cancel();
       window.speechSynthesis.resume();
     } catch (e) {
       console.error("Error cancelling/resuming SpeechSynthesis:", e);
     }
-    
+
     const cleanText = text
       .replace(/[*#`_\-]/g, '')
       .replace(/\n+/g, ' ');
@@ -1427,24 +1427,24 @@ export default function App() {
       utterance.lang = lang;
 
       const voices = window.speechSynthesis.getVoices();
-      
-      const langVoices = voices.filter(v => 
-        v.lang.toLowerCase() === lang.toLowerCase() || 
+
+      const langVoices = voices.filter(v =>
+        v.lang.toLowerCase() === lang.toLowerCase() ||
         v.lang.toLowerCase().startsWith(lang.toLowerCase().split('-')[0])
       );
-      
+
       const femaleKeywords = [
-        'female', 'lady', 'zira', 'samantha', 'karen', 'veena', 'moira', 'tessa', 
-        'hazel', 'heera', 'kalpana', 'shruti', 'swara', 'priya', 'neerja', 'lata', 
+        'female', 'lady', 'zira', 'samantha', 'karen', 'veena', 'moira', 'tessa',
+        'hazel', 'heera', 'kalpana', 'shruti', 'swara', 'priya', 'neerja', 'lata',
         'victoria', 'susan', 'melody', 'kiana', 'sara', 'nora',
         'google हिन्दी', 'google తెలుగు'
       ];
-      
+
       let matchedVoice = langVoices.find(v => {
         const nameLower = v.name.toLowerCase();
         return femaleKeywords.some(keyword => nameLower.includes(keyword));
       });
-      
+
       if (!matchedVoice && langVoices.length > 0) {
         matchedVoice = langVoices[0];
       }
@@ -1480,10 +1480,10 @@ export default function App() {
 
   const speakText = async (text, lang) => {
     if (!text) return;
-    
+
     stopSpeaking();
     setIsSpeaking(true);
-    
+
     try {
       const cleanText = text
         .replace(/[*#`_\-]/g, '')
@@ -1502,14 +1502,14 @@ export default function App() {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (response.data && response.data.audios && response.data.audios.length > 0) {
         const audioBase64 = response.data.audios[0];
         const audioUrl = `data:audio/wav;base64,${audioBase64}`;
-        
+
         const audio = new Audio(audioUrl);
         window.activeAudio = audio;
-        
+
         audio.onplay = () => setIsSpeaking(true);
         audio.onended = () => {
           setIsSpeaking(false);
@@ -1519,7 +1519,7 @@ export default function App() {
           console.error("Sarvam AI Audio playback error, falling back:", e);
           fallbackSpeakText(text, lang);
         };
-        
+
         await audio.play();
       } else {
         throw new Error("Invalid audio response structure from Sarvam AI");
@@ -1597,7 +1597,7 @@ export default function App() {
         ctx.translate(p.x, p.y);
         ctx.rotate(p.rotation);
         ctx.globalAlpha = Math.max(0, p.alpha);
-        
+
         // Draw main seed body (oval-like shape)
         ctx.fillStyle = p.color;
         ctx.beginPath();
@@ -1627,7 +1627,7 @@ export default function App() {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX || rect.left + rect.width / 2;
     const y = e.clientY || rect.top + rect.height / 2;
-    
+
     triggerSeedBurst(x, y);
     setWelcomeTransitioning(true);
     setTimeout(() => {
@@ -1694,29 +1694,29 @@ export default function App() {
       history: chatMessages,
       language: voiceLanguage
     })
-    .then(res => {
-      const reply = res.data.reply;
-      setChatMessages([...updatedMessages, { role: 'model', parts: [reply] }]);
-      setChatLoading(false);
-      
-      if (autoSpeak) {
-        speakText(reply, detectLanguage(reply));
-      }
-    })
-    .catch(err => {
-      setChatLoading(false);
-      const errorData = err.response?.data || {};
-      if (errorData.code === 'API_KEY_MISSING') {
-        setGeminiApiKeyMissing(true);
-      } else {
-        const errorMsg = errorData.error || err.message;
-        if (errorMsg.includes('429') || errorMsg.toLowerCase().includes('quota')) {
-          setChatError('Cerevyn Research Azure AI rate limit or quota exceeded. Please wait a minute and try again.');
-        } else {
-          setChatError(`Chatbot error: ${errorMsg}`);
+      .then(res => {
+        const reply = res.data.reply;
+        setChatMessages([...updatedMessages, { role: 'model', parts: [reply] }]);
+        setChatLoading(false);
+
+        if (autoSpeak) {
+          speakText(reply, detectLanguage(reply));
         }
-      }
-    });
+      })
+      .catch(err => {
+        setChatLoading(false);
+        const errorData = err.response?.data || {};
+        if (errorData.code === 'API_KEY_MISSING') {
+          setGeminiApiKeyMissing(true);
+        } else {
+          const errorMsg = errorData.error || err.message;
+          if (errorMsg.includes('429') || errorMsg.toLowerCase().includes('quota')) {
+            setChatError('Cerevyn Research Azure AI rate limit or quota exceeded. Please wait a minute and try again.');
+          } else {
+            setChatError(`Chatbot error: ${errorMsg}`);
+          }
+        }
+      });
   };
 
   const handleChatSubmit = (e) => {
@@ -1741,23 +1741,23 @@ export default function App() {
   };
 
   // Filter lists based on inputs
-  const filteredStates = states.filter(s => 
+  const filteredStates = states.filter(s =>
     s.state_name.toLowerCase().includes(stateSearchText.toLowerCase())
   );
 
   const filteredCropsList = crops.filter(c => {
     const matchSearch = c.crop_name.toLowerCase().includes(cropSearchText.toLowerCase()) ||
-                        c.scientific_name.toLowerCase().includes(cropSearchText.toLowerCase());
+      c.scientific_name.toLowerCase().includes(cropSearchText.toLowerCase());
     const matchSeason = cropFilterSeason === 'All' || c.season.toLowerCase().includes(cropFilterSeason.toLowerCase());
     return matchSearch && matchSeason;
   });
 
-  const filteredSoils = soils.filter(s => 
+  const filteredSoils = soils.filter(s =>
     s.soil_name.toLowerCase().includes(soilSearchText.toLowerCase()) ||
     s.characteristics.toLowerCase().includes(soilSearchText.toLowerCase())
   );
 
-  const filteredDiseases = diseases.filter(d => 
+  const filteredDiseases = diseases.filter(d =>
     d.disease_name.toLowerCase().includes(diseaseSearchText.toLowerCase()) ||
     d.symptoms.toLowerCase().includes(diseaseSearchText.toLowerCase()) ||
     (d.crop_name && d.crop_name.toLowerCase().includes(diseaseSearchText.toLowerCase()))
@@ -1765,8 +1765,8 @@ export default function App() {
 
   const filteredChemicals = chemicals.filter(c => {
     const matchSearch = c.chemical_name.toLowerCase().includes(chemicalSearchText.toLowerCase()) ||
-                        c.safety_precautions.toLowerCase().includes(chemicalSearchText.toLowerCase()) ||
-                        (c.disease_name && c.disease_name.toLowerCase().includes(chemicalSearchText.toLowerCase()));
+      c.safety_precautions.toLowerCase().includes(chemicalSearchText.toLowerCase()) ||
+      (c.disease_name && c.disease_name.toLowerCase().includes(chemicalSearchText.toLowerCase()));
     const matchType = chemicalFilterType === 'All' || c.chemical_type === chemicalFilterType;
     return matchSearch && matchType;
   });
@@ -1775,7 +1775,7 @@ export default function App() {
   const getAdvSearchResults = () => {
     if (!advSearchQuery) return { states: [], crops: [], soils: [], diseases: [], chemicals: [] };
     const query = advSearchQuery.toLowerCase();
-    
+
     return {
       states: states.filter(s => s.state_name.toLowerCase().includes(query) || s.description.toLowerCase().includes(query)),
       crops: crops.filter(c => c.crop_name.toLowerCase().includes(query) || c.scientific_name.toLowerCase().includes(query) || c.season.toLowerCase().includes(query)),
@@ -1862,8 +1862,8 @@ export default function App() {
             ].map((f, idx) => {
               const Icon = f.icon;
               return (
-                <div 
-                  key={idx} 
+                <div
+                  key={idx}
                   onMouseMove={handleGlowMouseMove}
                   className="p-5 rounded-2xl glow-card space-y-3 transition-all duration-300 hover:scale-[1.03] shadow-md select-none"
                 >
@@ -1889,20 +1889,20 @@ export default function App() {
     );
   }
 
-  const filteredSearchCrops = crops.filter(c => 
-    c.crop_name.toLowerCase().includes(globalSearchQuery.toLowerCase()) || 
+  const filteredSearchCrops = crops.filter(c =>
+    c.crop_name.toLowerCase().includes(globalSearchQuery.toLowerCase()) ||
     (c.scientific_name && c.scientific_name.toLowerCase().includes(globalSearchQuery.toLowerCase()))
   );
-  const filteredSearchSoils = soils.filter(s => 
-    s.soil_name.toLowerCase().includes(globalSearchQuery.toLowerCase()) || 
+  const filteredSearchSoils = soils.filter(s =>
+    s.soil_name.toLowerCase().includes(globalSearchQuery.toLowerCase()) ||
     (s.characteristics && s.characteristics.toLowerCase().includes(globalSearchQuery.toLowerCase()))
   );
-  const filteredSearchDiseases = diseases.filter(d => 
-    d.disease_name.toLowerCase().includes(globalSearchQuery.toLowerCase()) || 
+  const filteredSearchDiseases = diseases.filter(d =>
+    d.disease_name.toLowerCase().includes(globalSearchQuery.toLowerCase()) ||
     (d.symptoms && d.symptoms.toLowerCase().includes(globalSearchQuery.toLowerCase()))
   );
-  const filteredSearchChemicals = chemicals.filter(c => 
-    c.chemical_name.toLowerCase().includes(globalSearchQuery.toLowerCase()) || 
+  const filteredSearchChemicals = chemicals.filter(c =>
+    c.chemical_name.toLowerCase().includes(globalSearchQuery.toLowerCase()) ||
     (c.chemical_type && c.chemical_type.toLowerCase().includes(globalSearchQuery.toLowerCase()))
   );
   const totalSearchResults = filteredSearchCrops.length + filteredSearchSoils.length + filteredSearchDiseases.length + filteredSearchChemicals.length;
@@ -1923,7 +1923,7 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <button 
+            <button
               onClick={() => {
                 if (!isAdminAuthenticated) {
                   setAdminPasswordInput('');
@@ -1945,7 +1945,7 @@ export default function App() {
               id="user-profile-btn"
               className="hidden md:flex items-center justify-center h-8 w-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white font-black text-xs shadow-md hover:shadow-lg hover:scale-105 transition-all"
             >
-              {(currentUser?.name || 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2)}
+              {(currentUser?.name || 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
             </button>
             <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(false)}>
               <X className="h-6 w-6" />
@@ -1981,11 +1981,10 @@ export default function App() {
                   }
                   setMobileMenuOpen(false);
                 }}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 group ${
-                  activeTab === tab.id
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 group ${activeTab === tab.id
                     ? 'bg-emerald-700 text-white shadow-md'
                     : 'text-emerald-100 hover:bg-emerald-800 hover:text-white'
-                }`}
+                  }`}
               >
                 <Icon className={`h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110 ${activeTab === tab.id ? 'text-emerald-300' : 'text-emerald-400'}`} />
                 <span>{t(tab.labelKey)}</span>
@@ -2007,11 +2006,10 @@ export default function App() {
               <button
                 key={code}
                 onClick={() => handleLanguageChange(code)}
-                className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  i18n.language === code
+                className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${i18n.language === code
                     ? 'bg-emerald-500 text-white shadow-md ring-1 ring-emerald-300'
                     : 'bg-emerald-800 text-emerald-200 hover:bg-emerald-700 hover:text-white'
-                }`}
+                  }`}
               >
                 <span>{flag}</span>
                 <span>{label}</span>
@@ -2062,7 +2060,7 @@ export default function App() {
             <span className="font-bold text-base">AgriFuture Advisory</span>
           </div>
           <div className="flex items-center space-x-3">
-            <button 
+            <button
               onClick={() => {
                 if (!isAdminAuthenticated) {
                   setAdminPasswordInput('');
@@ -2164,7 +2162,7 @@ export default function App() {
                       className="w-full pl-9 pr-10 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                     />
                     {globalSearchQuery && (
-                      <button 
+                      <button
                         onClick={() => setGlobalSearchQuery('')}
                         className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-650"
                       >
@@ -2180,7 +2178,7 @@ export default function App() {
                       <span className="text-xs font-bold text-emerald-800">
                         🔍 Found {totalSearchResults} matching resources across categories.
                       </span>
-                      <button 
+                      <button
                         onClick={() => setGlobalSearchQuery('')}
                         className="text-xs text-emerald-700 hover:text-emerald-950 font-black flex items-center"
                       >
@@ -2311,315 +2309,327 @@ export default function App() {
                   </div>
                 ) : (
                   <>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Waving Farmer Mascot Card (Span 2) */}
-                  <div className="lg:col-span-2 bg-gradient-to-br from-emerald-800 to-emerald-950 p-6 rounded-2xl text-white shadow-md border border-emerald-700/50 flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden group transition-all duration-300 hover:shadow-lg">
-                    {/* Background decorative sprout detail */}
-                    <div className="absolute -right-6 -bottom-6 text-emerald-700/10 transform rotate-12 pointer-events-none">
-                      <Sprout className="h-44 w-44" />
-                    </div>
-                    
-                    <div className="space-y-4 max-w-md relative z-10 text-left">
-                      <span className="inline-block px-3 py-1 bg-emerald-600/50 border border-emerald-500/30 text-emerald-300 rounded-full text-[10px] font-black uppercase tracking-widest">
-                        Advisory Companion AI
-                      </span>
-                      <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight">
-                        {t('namasteWelcome')}
-                      </h3>
-                      <p className="text-xs text-emerald-100/80 leading-relaxed">
-                        {t('welcomeDashboardMsg')}
-                      </p>
-                      <div className="flex flex-wrap gap-2.5 pt-1">
-                        <button 
-                          onClick={() => setActiveTab('smart-scheduler')}
-                          className="text-[11px] font-extrabold bg-white text-emerald-950 px-4 py-2.5 rounded-xl hover:bg-emerald-50 transition-all flex items-center gap-1.5 shadow-sm border border-white/20 active:scale-[0.98]"
-                        >
-                          <FileText className="h-3.5 w-3.5 text-emerald-700" />
-                          <span>{t('cultivationSchedule')}</span>
-                        </button>
-                        <button 
-                          onClick={() => setChatbotOpen(true)}
-                          className="text-[11px] font-extrabold bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl transition-all border border-emerald-600/50 flex items-center gap-1.5 active:scale-[0.98]"
-                        >
-                          <Bot className="h-3.5 w-3.5 text-emerald-350" />
-                          <span>{t('askCropCareAi')}</span>
-                        </button>
-                      </div>
-                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* Waving Farmer Mascot Card (Span 2) */}
+                      <div className="lg:col-span-2 bg-gradient-to-br from-emerald-800 to-emerald-950 p-6 rounded-2xl text-white shadow-md border border-emerald-700/50 flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden group transition-all duration-300 hover:shadow-lg">
+                        {/* Background decorative sprout detail */}
+                        <div className="absolute -right-6 -bottom-6 text-emerald-700/10 transform rotate-12 pointer-events-none">
+                          <Sprout className="h-44 w-44" />
+                        </div>
 
-                    {/* SVG Animated Waving Farmer */}
-                    <div className="relative w-40 h-40 shrink-0 flex items-center justify-center bg-emerald-900/40 rounded-2xl border border-emerald-700/30 p-2 overflow-hidden shadow-inner">
-                      <svg className="w-full h-full" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        {/* Glow behind */}
-                        <circle cx="100" cy="100" r="75" fill="url(#farmerGlow)" />
-                        
-                        {/* Farmer Body (Kurta) */}
-                        <path d="M55 180 C 55 145, 145 145, 145 180 Z" fill="#ffffff" stroke="#10b981" strokeWidth="2" />
-                        <path d="M75 145 L 100 165 L 125 145" stroke="#10b981" strokeWidth="2" fill="none" />
-                        
-                        {/* Green/Saffron Scarf (Neckerchief / Gamcha) */}
-                        <path d="M70 142 C 85 148, 115 148, 130 142 C 135 155, 130 175, 120 180 C 100 170, 80 180, 70 142" fill="#f97316" opacity="0.9" />
-                        <path d="M70 142 C 78 155, 75 175, 80 180" stroke="#ea580c" strokeWidth="2" />
-                        
-                        {/* Face */}
-                        <circle cx="100" cy="105" r="32" fill="#fed7aa" stroke="#d97706" strokeWidth="2" />
-                        
-                        {/* Traditional Hat (Pagri/Turban) */}
-                        <path d="M68 95 C 65 80, 80 72, 100 75 C 120 72, 135 80, 132 95 C 135 70, 65 70, 68 95" fill="#f59e0b" />
-                        <path d="M64 88 C 80 65, 120 65, 136 88 C 145 92, 120 72, 100 80 C 80 72, 55 92, 64 88" fill="#ea580c" />
-                        
-                        {/* Eyes */}
-                        <circle cx="90" cy="105" r="3" fill="#1e293b" />
-                        <circle cx="110" cy="105" r="3" fill="#1e293b" />
-                        
-                        {/* Eyebrows */}
-                        <path d="M84 98 C 88 95, 96 97, 96 97" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
-                        <path d="M116 98 C 112 95, 104 97, 104 97" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
-                        
-                        {/* Mustache */}
-                        <path d="M85 118 C 92 114, 100 118, 100 118 C 100 118, 108 114, 115 118 C 120 122, 112 122, 100 120 C 88 122, 80 122, 85 118 Z" fill="#1e293b" />
-                        
-                        {/* Smiling Mouth */}
-                        <path d="M93 124 C 95 128, 105 128, 107 124" stroke="#e11d48" strokeWidth="2.5" strokeLinecap="round" />
-
-                        {/* Waving Hand & Arm */}
-                        <g className="farmer-hand-wave" style={{ transformOrigin: '135px 145px' }}>
-                          {/* Arm sleeve */}
-                          <path d="M135 145 C 150 135, 160 120, 165 105" stroke="#ffffff" strokeWidth="14" strokeLinecap="round" />
-                          <path d="M135 145 C 150 135, 160 120, 165 105" stroke="#10b981" strokeWidth="2" strokeLinecap="round" fill="none" />
-                          {/* Hand/wrist */}
-                          <path d="M165 105 L 170 95" stroke="#fed7aa" strokeWidth="10" strokeLinecap="round" />
-                          {/* Palm/Fingers */}
-                          <circle cx="170" cy="92" r="7" fill="#fed7aa" />
-                          <path d="M166 90 L 164 80" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
-                          <path d="M170 88 L 170 77" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
-                          <path d="M174 89 L 176 78" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
-                          <path d="M178 92 L 182 82" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
-                          <path d="M164 94 L 156 90" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
-                        </g>
-                        
-                        <defs>
-                          <radialGradient id="farmerGlow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-                            <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
-                            <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
-                          </radialGradient>
-                        </defs>
-                      </svg>
-                    </div>
-                  </div>
-
-                  {/* live Weather Card */}
-                  {dashboardWeather && (
-                    <div className={`p-6 rounded-2xl bg-gradient-to-br ${getWeatherGradient(dashboardWeather.weathercode, dashboardWeather.is_day)} text-white shadow-md border border-white/10 flex flex-col justify-between gap-4 transition-all duration-300 hover:shadow-lg animate-fade-in relative overflow-hidden`}>
-                      {/* Dynamic Weather Overlay */}
-                      {(() => {
-                        const code = dashboardWeather.weathercode;
-                        const isRain = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99].includes(code);
-                        const isSun = [0, 1, 2].includes(code);
-                        const isCloud = [3, 45, 48].includes(code);
-                        return (
-                          <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl z-0">
-                            {isRain && <div className="absolute inset-0 animate-rain-effect opacity-20"></div>}
-                            {isSun && <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/0 via-amber-400/5 to-yellow-300/10 mix-blend-screen animate-sun-beams opacity-35"></div>}
-                            {isCloud && <div className="absolute inset-0 bg-white/5 backdrop-blur-[0.5px] animate-clouds-drift opacity-25"></div>}
+                        <div className="space-y-4 max-w-md relative z-10 text-left">
+                          <span className="inline-block px-3 py-1 bg-emerald-600/50 border border-emerald-500/30 text-emerald-300 rounded-full text-[10px] font-black uppercase tracking-widest">
+                            Advisory Companion AI
+                          </span>
+                          <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+                            {t('namasteWelcome')}
+                          </h3>
+                          <p className="text-xs text-emerald-100/80 leading-relaxed">
+                            {t('welcomeDashboardMsg')}
+                          </p>
+                          <div className="flex flex-wrap gap-2.5 pt-1">
+                            <button
+                              onClick={() => setActiveTab('smart-scheduler')}
+                              className="text-[11px] font-extrabold bg-white text-emerald-950 px-4 py-2.5 rounded-xl hover:bg-emerald-50 transition-all flex items-center gap-1.5 shadow-sm border border-white/20 active:scale-[0.98]"
+                            >
+                              <FileText className="h-3.5 w-3.5 text-emerald-700" />
+                              <span>{t('cultivationSchedule')}</span>
+                            </button>
+                            <button
+                              onClick={() => setChatbotOpen(true)}
+                              className="text-[11px] font-extrabold bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl transition-all border border-emerald-600/50 flex items-center gap-1.5 active:scale-[0.98]"
+                            >
+                              <Bot className="h-3.5 w-3.5 text-emerald-350" />
+                              <span>{t('askCropCareAi')}</span>
+                            </button>
                           </div>
-                        );
-                      })()}
-                      <div className="flex items-center gap-5 relative z-10 text-left">
-                        <span className="text-4xl md:text-5xl">{getWeatherDescription(dashboardWeather.weathercode, dashboardWeather.is_day).icon}</span>
-                        <div className="space-y-0.5">
-                          <span className="text-[9px] font-black uppercase tracking-wider text-white/70 bg-white/15 px-2 py-0.5 rounded inline-block">NCR Weather</span>
-                          <h3 className="text-2xl font-black">{dashboardWeather.temperature}°C</h3>
-                          <p className="text-xs font-bold leading-none">{getWeatherDescription(dashboardWeather.weathercode, dashboardWeather.is_day).desc}</p>
-                          <p className="text-[10px] text-white/80">Wind: {dashboardWeather.windspeed} km/h</p>
+                        </div>
+
+                        {/* SVG Animated Waving Farmer */}
+                        <div className="relative w-40 h-40 shrink-0 flex items-center justify-center bg-emerald-900/40 rounded-2xl border border-emerald-700/30 p-2 overflow-hidden shadow-inner">
+                          <svg className="w-full h-full" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            {/* Glow behind */}
+                            <circle cx="100" cy="100" r="75" fill="url(#farmerGlow)" />
+                            
+                            {/* Saree Pallu / Dupatta Head Drape (behind head) */}
+                            <path d="M66 90 C 60 55, 140 55, 134 90 C 145 115, 148 150, 142 180 L 58 180 C 55 150, 58 115, 66 90 Z" fill="#047857" stroke="#065f46" strokeWidth="1" />
+                            
+                            {/* Farmer Body (Kurta) */}
+                            <path d="M55 180 C 55 145, 145 145, 145 180 Z" fill="#ffffff" stroke="#10b981" strokeWidth="2" />
+                            <path d="M75 145 L 100 165 L 125 145" stroke="#10b981" strokeWidth="2" fill="none" />
+                            
+                            {/* Saree Drape */}
+                            <path d="M55 180 C 70 155, 95 155, 110 180 Z" fill="#f97316" opacity="0.9" />
+                            
+                            {/* Head Group */}
+                            <g style={{ transformOrigin: '100px 115px' }}>
+                              {/* Hair Bun (Juda) */}
+                              <circle cx="100" cy="72" r="10" fill="#1e293b" />
+                              
+                              {/* Face */}
+                              <circle cx="100" cy="105" r="32" fill="#fed7aa" stroke="#d97706" strokeWidth="2" />
+                              
+                              {/* Hair detail */}
+                              <path d="M68 95 C 72 85, 85 85, 90 90 C 85 92, 72 98, 70 108" fill="#1e293b" />
+                              <path d="M132 95 C 128 85, 115 85, 110 90 C 115 92, 128 98, 130 108" fill="#1e293b" />
+                              
+                              {/* Bindi */}
+                              <circle cx="100" cy="88" r="3.5" fill="#e11d48" />
+                              
+                              {/* Eyes with eyelashes */}
+                              <path d="M83 103 C 86 100, 94 100, 97 103" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                              <path d="M117 103 C 114 100, 106 100, 103 103" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                              <circle cx="90" cy="106" r="3" fill="#1e293b" />
+                              <circle cx="110" cy="106" r="3" fill="#1e293b" />
+                              
+                              {/* Eyebrows */}
+                              <path d="M84 98 C 88 95, 96 97, 96 97" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
+                              <path d="M116 98 C 112 95, 104 97, 104 97" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
+                              
+                              {/* Nose Stud */}
+                              <circle cx="93" cy="113" r="1.5" fill="#f59e0b" />
+                              
+                              {/* Smiling Mouth */}
+                              <path d="M93 124 C 95 128, 105 128, 107 124" stroke="#e11d48" strokeWidth="2.5" strokeLinecap="round" />
+                            </g>
+
+                            {/* Waving Hand & Arm */}
+                            <g className="farmer-hand-wave" style={{ transformOrigin: '135px 145px' }}>
+                              {/* Arm sleeve */}
+                              <path d="M135 145 C 150 135, 160 120, 165 105" stroke="#ffffff" strokeWidth="14" strokeLinecap="round" />
+                              <path d="M135 145 C 150 135, 160 120, 165 105" stroke="#10b981" strokeWidth="2" strokeLinecap="round" fill="none" />
+                              {/* Hand/wrist */}
+                              <path d="M165 105 L 170 95" stroke="#fed7aa" strokeWidth="10" strokeLinecap="round" />
+                              {/* Palm/Fingers */}
+                              <circle cx="170" cy="92" r="7" fill="#fed7aa" />
+                              <path d="M166 90 L 164 80" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
+                              <path d="M170 88 L 170 77" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
+                              <path d="M174 89 L 176 78" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
+                              <path d="M178 92 L 182 82" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
+                              <path d="M164 94 L 156 90" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
+                            </g>
+
+                            <defs>
+                              <radialGradient id="farmerGlow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                                <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
+                                <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                              </radialGradient>
+                            </defs>
+                          </svg>
                         </div>
                       </div>
-                      <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3.5 rounded-xl text-left relative z-10">
-                        <h4 className="text-[10px] font-black uppercase tracking-wider text-emerald-300">Agricultural Advisory</h4>
-                        <p className="text-[11px] text-white/90 leading-relaxed mt-1">
-                          {[0, 1, 2].includes(dashboardWeather.weathercode) ? "Ideal conditions for pesticide application and sowing." :
-                           [3, 45, 48].includes(dashboardWeather.weathercode) ? "Cool weather. Monitor crops for fungal pathogens." :
-                           "Rain expected. Delay irrigation & spraying. Ensure soil drainage."}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
 
-                {/* Stat Cards Grid */}
-                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                  {[
-                    { title: 'Total States', count: apiStats.total_states, icon: MapPin, color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
-                    { title: 'Crops Cataloged', count: apiStats.total_crops, icon: Sprout, color: 'text-blue-600 bg-blue-50 border-blue-100' },
-                    { title: 'Soil Types', count: apiStats.total_soils, icon: Database, color: 'text-amber-600 bg-amber-50 border-amber-100' },
-                    { title: 'Crop Diseases', count: apiStats.total_diseases, icon: ShieldAlert, color: 'text-red-600 bg-red-50 border-red-100' },
-                    { title: 'Chemical Recs', count: apiStats.total_chemicals, icon: Sliders, color: 'text-purple-600 bg-purple-50 border-purple-100' }
-                  ].map((stat, idx) => {
-                    const Icon = stat.icon;
-                    return (
-                      <div 
-                        key={idx} 
-                        className="p-5 rounded-xl bg-white border shadow-sm flex items-center space-x-4 transition-all duration-200 hover:shadow-md hover:translate-y-[-2px] animate-fade-in-up opacity-0"
-                        style={{ animationDelay: `${idx * 80}ms`, animationFillMode: 'forwards' }}
-                      >
-                        <div className={`p-3 rounded-lg ${stat.color} border shrink-0`}>
-                          <Icon className="h-6 w-6" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{stat.title}</p>
-                          <p className="text-2xl font-black text-gray-900 mt-1">{stat.count}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Info Charts & Updates Panel */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Statistics overview */}
-                  <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col justify-between">
-                    <div>
-                      <h3 className="font-extrabold text-base text-gray-900">Database Breakdown</h3>
-                      <p className="text-xs text-gray-500 mt-0.5">Proportional weight of stored agricultural entities.</p>
-                      
-                      <div className="space-y-4 mt-6">
-                        {[
-                          { name: 'Crops (Advisory mapping coverage)', current: apiStats.total_crops, max: 100, color: 'bg-emerald-600' },
-                          { name: 'Diseases (Known pathogens registered)', current: apiStats.total_diseases, max: 150, color: 'bg-red-500' },
-                          { name: 'Chemical Recommendations (Pesticides/Fungicides)', current: apiStats.total_chemicals, max: 150, color: 'bg-purple-600' },
-                          { name: 'Soil Suitability Mappings', current: apiStats.total_soils, max: 30, color: 'bg-amber-500' }
-                        ].map((bar, index) => {
-                          const pct = Math.min((bar.current / bar.max) * 100, 100).toFixed(0);
-                          return (
-                            <div key={index} className="space-y-1.5">
-                              <div className="flex justify-between text-xs font-semibold text-gray-700">
-                                <span>{bar.name}</span>
-                                <span className="text-gray-500">{bar.current} / {bar.max} ({pct}%)</span>
+                      {/* live Weather Card */}
+                      {dashboardWeather && (
+                        <div className={`p-6 rounded-2xl bg-gradient-to-br ${getWeatherGradient(dashboardWeather.weathercode, dashboardWeather.is_day)} text-white shadow-md border border-white/10 flex flex-col justify-between gap-4 transition-all duration-300 hover:shadow-lg animate-fade-in relative overflow-hidden`}>
+                          {/* Dynamic Weather Overlay */}
+                          {(() => {
+                            const code = dashboardWeather.weathercode;
+                            const isRain = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99].includes(code);
+                            const isSun = [0, 1, 2].includes(code);
+                            const isCloud = [3, 45, 48].includes(code);
+                            return (
+                              <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl z-0">
+                                {isRain && <div className="absolute inset-0 animate-rain-effect opacity-20"></div>}
+                                {isSun && <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/0 via-amber-400/5 to-yellow-300/10 mix-blend-screen animate-sun-beams opacity-35"></div>}
+                                {isCloud && <div className="absolute inset-0 bg-white/5 backdrop-blur-[0.5px] animate-clouds-drift opacity-25"></div>}
                               </div>
-                              <div className="w-full bg-gray-100 rounded-full h-2">
-                                <div className={`h-2 rounded-full ${bar.color}`} style={{ width: `${pct}%` }}></div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <div className="bg-emerald-50 rounded-xl p-4 mt-6 flex items-start space-x-3.5 border border-emerald-100">
-                      <Sparkles className="h-6 w-6 text-emerald-600 shrink-0 mt-0.5 animate-pulse" />
-                      <div>
-                        <h4 className="text-xs font-extrabold text-emerald-800 uppercase tracking-wide">AI Recommendation Assistant</h4>
-                        <p className="text-xs text-emerald-700 mt-1 leading-relaxed">
-                          Farmers can diagnostic plant leaves for diseases using our <strong>AI Crop Diagnosis</strong> model. Upload a picture to verify disease name, confidence index, and dosage instructions immediately.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Audit Logs Log */}
-                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col h-[380px]">
-                    <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
-                      <div>
-                        <h3 className="font-extrabold text-base text-gray-900">Recent Admin Activities</h3>
-                        <p className="text-xs text-gray-500 mt-0.5">Audit log of system CRUD modifications.</p>
-                      </div>
-                      <Activity className="h-5 w-5 text-emerald-600 animate-pulse" />
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-                      {apiStats.activity_logs && apiStats.activity_logs.length > 0 ? (
-                        apiStats.activity_logs.map((log, index) => (
-                          <div key={index} className="flex items-start space-x-3 text-xs">
-                            <div className="p-1 rounded bg-gray-100 shrink-0 mt-0.5">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-gray-800 truncate">{log.action}</p>
-                              <div className="flex items-center space-x-2 mt-0.5 text-gray-400 font-medium">
-                                <span>{log.timestamp}</span>
-                                <span>•</span>
-                                <span className="text-emerald-600">{log.status}</span>
-                              </div>
+                            );
+                          })()}
+                          <div className="flex items-center gap-5 relative z-10 text-left">
+                            <span className="text-4xl md:text-5xl">{getWeatherDescription(dashboardWeather.weathercode, dashboardWeather.is_day).icon}</span>
+                            <div className="space-y-0.5">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-white/70 bg-white/15 px-2 py-0.5 rounded inline-block">NCR Weather</span>
+                              <h3 className="text-2xl font-black">{dashboardWeather.temperature}°C</h3>
+                              <p className="text-xs font-bold leading-none">{getWeatherDescription(dashboardWeather.weathercode, dashboardWeather.is_day).desc}</p>
+                              <p className="text-[10px] text-white/80">Wind: {dashboardWeather.windspeed} km/h</p>
                             </div>
                           </div>
-                        ))
-                      ) : (
-                        <p className="text-center text-gray-400 text-xs py-8 font-medium">No activity logs recorded yet.</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Live Government News & Alerts Widget */}
-                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col space-y-4">
-                  <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                    <div>
-                      <h3 className="font-extrabold text-base text-gray-900 flex items-center gap-2">
-                        <Newspaper className="h-5 w-5 text-emerald-600" />
-                        <span>Live Government News & Alerts</span>
-                      </h3>
-                      <p className="text-xs text-gray-500 mt-0.5 text-left">Real-time agricultural news and advisories synced from government portals.</p>
-                    </div>
-                    <div className="flex items-center space-x-2 shrink-0">
-                      <button
-                        onClick={handleSyncNews}
-                        disabled={newsSyncing}
-                        className={`text-xs px-3 py-1.5 rounded-lg border border-gray-200 font-bold bg-gray-50 hover:bg-gray-100 text-gray-700 flex items-center gap-1.5 transition-all ${newsSyncing ? 'opacity-50' : ''}`}
-                      >
-                        <RefreshCw className={`h-3 w-3 ${newsSyncing ? 'animate-spin' : ''}`} />
-                        <span>{newsSyncing ? 'Syncing...' : 'Sync Latest'}</span>
-                      </button>
-                      <button
-                        onClick={() => setActiveTab('news-updates')}
-                        className="text-xs font-bold text-emerald-600 hover:text-emerald-800 flex items-center gap-0.5"
-                      >
-                        <span>View All</span>
-                        <ChevronRight className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {news.length === 0 ? (
-                    <div className="text-center py-8 text-xs text-gray-400 italic">
-                      No news updates loaded. Click "Sync Latest" to fetch from PIB.
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {news.slice(0, 3).map((n) => (
-                        <div
-                          key={n.id}
-                          onClick={() => setSelectedNewsDetail(n)}
-                          className="p-4 rounded-xl border border-gray-150 bg-gray-50/50 hover:bg-emerald-50/20 hover:border-emerald-200 transition-all cursor-pointer flex flex-col justify-between text-left group animate-fade-in"
-                        >
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-center">
-                              <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${
-                                n.category === 'Weather' ? 'bg-rose-50 text-rose-800 border border-rose-100' :
-                                n.category === 'Scheme' ? 'bg-emerald-50 text-emerald-800 border border-emerald-100' :
-                                n.category === 'Market Trend' ? 'bg-blue-50 text-blue-800 border border-blue-100' :
-                                n.category === 'Technology' ? 'bg-purple-50 text-purple-800 border border-purple-100' :
-                                'bg-gray-100 text-gray-800 border border-gray-200'
-                              }`}>
-                                {n.category}
-                              </span>
-                              <span className="text-[10px] text-gray-400 font-semibold">{n.published_date}</span>
-                            </div>
-                            <h4 className="font-extrabold text-sm text-gray-900 group-hover:text-emerald-700 transition-colors line-clamp-2 leading-snug">
-                              {n.title}
-                            </h4>
-                            <p className="text-[11px] text-gray-500 line-clamp-2 leading-relaxed">
-                              {n.content}
+                          <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3.5 rounded-xl text-left relative z-10">
+                            <h4 className="text-[10px] font-black uppercase tracking-wider text-emerald-300">Agricultural Advisory</h4>
+                            <p className="text-[11px] text-white/90 leading-relaxed mt-1">
+                              {[0, 1, 2].includes(dashboardWeather.weathercode) ? "Ideal conditions for pesticide application and sowing." :
+                                [3, 45, 48].includes(dashboardWeather.weathercode) ? "Cool weather. Monitor crops for fungal pathogens." :
+                                  "Rain expected. Delay irrigation & spraying. Ensure soil drainage."}
                             </p>
                           </div>
-                          <span className="text-[10px] font-bold text-emerald-600 group-hover:text-emerald-800 flex items-center gap-0.5 mt-3">
-                            <span>Read Alert</span>
-                            <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-                          </span>
                         </div>
-                      ))}
+                      )}
                     </div>
-                  )}
-                </div>
+
+                    {/* Stat Cards Grid */}
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                      {[
+                        { title: 'Total States', count: apiStats.total_states, icon: MapPin, color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
+                        { title: 'Crops Cataloged', count: apiStats.total_crops, icon: Sprout, color: 'text-blue-600 bg-blue-50 border-blue-100' },
+                        { title: 'Soil Types', count: apiStats.total_soils, icon: Database, color: 'text-amber-600 bg-amber-50 border-amber-100' },
+                        { title: 'Crop Diseases', count: apiStats.total_diseases, icon: ShieldAlert, color: 'text-red-600 bg-red-50 border-red-100' },
+                        { title: 'Chemical Recs', count: apiStats.total_chemicals, icon: Sliders, color: 'text-purple-600 bg-purple-50 border-purple-100' }
+                      ].map((stat, idx) => {
+                        const Icon = stat.icon;
+                        return (
+                          <div
+                            key={idx}
+                            className="p-5 rounded-xl bg-white border shadow-sm flex items-center space-x-4 transition-all duration-200 hover:shadow-md hover:translate-y-[-2px] animate-fade-in-up opacity-0"
+                            style={{ animationDelay: `${idx * 80}ms`, animationFillMode: 'forwards' }}
+                          >
+                            <div className={`p-3 rounded-lg ${stat.color} border shrink-0`}>
+                              <Icon className="h-6 w-6" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{stat.title}</p>
+                              <p className="text-2xl font-black text-gray-900 mt-1">{stat.count}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Info Charts & Updates Panel */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* Statistics overview */}
+                      <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col justify-between">
+                        <div>
+                          <h3 className="font-extrabold text-base text-gray-900">Database Breakdown</h3>
+                          <p className="text-xs text-gray-500 mt-0.5">Proportional weight of stored agricultural entities.</p>
+
+                          <div className="space-y-4 mt-6">
+                            {[
+                              { name: 'Crops (Advisory mapping coverage)', current: apiStats.total_crops, max: 100, color: 'bg-emerald-600' },
+                              { name: 'Diseases (Known pathogens registered)', current: apiStats.total_diseases, max: 150, color: 'bg-red-500' },
+                              { name: 'Chemical Recommendations (Pesticides/Fungicides)', current: apiStats.total_chemicals, max: 150, color: 'bg-purple-600' },
+                              { name: 'Soil Suitability Mappings', current: apiStats.total_soils, max: 30, color: 'bg-amber-500' }
+                            ].map((bar, index) => {
+                              const pct = Math.min((bar.current / bar.max) * 100, 100).toFixed(0);
+                              return (
+                                <div key={index} className="space-y-1.5">
+                                  <div className="flex justify-between text-xs font-semibold text-gray-700">
+                                    <span>{bar.name}</span>
+                                    <span className="text-gray-500">{bar.current} / {bar.max} ({pct}%)</span>
+                                  </div>
+                                  <div className="w-full bg-gray-100 rounded-full h-2">
+                                    <div className={`h-2 rounded-full ${bar.color}`} style={{ width: `${pct}%` }}></div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="bg-emerald-50 rounded-xl p-4 mt-6 flex items-start space-x-3.5 border border-emerald-100">
+                          <Sparkles className="h-6 w-6 text-emerald-600 shrink-0 mt-0.5 animate-pulse" />
+                          <div>
+                            <h4 className="text-xs font-extrabold text-emerald-800 uppercase tracking-wide">AI Recommendation Assistant</h4>
+                            <p className="text-xs text-emerald-700 mt-1 leading-relaxed">
+                              Farmers can diagnostic plant leaves for diseases using our <strong>AI Crop Diagnosis</strong> model. Upload a picture to verify disease name, confidence index, and dosage instructions immediately.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Audit Logs Log */}
+                      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col h-[380px]">
+                        <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
+                          <div>
+                            <h3 className="font-extrabold text-base text-gray-900">Recent Admin Activities</h3>
+                            <p className="text-xs text-gray-500 mt-0.5">Audit log of system CRUD modifications.</p>
+                          </div>
+                          <Activity className="h-5 w-5 text-emerald-600 animate-pulse" />
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+                          {apiStats.activity_logs && apiStats.activity_logs.length > 0 ? (
+                            apiStats.activity_logs.map((log, index) => (
+                              <div key={index} className="flex items-start space-x-3 text-xs">
+                                <div className="p-1 rounded bg-gray-100 shrink-0 mt-0.5">
+                                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-gray-800 truncate">{log.action}</p>
+                                  <div className="flex items-center space-x-2 mt-0.5 text-gray-400 font-medium">
+                                    <span>{log.timestamp}</span>
+                                    <span>•</span>
+                                    <span className="text-emerald-600">{log.status}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-center text-gray-400 text-xs py-8 font-medium">No activity logs recorded yet.</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Live Government News & Alerts Widget */}
+                    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col space-y-4">
+                      <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                        <div>
+                          <h3 className="font-extrabold text-base text-gray-900 flex items-center gap-2">
+                            <Newspaper className="h-5 w-5 text-emerald-600" />
+                            <span>Live Government News & Alerts</span>
+                          </h3>
+                          <p className="text-xs text-gray-500 mt-0.5 text-left">Real-time agricultural news and advisories synced from government portals.</p>
+                        </div>
+                        <div className="flex items-center space-x-2 shrink-0">
+                          <button
+                            onClick={handleSyncNews}
+                            disabled={newsSyncing}
+                            className={`text-xs px-3 py-1.5 rounded-lg border border-gray-200 font-bold bg-gray-50 hover:bg-gray-100 text-gray-700 flex items-center gap-1.5 transition-all ${newsSyncing ? 'opacity-50' : ''}`}
+                          >
+                            <RefreshCw className={`h-3 w-3 ${newsSyncing ? 'animate-spin' : ''}`} />
+                            <span>{newsSyncing ? 'Syncing...' : 'Sync Latest'}</span>
+                          </button>
+                          <button
+                            onClick={() => setActiveTab('news-updates')}
+                            className="text-xs font-bold text-emerald-600 hover:text-emerald-800 flex items-center gap-0.5"
+                          >
+                            <span>View All</span>
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {news.length === 0 ? (
+                        <div className="text-center py-8 text-xs text-gray-400 italic">
+                          No news updates loaded. Click "Sync Latest" to fetch from PIB.
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {news.slice(0, 3).map((n) => (
+                            <div
+                              key={n.id}
+                              onClick={() => setSelectedNewsDetail(n)}
+                              className="p-4 rounded-xl border border-gray-150 bg-gray-50/50 hover:bg-emerald-50/20 hover:border-emerald-200 transition-all cursor-pointer flex flex-col justify-between text-left group animate-fade-in"
+                            >
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${n.category === 'Weather' ? 'bg-rose-50 text-rose-800 border border-rose-100' :
+                                      n.category === 'Scheme' ? 'bg-emerald-50 text-emerald-800 border border-emerald-100' :
+                                        n.category === 'Market Trend' ? 'bg-blue-50 text-blue-800 border border-blue-100' :
+                                          n.category === 'Technology' ? 'bg-purple-50 text-purple-800 border border-purple-100' :
+                                            'bg-gray-100 text-gray-800 border border-gray-200'
+                                    }`}>
+                                    {n.category}
+                                  </span>
+                                  <span className="text-[10px] text-gray-400 font-semibold">{n.published_date}</span>
+                                </div>
+                                <h4 className="font-extrabold text-sm text-gray-900 group-hover:text-emerald-700 transition-colors line-clamp-2 leading-snug">
+                                  {n.title}
+                                </h4>
+                                <p className="text-[11px] text-gray-500 line-clamp-2 leading-relaxed">
+                                  {n.content}
+                                </p>
+                              </div>
+                              <span className="text-[10px] font-bold text-emerald-600 group-hover:text-emerald-800 flex items-center gap-0.5 mt-3">
+                                <span>Read Alert</span>
+                                <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
               </div>
@@ -2633,14 +2643,13 @@ export default function App() {
                     <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">{t('agriNewsBulletins')}</h2>
                     <p className="text-sm text-gray-500 mt-1">{t('agriNewsDesc')}</p>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2 shrink-0">
                     <button
                       onClick={handleSyncNews}
                       disabled={newsSyncing}
-                      className={`text-xs px-4 py-2 rounded-xl border border-gray-200 font-extrabold bg-white hover:bg-gray-50 text-gray-700 flex items-center gap-1.5 shadow-sm transition-all ${
-                        newsSyncing ? 'opacity-50' : ''
-                      }`}
+                      className={`text-xs px-4 py-2 rounded-xl border border-gray-200 font-extrabold bg-white hover:bg-gray-50 text-gray-700 flex items-center gap-1.5 shadow-sm transition-all ${newsSyncing ? 'opacity-50' : ''
+                        }`}
                     >
                       <RefreshCw className={`h-4 w-4 text-emerald-600 ${newsSyncing ? 'animate-spin' : ''}`} />
                       <span>{newsSyncing ? t('checkingFeeds') : t('syncLiveNews')}</span>
@@ -2656,11 +2665,10 @@ export default function App() {
                       <button
                         key={cat}
                         onClick={() => setNewsFilterCategory(cat)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
-                          newsFilterCategory === cat
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${newsFilterCategory === cat
                             ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
                             : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                        }`}
+                          }`}
                       >
                         {cat === 'All' ? t('allUpdates') : cat}
                       </button>
@@ -2684,9 +2692,9 @@ export default function App() {
                 {(() => {
                   const filteredNews = news.filter((n) => {
                     const matchesCategory = newsFilterCategory === 'All' || n.category === newsFilterCategory;
-                    const matchesSearch = n.title.toLowerCase().includes(newsSearchText.toLowerCase()) || 
-                                          n.content.toLowerCase().includes(newsSearchText.toLowerCase()) ||
-                                          (n.source && n.source.toLowerCase().includes(newsSearchText.toLowerCase()));
+                    const matchesSearch = n.title.toLowerCase().includes(newsSearchText.toLowerCase()) ||
+                      n.content.toLowerCase().includes(newsSearchText.toLowerCase()) ||
+                      (n.source && n.source.toLowerCase().includes(newsSearchText.toLowerCase()));
                     return matchesCategory && matchesSearch;
                   });
 
@@ -2714,13 +2722,12 @@ export default function App() {
                                 alt={n.title}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
                               />
-                              <span className={`absolute top-4 left-4 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg shadow-sm border ${
-                                n.category === 'Weather' ? 'bg-rose-50 text-rose-800 border-rose-100' :
-                                n.category === 'Scheme' ? 'bg-emerald-50 text-emerald-800 border-emerald-100' :
-                                n.category === 'Market Trend' ? 'bg-blue-50 text-blue-800 border-blue-100' :
-                                n.category === 'Technology' ? 'bg-purple-50 text-purple-800 border-purple-100' :
-                                'bg-gray-50 text-gray-800 border-gray-200'
-                              }`}>
+                              <span className={`absolute top-4 left-4 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg shadow-sm border ${n.category === 'Weather' ? 'bg-rose-50 text-rose-800 border-rose-100' :
+                                  n.category === 'Scheme' ? 'bg-emerald-50 text-emerald-800 border-emerald-100' :
+                                    n.category === 'Market Trend' ? 'bg-blue-50 text-blue-800 border-blue-100' :
+                                      n.category === 'Technology' ? 'bg-purple-50 text-purple-800 border-purple-100' :
+                                        'bg-gray-50 text-gray-800 border-gray-200'
+                                }`}>
                                 {n.category}
                               </span>
                             </div>
@@ -2769,21 +2776,19 @@ export default function App() {
                 <div className="flex space-x-2 bg-emerald-50/50 p-1.5 rounded-xl w-fit border border-emerald-100/40">
                   <button
                     onClick={() => setCropSubTab('catalog')}
-                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${
-                      cropSubTab === 'catalog'
+                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${cropSubTab === 'catalog'
                         ? 'bg-emerald-600 text-white shadow-sm'
                         : 'text-emerald-800 hover:bg-emerald-100/40'
-                    }`}
+                      }`}
                   >
                     {t('browseCropCatalog')}
                   </button>
                   <button
                     onClick={() => setCropSubTab('states')}
-                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${
-                      cropSubTab === 'states'
+                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${cropSubTab === 'states'
                         ? 'bg-emerald-600 text-white shadow-sm'
                         : 'text-emerald-800 hover:bg-emerald-100/40'
-                    }`}
+                      }`}
                   >
                     {t('exploreStateSuitability')}
                   </button>
@@ -2828,7 +2833,7 @@ export default function App() {
                     {/* Crops Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {filteredCropsList.map((crop) => (
-                        <div 
+                        <div
                           key={crop.id}
                           className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-200"
                         >
@@ -2928,11 +2933,10 @@ export default function App() {
                             <button
                               key={st.id}
                               onClick={() => setSelectedStateId(st.id.toString())}
-                              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-between ${
-                                selectedStateId === st.id.toString()
+                              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-between ${selectedStateId === st.id.toString()
                                   ? 'bg-emerald-50 text-emerald-800'
                                   : 'text-gray-700 hover:bg-gray-50'
-                              }`}
+                                }`}
                             >
                               <span>{st.state_name}</span>
                               <ChevronRight className={`h-4 w-4 text-emerald-600 transition-transform ${selectedStateId === st.id.toString() ? 'translate-x-0.5' : 'opacity-40'}`} />
@@ -2984,8 +2988,8 @@ export default function App() {
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {stateDetail.crops && stateDetail.crops.length > 0 ? (
                                   stateDetail.crops.map((c) => (
-                                    <div 
-                                      key={c.id} 
+                                    <div
+                                      key={c.id}
                                       onClick={() => {
                                         handleCropClick(c.id);
                                         setCropSubTab('catalog');
@@ -3030,7 +3034,7 @@ export default function App() {
                           <h3 className="text-xl font-black">{selectedCropDetail.crop_name} {t('details')}</h3>
                           <p className="text-xs text-emerald-300 italic">{selectedCropDetail.scientific_name}</p>
                         </div>
-                        <button 
+                        <button
                           onClick={() => setSelectedCropDetail(null)}
                           className="text-emerald-200 hover:text-white p-1 rounded-lg hover:bg-emerald-800"
                         >
@@ -3155,8 +3159,8 @@ export default function App() {
                     {(() => {
                       const supportedCrops = crops.filter(c => {
                         const hasMsp = c.msp && c.msp !== 'N/A' && c.msp.trim() !== '';
-                        const matchSearch = c.crop_name.toLowerCase().includes(mspSearchText.toLowerCase()) || 
-                                            c.scientific_name.toLowerCase().includes(mspSearchText.toLowerCase());
+                        const matchSearch = c.crop_name.toLowerCase().includes(mspSearchText.toLowerCase()) ||
+                          c.scientific_name.toLowerCase().includes(mspSearchText.toLowerCase());
                         const matchSeason = mspFilterSeason === 'All' || c.season.toLowerCase().includes(mspFilterSeason.toLowerCase());
                         return hasMsp && matchSearch && matchSeason;
                       });
@@ -3174,12 +3178,11 @@ export default function App() {
                       return (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {supportedCrops.map(c => (
-                            <div 
-                              key={c.id} 
+                            <div
+                              key={c.id}
                               onClick={() => setSelectedMspChartCropId(c.id)}
-                              className={`bg-white rounded-xl border cursor-pointer shadow-sm transition-all p-5 flex flex-col justify-between space-y-4 ${
-                                selectedMspChartCropId === c.id ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md' : 'border-emerald-100 hover:border-emerald-300'
-                              }`}
+                              className={`bg-white rounded-xl border cursor-pointer shadow-sm transition-all p-5 flex flex-col justify-between space-y-4 ${selectedMspChartCropId === c.id ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md' : 'border-emerald-100 hover:border-emerald-300'
+                                }`}
                             >
                               <div className="flex justify-between items-start">
                                 <div className="space-y-1">
@@ -3447,7 +3450,7 @@ export default function App() {
                             </h4>
                             <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider">{t('updatesLive')}</span>
                           </div>
-                          
+
                           <div className="space-y-2.5">
                             {prices ? prices.map((m, idx) => (
                               <div key={idx} className="flex justify-between items-center text-xs p-2.5 bg-gray-50/70 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
@@ -3457,9 +3460,8 @@ export default function App() {
                                 </div>
                                 <div className="text-right">
                                   <span className="font-black text-gray-900 text-sm block">₹{m.price}</span>
-                                  <span className={`text-[9px] font-bold flex items-center justify-end gap-0.5 ${
-                                    m.trend === 'up' ? 'text-emerald-600' : m.trend === 'down' ? 'text-rose-600' : 'text-gray-500'
-                                  }`}>
+                                  <span className={`text-[9px] font-bold flex items-center justify-end gap-0.5 ${m.trend === 'up' ? 'text-emerald-600' : m.trend === 'down' ? 'text-rose-600' : 'text-gray-500'
+                                    }`}>
                                     {m.trend === 'up' ? '▲' : m.trend === 'down' ? '▼' : '■'}
                                     {m.change !== 0 ? `${Math.abs(m.change)}` : t('stable')}
                                   </span>
@@ -3479,7 +3481,7 @@ export default function App() {
                       if (!selectedCrop) return null;
                       const results = getCalculationResults(selectedCrop);
                       if (!results) return null;
-                      
+
                       return (
                         <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-4 text-left animate-fade-in">
                           <div className="border-b border-gray-100 pb-2">
@@ -3489,7 +3491,7 @@ export default function App() {
                             </h4>
                             <p className="text-[10px] text-gray-400 mt-0.5">Estimate investment cost, yield, and margins using current MSP.</p>
                           </div>
-                          
+
                           <div className="grid grid-cols-2 gap-3.5">
                             <div>
                               <label className="text-[9px] font-black text-gray-400 uppercase tracking-wide block mb-1">Land Size (Acres)</label>
@@ -3514,7 +3516,7 @@ export default function App() {
                               />
                             </div>
                           </div>
-                          
+
                           <div className="border-t border-gray-150 pt-3 space-y-2 text-xs">
                             <div className="flex justify-between font-semibold">
                               <span className="text-gray-500">Est. Yield Per Acre:</span>
@@ -3532,7 +3534,7 @@ export default function App() {
                               <span className="text-gray-500">Gross Revenue (at MSP):</span>
                               <span className="text-emerald-600 font-bold">₹{results.totalRevenue.toLocaleString()}</span>
                             </div>
-                            
+
                             <div className="border-t border-dashed border-gray-200 pt-2 flex justify-between items-center font-bold">
                               <span className="text-gray-700">Net Est. Profit:</span>
                               <span className={`text-base font-black ${results.netProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
@@ -3548,7 +3550,7 @@ export default function App() {
                                 </span>
                               </div>
                               <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                                <div 
+                                <div
                                   className={`h-2 rounded-full transition-all duration-500 ${results.netProfit >= 0 ? 'bg-emerald-600' : 'bg-rose-500'}`}
                                   style={{ width: `${results.profitMarginPct}%` }}
                                 ></div>
@@ -3690,11 +3692,10 @@ export default function App() {
                               key={opt.value}
                               type="button"
                               onClick={() => setSchemeLandSize(opt.value)}
-                              className={`p-4 border rounded-xl text-left space-y-1 transition-all ${
-                                schemeLandSize === opt.value
+                              className={`p-4 border rounded-xl text-left space-y-1 transition-all ${schemeLandSize === opt.value
                                   ? 'border-emerald-500 bg-emerald-50/55 ring-2 ring-emerald-100'
                                   : 'border-gray-250 hover:border-gray-350 bg-white'
-                              }`}
+                                }`}
                             >
                               <span className="font-extrabold text-xs text-gray-900 block">{opt.label}</span>
                               <span className="text-[10px] text-gray-400 block font-semibold">{opt.desc}</span>
@@ -3739,11 +3740,10 @@ export default function App() {
                                 key={opt.value}
                                 type="button"
                                 onClick={() => setSchemeDemographic(opt.value)}
-                                className={`py-3 px-2 border rounded-xl text-center transition-all ${
-                                  schemeDemographic === opt.value
+                                className={`py-3 px-2 border rounded-xl text-center transition-all ${schemeDemographic === opt.value
                                     ? 'border-emerald-500 bg-emerald-50/55 ring-2 ring-emerald-100 font-bold bg-emerald-50/20'
                                     : 'border-gray-250 hover:border-gray-350 bg-white'
-                                }`}
+                                  }`}
                               >
                                 <span className="text-[10px] text-gray-900 block font-black">{opt.label}</span>
                               </button>
@@ -3781,11 +3781,10 @@ export default function App() {
                               key={opt.value}
                               type="button; return false;"
                               onClick={() => setSchemeCropsType(opt.value)}
-                              className={`p-4 border rounded-xl text-left space-y-1 transition-all ${
-                                schemeCropsType === opt.value
+                              className={`p-4 border rounded-xl text-left space-y-1 transition-all ${schemeCropsType === opt.value
                                   ? 'border-emerald-500 bg-emerald-50/55 ring-2 ring-emerald-100'
                                   : 'border-gray-250 hover:border-gray-350 bg-white'
-                              }`}
+                                }`}
                             >
                               <span className="font-extrabold text-xs text-gray-900 block">{opt.label}</span>
                               <span className="text-[10px] text-gray-400 block font-semibold">{opt.desc}</span>
@@ -3806,11 +3805,10 @@ export default function App() {
                               key={opt.value}
                               type="button"
                               onClick={() => setSchemeIrrigation(opt.value)}
-                              className={`p-4 border rounded-xl text-left space-y-1 transition-all ${
-                                schemeIrrigation === opt.value
+                              className={`p-4 border rounded-xl text-left space-y-1 transition-all ${schemeIrrigation === opt.value
                                   ? 'border-emerald-500 bg-emerald-50/55 ring-2 ring-emerald-100'
                                   : 'border-gray-250 hover:border-gray-350 bg-white'
-                              }`}
+                                }`}
                             >
                               <span className="font-extrabold text-xs text-gray-900 block">{opt.label}</span>
                               <span className="text-[10px] text-gray-400 block font-semibold">{opt.desc}</span>
@@ -3852,14 +3850,12 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => setSchemeIsTaxpayer(!schemeIsTaxpayer)}
-                            className={`w-12 h-6 flex items-center rounded-full p-1 transition-all duration-300 focus:outline-none ${
-                              schemeIsTaxpayer ? 'bg-emerald-600' : 'bg-gray-300'
-                            }`}
+                            className={`w-12 h-6 flex items-center rounded-full p-1 transition-all duration-300 focus:outline-none ${schemeIsTaxpayer ? 'bg-emerald-600' : 'bg-gray-300'
+                              }`}
                           >
                             <div
-                              className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-all duration-300 ${
-                                schemeIsTaxpayer ? 'translate-x-6' : 'translate-x-0'
-                              }`}
+                              className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-all duration-300 ${schemeIsTaxpayer ? 'translate-x-6' : 'translate-x-0'
+                                }`}
                             ></div>
                           </button>
                         </div>
@@ -3894,11 +3890,10 @@ export default function App() {
                               key={item.id}
                               type="button"
                               onClick={() => item.setter(!item.state)}
-                              className={`p-4 border rounded-xl text-left space-y-1 transition-all ${
-                                item.state
+                              className={`p-4 border rounded-xl text-left space-y-1 transition-all ${item.state
                                   ? 'border-emerald-500 bg-emerald-50/55 ring-2 ring-emerald-100 font-medium'
                                   : 'border-gray-250 hover:border-gray-350 bg-white'
-                              }`}
+                                }`}
                             >
                               <span className="font-extrabold text-xs text-gray-900 block">{item.label}</span>
                               <span className="text-[10px] text-gray-400 block font-semibold leading-relaxed">{item.desc}</span>
@@ -4064,27 +4059,25 @@ export default function App() {
                         return (
                           <div className="space-y-4">
                             {matchedSchemes.map((sch, sIdx) => (
-                              <div 
-                                key={sIdx} 
-                                className={`border rounded-xl p-5 space-y-2 text-xs transition-all ${
-                                  sch.eligible
+                              <div
+                                key={sIdx}
+                                className={`border rounded-xl p-5 space-y-2 text-xs transition-all ${sch.eligible
                                     ? 'bg-emerald-50/45 border-emerald-150'
                                     : 'bg-gray-50/60 border-gray-200 opacity-80'
-                                }`}
+                                  }`}
                               >
                                 <h5 className="font-extrabold text-sm flex items-center justify-between">
                                   <span className={sch.eligible ? 'text-emerald-900 font-extrabold font-sans' : 'text-gray-500 font-sans'}>
                                     {sch.name}
                                   </span>
-                                  <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
-                                    sch.eligible
+                                  <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${sch.eligible
                                       ? 'bg-emerald-200 text-emerald-800 border-emerald-300/30'
                                       : 'bg-rose-100 text-rose-800 border-rose-200/30'
-                                  }`}>
+                                    }`}>
                                     {sch.eligible ? 'Eligible' : 'Not Eligible'}
                                   </span>
                                 </h5>
-                                
+
                                 {sch.eligible ? (
                                   <p className="text-emerald-700 font-bold text-xs flex items-center">
                                     <span className="mr-1">🛡️</span> {sch.benefit}
@@ -4094,9 +4087,9 @@ export default function App() {
                                     <span className="mr-1">⚠️</span> {sch.reason}
                                   </p>
                                 )}
-                                
+
                                 <p className="text-gray-500 text-xs leading-relaxed font-medium">{sch.desc}</p>
-                                
+
                                 <div className="pt-2 flex justify-end">
                                   {sch.eligible ? (
                                     <a
@@ -4168,7 +4161,7 @@ export default function App() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {filteredSoils.map((soil) => (
-                        <div 
+                        <div
                           key={soil.id}
                           className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-4"
                         >
@@ -4328,21 +4321,19 @@ export default function App() {
                 <div className="flex space-x-2 bg-emerald-50/50 p-1.5 rounded-xl w-fit border border-emerald-100/40">
                   <button
                     onClick={() => setHealthSubTab('diseases')}
-                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${
-                      healthSubTab === 'diseases'
+                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${healthSubTab === 'diseases'
                         ? 'bg-emerald-600 text-white shadow-sm'
                         : 'text-emerald-800 hover:bg-emerald-100/40'
-                    }`}
+                      }`}
                   >
                     Disease Catalog
                   </button>
                   <button
                     onClick={() => setHealthSubTab('chemicals')}
-                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${
-                      healthSubTab === 'chemicals'
+                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${healthSubTab === 'chemicals'
                         ? 'bg-emerald-600 text-white shadow-sm'
                         : 'text-emerald-800 hover:bg-emerald-100/40'
-                    }`}
+                      }`}
                   >
                     Chemical Advisories
                   </button>
@@ -4363,7 +4354,7 @@ export default function App() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {filteredDiseases.map((d) => (
-                        <div 
+                        <div
                           key={d.id}
                           className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-200"
                         >
@@ -4384,7 +4375,7 @@ export default function App() {
                                   {d.symptoms}
                                 </p>
                               </div>
-                              
+
                               <div className="bg-emerald-50/50 border border-emerald-100 p-3.5 rounded-lg">
                                 <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider block">{t('organicPrevention')}</span>
                                 <p className="text-xs text-emerald-700 mt-1 line-clamp-2 leading-relaxed" title={d.prevention}>
@@ -4453,7 +4444,7 @@ export default function App() {
                     {/* List chemical cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {filteredChemicals.map((chem) => (
-                        <div 
+                        <div
                           key={chem.id}
                           className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-4"
                         >
@@ -4510,7 +4501,7 @@ export default function App() {
                           <h3 className="text-xl font-black">{selectedDiseaseDetail.disease_name}</h3>
                           <p className="text-xs text-red-300">Targeting Crop Host: {selectedDiseaseDetail.crop_name}</p>
                         </div>
-                        <button 
+                        <button
                           onClick={() => setSelectedDiseaseDetail(null)}
                           className="text-red-200 hover:text-white p-1 rounded-lg hover:bg-red-800"
                         >
@@ -4597,13 +4588,12 @@ export default function App() {
                   ].map((s, idx) => (
                     <React.Fragment key={idx}>
                       <div className="flex items-center space-x-2">
-                        <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                          wizardStep === s.step
+                        <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${wizardStep === s.step
                             ? 'bg-emerald-600 text-white ring-4 ring-emerald-100'
                             : wizardStep > s.step
                               ? 'bg-emerald-800 text-emerald-100'
                               : 'bg-gray-200 text-gray-400'
-                        }`}>
+                          }`}>
                           {wizardStep > s.step ? <Check className="h-4 w-4" /> : s.step}
                         </div>
                         <span className={`text-xs font-bold hidden sm:inline ${wizardStep === s.step ? 'text-gray-900 font-extrabold' : 'text-gray-400'}`}>
@@ -4663,11 +4653,10 @@ export default function App() {
                             <button
                               key={c.id}
                               onClick={() => setWizardCropId(c.id.toString())}
-                              className={`p-4 rounded-xl border text-left font-bold text-sm transition-all ${
-                                wizardCropId === c.id.toString()
+                              className={`p-4 rounded-xl border text-left font-bold text-sm transition-all ${wizardCropId === c.id.toString()
                                   ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-sm'
                                   : 'border-gray-100 bg-gray-50 hover:bg-gray-100 text-gray-700'
-                              }`}
+                                }`}
                             >
                               <span>{c.crop_name}</span>
                               <span className="text-[10px] text-gray-400 font-medium block italic mt-0.5">{c.scientific_name}</span>
@@ -4709,20 +4698,18 @@ export default function App() {
                       <div className="max-w-xl mx-auto space-y-5">
                         <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
                           {wizardDiseases.map(d => (
-                            <div 
+                            <div
                               key={d.id}
                               onClick={() => setWizardDiseaseId(d.id.toString())}
-                              className={`p-4 rounded-xl border text-left cursor-pointer transition-all ${
-                                wizardDiseaseId === d.id.toString()
+                              className={`p-4 rounded-xl border text-left cursor-pointer transition-all ${wizardDiseaseId === d.id.toString()
                                   ? 'bg-emerald-50 border-emerald-500 shadow-sm'
                                   : 'border-gray-200 hover:bg-gray-50 bg-white'
-                              }`}
+                                }`}
                             >
                               <div className="flex justify-between items-center">
                                 <h4 className="font-bold text-gray-900 text-sm">{d.disease_name}</h4>
-                                <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${
-                                  wizardDiseaseId === d.id.toString() ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-300'
-                                }`}>
+                                <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${wizardDiseaseId === d.id.toString() ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-300'
+                                  }`}>
                                   {wizardDiseaseId === d.id.toString() && <Check className="h-2.5 w-2.5" />}
                                 </div>
                               </div>
@@ -4884,11 +4871,10 @@ export default function App() {
                     <button
                       key={subTab.id}
                       onClick={() => setAdminActiveSubTab(subTab.id)}
-                      className={`px-4 py-2 text-sm font-semibold rounded-lg shrink-0 transition-all ${
-                        adminActiveSubTab === subTab.id
+                      className={`px-4 py-2 text-sm font-semibold rounded-lg shrink-0 transition-all ${adminActiveSubTab === subTab.id
                           ? 'bg-emerald-50 text-emerald-800'
                           : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
-                      }`}
+                        }`}
                     >
                       {subTab.label}
                     </button>
@@ -5050,13 +5036,12 @@ export default function App() {
                             <tr key={n.id} className="hover:bg-gray-50/50">
                               <td className="px-6 py-4 font-bold text-gray-900 truncate max-w-xs">{n.title}</td>
                               <td className="px-6 py-4 text-xs">
-                                <span className={`px-2 py-0.5 rounded font-bold uppercase tracking-wider text-[9px] ${
-                                  n.category === 'Weather' ? 'bg-rose-50 text-rose-800' :
-                                  n.category === 'Scheme' ? 'bg-emerald-50 text-emerald-800' :
-                                  n.category === 'Market Trend' ? 'bg-blue-50 text-blue-800' :
-                                  n.category === 'Technology' ? 'bg-purple-50 text-purple-800' :
-                                  'bg-gray-100 text-gray-800'
-                                }`}>
+                                <span className={`px-2 py-0.5 rounded font-bold uppercase tracking-wider text-[9px] ${n.category === 'Weather' ? 'bg-rose-50 text-rose-800' :
+                                    n.category === 'Scheme' ? 'bg-emerald-50 text-emerald-800' :
+                                      n.category === 'Market Trend' ? 'bg-blue-50 text-blue-800' :
+                                        n.category === 'Technology' ? 'bg-purple-50 text-purple-800' :
+                                          'bg-gray-100 text-gray-800'
+                                  }`}>
                                   {n.category}
                                 </span>
                               </td>
@@ -5082,7 +5067,7 @@ export default function App() {
                         <h3 className="text-lg font-black uppercase tracking-wide">
                           {crudMode === 'add' ? 'Create' : 'Modify'} {adminActiveSubTab === 'news' ? 'News Update' : adminActiveSubTab.slice(0, -1)}
                         </h3>
-                        <button 
+                        <button
                           onClick={() => setCrudModalOpen(false)}
                           className="text-emerald-200 hover:text-white p-1 rounded-lg hover:bg-emerald-800"
                         >
@@ -5574,15 +5559,14 @@ export default function App() {
                   </div>
 
                   {/* Upload Interface */}
-                  <div 
+                  <div
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
-                    className={`border-2 border-dashed rounded-xl p-8 text-center transition-all flex flex-col items-center justify-center space-y-3.5 relative ${
-                      isDragging 
-                        ? 'border-emerald-500 bg-emerald-50/50 shadow-inner' 
+                    className={`border-2 border-dashed rounded-xl p-8 text-center transition-all flex flex-col items-center justify-center space-y-3.5 relative ${isDragging
+                        ? 'border-emerald-500 bg-emerald-50/50 shadow-inner'
                         : 'border-gray-200 bg-gray-50/50 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     {aiImagePreview ? (
                       <div className="relative max-w-xs rounded-lg overflow-hidden border shadow-inner">
@@ -5927,7 +5911,7 @@ export default function App() {
                                       {item.timeline}
                                     </span>
                                   </div>
-                                  
+
                                   {/* Activities list */}
                                   <ul className="list-disc pl-4 text-xs text-gray-600 space-y-1 mt-2">
                                     {item.activities && item.activities.map((act, aIdx) => (
@@ -6026,24 +6010,23 @@ export default function App() {
               <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
                 {/* Banner header with image */}
                 <div className="h-48 relative shrink-0">
-                  <img 
-                    src={activeNews.image_url || "https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=800"} 
-                    alt={activeNews.title} 
+                  <img
+                    src={activeNews.image_url || "https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=800"}
+                    alt={activeNews.title}
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent flex flex-col justify-end p-6 text-white">
-                    <span className={`w-fit text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md mb-2 ${
-                      activeNews.category === 'Weather' ? 'bg-rose-500 text-white' :
-                      activeNews.category === 'Scheme' ? 'bg-emerald-500 text-white' :
-                      activeNews.category === 'Market Trend' ? 'bg-blue-500 text-white' :
-                      activeNews.category === 'Technology' ? 'bg-purple-500 text-white' :
-                      'bg-gray-50 text-white'
-                    }`}>
+                    <span className={`w-fit text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md mb-2 ${activeNews.category === 'Weather' ? 'bg-rose-500 text-white' :
+                        activeNews.category === 'Scheme' ? 'bg-emerald-500 text-white' :
+                          activeNews.category === 'Market Trend' ? 'bg-blue-500 text-white' :
+                            activeNews.category === 'Technology' ? 'bg-purple-500 text-white' :
+                              'bg-gray-50 text-white'
+                      }`}>
                       {activeNews.category}
                     </span>
                     <h3 className="text-lg md:text-xl font-extrabold leading-snug">{activeNews.title}</h3>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setSelectedNewsDetail(null)}
                     className="absolute top-4 right-4 bg-black/50 hover:bg-black/80 text-white p-2 rounded-full transition-colors"
                   >
@@ -6088,7 +6071,7 @@ export default function App() {
             <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl flex flex-col animate-fade-in">
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-emerald-950 text-white">
                 <h3 className="text-base font-black uppercase tracking-wide">{t('adminAccessRequired')}</h3>
-                <button 
+                <button
                   onClick={() => setAdminPasswordModalOpen(false)}
                   className="text-emerald-200 hover:text-white p-1 rounded-lg hover:bg-emerald-900"
                 >
@@ -6139,306 +6122,427 @@ export default function App() {
 
         {/* Floating Chatbot FAB & Window */}
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-          {/* Chat Window */}
+          {/* Chat Window Container */}
           {chatbotOpen && (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl flex flex-col w-[350px] sm:w-[380px] h-[480px] mb-4 overflow-hidden animate-slide-up-fade">
-              {/* Header */}
-              <div className="px-4 py-3 bg-emerald-950 text-white flex items-center justify-between shrink-0">
-                <div className="flex items-center space-x-2">
-                  <div className="relative">
-                    <div className="p-1 bg-emerald-900 rounded-lg text-emerald-300">
-                      <Bot className={`h-4 w-4 ${(isListening || isSpeaking) ? 'animate-pulse' : ''}`} />
-                    </div>
-                    <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-400 border-2 border-emerald-950"></span>
-                  </div>
-                  <div>
-                    <h3 className="font-extrabold text-xs leading-none">CropCare AI</h3>
-                    <span className="text-[9px] text-emerald-300 font-medium">{t('agriculturalAdvisor')}</span>
-                  </div>
+            <div className="flex items-end space-x-3.5 mb-4 animate-slide-up-fade">
+              {/* Mascot Side Pop-out (Desktop only) */}
+              <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 rounded-2xl border border-emerald-800/80 shadow-2xl p-4 w-[160px] h-[440px] flex flex-col items-center justify-between relative overflow-hidden shrink-0 hidden md:flex border-l-4 border-l-emerald-500">
+                {/* Background decorative sprout detail */}
+                <div className="absolute -right-6 -bottom-6 text-emerald-800/20 transform rotate-12 pointer-events-none">
+                  <Sprout className="h-28 w-28" />
                 </div>
-                <button 
-                  onClick={() => setChatbotOpen(false)}
-                  className="text-emerald-200 hover:text-white p-1 rounded-lg hover:bg-emerald-900 transition-all"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+
+                <div className="text-center relative z-10 space-y-1">
+                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${isSpeaking ? 'bg-emerald-500/25 text-emerald-350 border border-emerald-500/40 animate-pulse' : 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/40'}`}>
+                    {isSpeaking ? 'Speaking...' : 'Companion'}
+                  </span>
+                </div>
+
+                {/* SVG Animated Waving/Talking Farmer */}
+                <div className="w-28 h-28 shrink-0 flex items-center justify-center bg-emerald-950/60 rounded-xl border border-emerald-800/60 p-1.5 overflow-hidden shadow-inner">
+                  <svg className="w-full h-full" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    {/* Glow behind */}
+                    <circle cx="100" cy="100" r="75" fill="url(#farmerGlow)" />
+
+                    {/* Saree Pallu / Dupatta Head Drape (behind head) */}
+                    <path d="M66 90 C 60 55, 140 55, 134 90 C 145 115, 148 150, 142 180 L 58 180 C 55 150, 58 115, 66 90 Z" fill="#047857" stroke="#065f46" strokeWidth="1" />
+
+                    {/* Farmer Body (Kurta) */}
+                    <path d="M55 180 C 55 145, 145 145, 145 180 Z" fill="#ffffff" stroke="#10b981" strokeWidth="2" />
+                    <path d="M75 145 L 100 165 L 125 145" stroke="#10b981" strokeWidth="2" fill="none" />
+
+                    {/* Saree Drape */}
+                    <path d="M55 180 C 70 155, 95 155, 110 180 Z" fill="#f97316" opacity="0.9" />
+
+                    {/* Head Group (bobs when speaking) */}
+                    <g className={isSpeaking ? "farmer-head-talking" : ""} style={{ transformOrigin: '100px 115px' }}>
+                      {/* Hair Bun (Juda) */}
+                      <circle cx="100" cy="72" r="10" fill="#1e293b" />
+
+                      {/* Face */}
+                      <circle cx="100" cy="105" r="32" fill="#fed7aa" stroke="#d97706" strokeWidth="2" />
+
+                      {/* Hair detail */}
+                      <path d="M68 95 C 72 85, 85 85, 90 90 C 85 92, 72 98, 70 108" fill="#1e293b" />
+                      <path d="M132 95 C 128 85, 115 85, 110 90 C 115 92, 128 98, 130 108" fill="#1e293b" />
+
+                      {/* Bindi */}
+                      <circle cx="100" cy="88" r="3.5" fill="#e11d48" />
+
+                      {/* Eyes with eyelashes */}
+                      <path d="M83 103 C 86 100, 94 100, 97 103" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                      <path d="M117 103 C 114 100, 106 100, 103 103" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                      <circle cx="90" cy="106" r="3" fill="#1e293b" />
+                      <circle cx="110" cy="106" r="3" fill="#1e293b" />
+
+                      {/* Eyebrows */}
+                      <path d="M84 98 C 88 95, 96 97, 96 97" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
+                      <path d="M116 98 C 112 95, 104 97, 104 97" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
+
+                      {/* Nose Stud */}
+                      <circle cx="93" cy="113" r="1.5" fill="#f59e0b" />
+
+                      {/* Smiling Mouth or Open/Flapping Mouth */}
+                      {isSpeaking ? (
+                        <g>
+                          <ellipse cx="100" cy="123" rx="6" ry="5" fill="#be123c" />
+                          <ellipse cx="100" cy="125" rx="4" ry="2" fill="#fda4af" />
+                        </g>
+                      ) : (
+                        <path d="M93 124 C 95 128, 105 128, 107 124" stroke="#e11d48" strokeWidth="2.5" strokeLinecap="round" />
+                      )}
+                    </g>
+
+                    {/* Waving Hand & Arm */}
+                    <g className={isSpeaking ? "farmer-hand-talking" : "farmer-hand-wave"} style={{ transformOrigin: '135px 145px' }}>
+                      {/* Arm sleeve */}
+                      <path d="M135 145 C 150 135, 160 120, 165 105" stroke="#ffffff" strokeWidth="14" strokeLinecap="round" />
+                      <path d="M135 145 C 150 135, 160 120, 165 105" stroke="#10b981" strokeWidth="2" strokeLinecap="round" fill="none" />
+                      {/* Hand/wrist */}
+                      <path d="M165 105 L 170 95" stroke="#fed7aa" strokeWidth="10" strokeLinecap="round" />
+                      {/* Palm/Fingers */}
+                      <circle cx="170" cy="92" r="7" fill="#fed7aa" />
+                      <path d="M166 90 L 164 80" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
+                      <path d="M170 88 L 170 77" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
+                      <path d="M174 89 L 176 78" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
+                      <path d="M178 92 L 182 82" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
+                      <path d="M164 94 L 156 90" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
+                    </g>
+
+                    <defs>
+                      <radialGradient id="farmerGlow" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity="0.35" />
+                        <stop offset="100%" stopColor="#064e3b" stopOpacity="0" />
+                      </radialGradient>
+                    </defs>
+                  </svg>
+                </div>
+
+                <div className="relative z-10 text-center">
+                  <p className="text-[10.5px] font-black text-white leading-tight">Farmer Companion</p>
+                  <p className="text-[8.5px] text-emerald-350 font-medium">Ready to Help</p>
+                </div>
               </div>
 
-              {/* Error notifications */}
-              {geminiApiKeyMissing && (
-                <div className="bg-amber-50 border-b border-amber-200 p-2.5 shrink-0 text-left">
-                  <div className="flex items-start space-x-2">
-                    <AlertTriangle className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
-                    <div className="text-[9px] text-amber-800 leading-normal">
-                      <strong className="font-bold">Azure OpenAI Missing:</strong> Add keys to <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">.env</code> & restart.
+              {/* Chat Window */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl flex flex-col w-[350px] sm:w-[380px] h-[480px] overflow-hidden">
+                {/* Header */}
+                <div className="px-4 py-3 bg-emerald-950 text-white flex items-center justify-between shrink-0">
+                  <div className="flex items-center space-x-2">
+                    <div className="relative">
+                      <div className="p-0.5 bg-emerald-900 rounded-lg text-emerald-300 w-8 h-8 flex items-center justify-center overflow-hidden shrink-0 border border-emerald-800">
+                        {/* Mini Animated Farmer Face */}
+                        <svg className={`w-full h-full ${isSpeaking ? 'animate-bounce' : ''}`} viewBox="20 40 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          {/* Saree Pallu head drape (behind face) */}
+                          <path d="M66 90 C 60 55, 140 55, 134 90 C 145 115, 148 150, 142 180 L 58 180 Z" fill="#047857" stroke="#065f46" strokeWidth="1" />
+                          {/* Hair Bun */}
+                          <circle cx="100" cy="72" r="10" fill="#1e293b" />
+                          {/* Face */}
+                          <circle cx="100" cy="105" r="32" fill="#fed7aa" stroke="#d97706" strokeWidth="2" />
+                          {/* Hair detail */}
+                          <path d="M68 95 C 72 85, 85 85, 90 90 C 85 92, 72 98, 70 108" fill="#1e293b" />
+                          <path d="M132 95 C 128 85, 115 85, 110 90 C 115 92, 128 98, 130 108" fill="#1e293b" />
+                          {/* Bindi */}
+                          <circle cx="100" cy="88" r="3.5" fill="#e11d48" />
+                          {/* Eyes */}
+                          <circle cx="90" cy="105" r="3.5" fill="#1e293b" />
+                          <circle cx="110" cy="105" r="3.5" fill="#1e293b" />
+                          {/* Mouth */}
+                          {isSpeaking ? (
+                            <ellipse cx="100" cy="123" rx="6" ry="5" fill="#be123c" />
+                          ) : (
+                            <path d="M93 124 C 95 128, 105 128, 107 124" stroke="#e11d48" strokeWidth="2.5" strokeLinecap="round" />
+                          )}
+                        </svg>
+                      </div>
+                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-emerald-950"></span>
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-xs leading-none">CropCare AI</h3>
+                      <span className="text-[9px] text-emerald-300 font-medium">{t('agriculturalAdvisor')}</span>
                     </div>
                   </div>
-                </div>
-              )}
-
-              {chatError && (
-                <div className="bg-rose-50 border-b border-rose-200 p-2.5 shrink-0 flex items-start justify-between gap-2 text-left">
-                  <div className="flex items-start space-x-2">
-                    <AlertTriangle className="h-3.5 w-3.5 text-rose-500 mt-0.5 shrink-0" />
-                    <div className="text-[9px] text-rose-800 leading-normal">{chatError}</div>
-                  </div>
-                  <button onClick={() => setChatError('')} className="text-rose-400 hover:text-rose-600 shrink-0">
-                    <X className="h-3 w-3" />
+                  <button
+                    onClick={() => setChatbotOpen(false)}
+                    className="text-emerald-200 hover:text-white p-1 rounded-lg hover:bg-emerald-900 transition-all"
+                  >
+                    <X className="h-4 w-4" />
                   </button>
                 </div>
-              )}
 
-              {/* Language & Voice Controls Header */}
-              <div className="px-3 py-1.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between shrink-0">
-                <div className="flex items-center space-x-1">
-                  <span className="text-[8px] font-bold text-gray-400 uppercase">Lang:</span>
-                  <select
-                    value={voiceLanguage}
-                    onChange={(e) => {
-                      const newVoiceLang = e.target.value;
-                      setVoiceLanguage(newVoiceLang);
-                      stopSpeaking();
-                      // Also sync i18n language
-                      const i18nLangMap = { 'en-IN': 'en', 'hi-IN': 'hi', 'te-IN': 'te', 'mr-IN': 'mr' };
-                      i18n.changeLanguage(i18nLangMap[newVoiceLang] || 'en');
-                    }}
-                    className="border border-gray-200 rounded px-1 py-0.5 text-[9px] font-bold bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                  >
-                    <option value="en-IN">English</option>
-                    <option value="hi-IN">हिन्दी</option>
-                    <option value="te-IN">తెలుగు</option>
-                    <option value="mr-IN">मराठी</option>
-                  </select>
+                {/* Error notifications */}
+                {geminiApiKeyMissing && (
+                  <div className="bg-amber-50 border-b border-amber-200 p-2.5 shrink-0 text-left">
+                    <div className="flex items-start space-x-2">
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
+                      <div className="text-[9px] text-amber-800 leading-normal">
+                        <strong className="font-bold">Azure OpenAI Missing:</strong> Add keys to <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">.env</code> & restart.
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {chatError && (
+                  <div className="bg-rose-50 border-b border-rose-200 p-2.5 shrink-0 flex items-start justify-between gap-2 text-left">
+                    <div className="flex items-start space-x-2">
+                      <AlertTriangle className="h-3.5 w-3.5 text-rose-500 mt-0.5 shrink-0" />
+                      <div className="text-[9px] text-rose-800 leading-normal">{chatError}</div>
+                    </div>
+                    <button onClick={() => setChatError('')} className="text-rose-400 hover:text-rose-600 shrink-0">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Language & Voice Controls Header */}
+                <div className="px-3 py-1.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between shrink-0">
+                  <div className="flex items-center space-x-1">
+                    <span className="text-[8px] font-bold text-gray-400 uppercase">Lang:</span>
+                    <select
+                      value={voiceLanguage}
+                      onChange={(e) => {
+                        const newVoiceLang = e.target.value;
+                        setVoiceLanguage(newVoiceLang);
+                        stopSpeaking();
+                        // Also sync i18n language
+                        const i18nLangMap = { 'en-IN': 'en', 'hi-IN': 'hi', 'te-IN': 'te', 'mr-IN': 'mr' };
+                        i18n.changeLanguage(i18nLangMap[newVoiceLang] || 'en');
+                      }}
+                      className="border border-gray-200 rounded px-1 py-0.5 text-[9px] font-bold bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    >
+                      <option value="en-IN">English</option>
+                      <option value="hi-IN">हिन्दी</option>
+                      <option value="te-IN">తెలుగు</option>
+                      <option value="mr-IN">मराठी</option>
+                    </select>
+                  </div>
+
+                  <label className="flex items-center space-x-1 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={autoSpeak}
+                      onChange={(e) => {
+                        setAutoSpeak(e.target.checked);
+                        if (!e.target.checked) stopSpeaking();
+                      }}
+                      className="rounded text-emerald-600 focus:ring-emerald-500 h-3 w-3 border-gray-300"
+                    />
+                    <span className="text-[8px] font-bold text-gray-500 uppercase">Auto-Speak</span>
+                  </label>
                 </div>
 
-                <label className="flex items-center space-x-1 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={autoSpeak}
-                    onChange={(e) => {
-                      setAutoSpeak(e.target.checked);
-                      if (!e.target.checked) stopSpeaking();
-                    }}
-                    className="rounded text-emerald-600 focus:ring-emerald-500 h-3 w-3 border-gray-300"
-                  />
-                  <span className="text-[8px] font-bold text-gray-500 uppercase">Auto-Speak</span>
-                </label>
-              </div>
-
-              {/* Messages list */}
-              <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-gray-50/20 text-left">
-                {chatMessages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
-                  >
+                {/* Messages list */}
+                <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-gray-50/20 text-left">
+                  {chatMessages.map((msg, idx) => (
                     <div
-                      className={`max-w-[85%] px-3 py-2 rounded-xl text-xs leading-relaxed shadow-sm relative group ${
-                        msg.role === 'user'
-                          ? 'bg-emerald-600 text-white rounded-tr-none'
-                          : 'bg-white text-gray-800 rounded-tl-none border border-gray-200'
-                      }`}
+                      key={idx}
+                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
                     >
-                      <div className="font-bold text-[8px] opacity-60 mb-0.5 flex items-center justify-between">
-                        <span>{msg.role === 'user' ? 'YOU' : 'CROPCARE AI'}</span>
-                        {msg.role !== 'user' && (
-                          <button
-                            onClick={() => {
-                              if (isSpeaking) {
-                                stopSpeaking();
-                              } else {
-                                speakText(msg.parts[0], detectLanguage(msg.parts[0]));
-                              }
-                            }}
-                            className="ml-3 text-emerald-600 hover:text-emerald-800 transition-colors focus:outline-none"
-                            title={isSpeaking ? "Stop Voice Playback" : "Speak Message"}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              {isSpeaking ? (
-                                <rect x="4" y="4" width="16" height="16" rx="2" ry="2" fill="currentColor"></rect>
-                              ) : (
-                                <>
-                                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                                </>
-                              )}
-                            </svg>
-                          </button>
-                        )}
+                      <div
+                        className={`max-w-[85%] px-3 py-2 rounded-xl text-xs leading-relaxed shadow-sm relative group ${msg.role === 'user'
+                            ? 'bg-emerald-600 text-white rounded-tr-none'
+                            : 'bg-white text-gray-800 rounded-tl-none border border-gray-200'
+                          }`}
+                      >
+                        <div className="font-bold text-[8px] opacity-60 mb-0.5 flex items-center justify-between">
+                          <span>{msg.role === 'user' ? 'YOU' : 'CROPCARE AI'}</span>
+                          {msg.role !== 'user' && (
+                            <button
+                              onClick={() => {
+                                if (isSpeaking) {
+                                  stopSpeaking();
+                                } else {
+                                  speakText(msg.parts[0], detectLanguage(msg.parts[0]));
+                                }
+                              }}
+                              className="ml-3 text-emerald-600 hover:text-emerald-800 transition-colors focus:outline-none"
+                              title={isSpeaking ? "Stop Voice Playback" : "Speak Message"}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                {isSpeaking ? (
+                                  <rect x="4" y="4" width="16" height="16" rx="2" ry="2" fill="currentColor"></rect>
+                                ) : (
+                                  <>
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                  </>
+                                )}
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                        <p className="whitespace-pre-wrap">{msg.parts[0]}</p>
                       </div>
-                      <p className="whitespace-pre-wrap">{msg.parts[0]}</p>
                     </div>
-                  </div>
-                ))}
-                
-                {chatLoading && (
-                  <div className="flex justify-start animate-pulse">
-                    <div className="bg-white text-gray-400 border border-gray-150 px-3 py-2 rounded-xl rounded-tl-none text-[9px] font-semibold flex items-center space-x-1 shadow-sm">
-                      <RefreshCw className="h-2.5 w-2.5 animate-spin text-emerald-600" />
-                      <span>{t('thinking')}</span>
-                    </div>
-                  </div>
-                )}
+                  ))}
 
-                {/* Speech listening visual wave */}
-                {isListening && (
-                  <div className="flex justify-start items-center space-x-1.5 p-2 bg-rose-50 border border-rose-100 rounded-lg max-w-[150px] animate-pulse">
-                    <div className="flex items-center space-x-0.5">
-                      <span className="w-0.5 h-2.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
-                      <span className="w-0.5 h-3.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
-                      <span className="w-0.5 h-2.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></span>
+                  {chatLoading && (
+                    <div className="flex justify-start animate-pulse">
+                      <div className="bg-white text-gray-400 border border-gray-150 px-3 py-2 rounded-xl rounded-tl-none text-[9px] font-semibold flex items-center space-x-1 shadow-sm">
+                        <RefreshCw className="h-2.5 w-2.5 animate-spin text-emerald-600" />
+                        <span>{t('thinking')}</span>
+                      </div>
                     </div>
-                    <span className="text-[9px] font-semibold text-rose-800">
-                      {t('listening')}
-                    </span>
-                  </div>
-                )}
+                  )}
 
-                {/* Speech speaking visual wave */}
-                {isSpeaking && (
-                  <div className="flex justify-start items-center space-x-1.5 p-2 bg-blue-50 border border-blue-100 rounded-lg max-w-[180px] animate-pulse">
-                    <div className="flex items-center space-x-0.5">
-                      <span className="w-0.5 h-3 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
-                      <span className="w-0.5 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
-                      <span className="w-0.5 h-3 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></span>
+                  {/* Speech listening visual wave */}
+                  {isListening && (
+                    <div className="flex justify-start items-center space-x-1.5 p-2 bg-rose-50 border border-rose-100 rounded-lg max-w-[150px] animate-pulse">
+                      <div className="flex items-center space-x-0.5">
+                        <span className="w-0.5 h-2.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
+                        <span className="w-0.5 h-3.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+                        <span className="w-0.5 h-2.5 bg-rose-600 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></span>
+                      </div>
+                      <span className="text-[9px] font-semibold text-rose-800">
+                        {t('listening')}
+                      </span>
                     </div>
-                    <span className="text-[9px] font-semibold text-blue-800">{t('speaking')}</span>
-                    <button onClick={stopSpeaking} className="text-blue-500 hover:text-blue-700 text-[7px] font-extrabold border border-blue-200 px-1 py-0.5 rounded bg-white shrink-0 ml-auto">{t('stop')}</button>
-                  </div>
-                )}
+                  )}
+
+                  {/* Speech speaking visual wave */}
+                  {isSpeaking && (
+                    <div className="flex justify-start items-center space-x-1.5 p-2 bg-blue-50 border border-blue-100 rounded-lg max-w-[180px] animate-pulse">
+                      <div className="flex items-center space-x-0.5">
+                        <span className="w-0.5 h-3 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
+                        <span className="w-0.5 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+                        <span className="w-0.5 h-3 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></span>
+                      </div>
+                      <span className="text-[9px] font-semibold text-blue-800">{t('speaking')}</span>
+                      <button onClick={stopSpeaking} className="text-blue-500 hover:text-blue-700 text-[7px] font-extrabold border border-blue-200 px-1 py-0.5 rounded bg-white shrink-0 ml-auto">{t('stop')}</button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Input Form */}
+                <form onSubmit={handleChatSubmit} className="p-2.5 border-t border-gray-150 bg-gray-50 flex items-center space-x-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={isListening ? () => { } : startSpeechRecognition}
+                    className={`p-2 rounded-xl border transition-all shrink-0 ${isListening
+                        ? 'bg-rose-100 border-rose-300 text-rose-600 animate-pulse'
+                        : 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100'
+                      }`}
+                    title={t('speakQuestion')}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                      <line x1="12" x2="12" y1="19" y2="22"></line>
+                    </svg>
+                  </button>
+
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    disabled={chatLoading}
+                    placeholder={t('askCropCareAi')}
+                    className="flex-1 border border-gray-250 rounded-xl px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!chatInput.trim() || chatLoading}
+                    className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold px-3.5 py-1.5 rounded-xl transition-all shadow-md shrink-0 text-xs"
+                  >
+                    {t('send')}
+                  </button>
+                </form>
               </div>
-
-              {/* Input Form */}
-              <form onSubmit={handleChatSubmit} className="p-2.5 border-t border-gray-150 bg-gray-50 flex items-center space-x-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={isListening ? () => {} : startSpeechRecognition}
-                  className={`p-2 rounded-xl border transition-all shrink-0 ${
-                    isListening
-                      ? 'bg-rose-100 border-rose-300 text-rose-600 animate-pulse'
-                      : 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100'
-                  }`}
-                  title={t('speakQuestion')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                    <line x1="12" x2="12" y1="19" y2="22"></line>
-                  </svg>
-                </button>
-
-                <input
-                  type="text"
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  disabled={chatLoading}
-                  placeholder={t('askCropCareAi')}
-                  className="flex-1 border border-gray-250 rounded-xl px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                />
-                <button
-                  type="submit"
-                  disabled={!chatInput.trim() || chatLoading}
-                  className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold px-3.5 py-1.5 rounded-xl transition-all shadow-md shrink-0 text-xs"
-                >
-                  {t('send')}
-                </button>
-              </form>
             </div>
           )}
 
-          {/* Small round icon button */}
-          <button
-            onClick={() => setChatbotOpen(!chatbotOpen)}
-            className={`h-12 w-12 rounded-full flex items-center justify-center text-white shadow-2xl transition-all duration-350 hover:scale-105 active:scale-95 cursor-pointer relative z-50 ${
-              chatbotOpen 
-                ? 'bg-emerald-850 hover:bg-emerald-900 border border-emerald-800 animate-pulse-subtle' 
-                : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:shadow-emerald-500/20 hover:shadow-xl'
-            }`}
-            title="Chat with CropCare AI"
-          >
-            {chatbotOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <>
-                <MessageSquare className="h-5 w-5 animate-pulse-subtle" />
-                <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border border-white text-[7px] text-white font-black items-center justify-center">AI</span>
-                </span>
-              </>
-            )}
-          </button>
-        </div>
+              {/* Small round icon button */}
+              <button
+                onClick={() => setChatbotOpen(!chatbotOpen)}
+                className={`h-12 w-12 rounded-full flex items-center justify-center text-white shadow-2xl transition-all duration-350 hover:scale-105 active:scale-95 cursor-pointer relative z-50 ${chatbotOpen
+                    ? 'bg-emerald-850 hover:bg-emerald-900 border border-emerald-800 animate-pulse-subtle'
+                    : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:shadow-emerald-500/20 hover:shadow-xl'
+                  }`}
+                title="Chat with CropCare AI"
+              >
+                {chatbotOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <>
+                    <MessageSquare className="h-5 w-5 animate-pulse-subtle" />
+                    <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border border-white text-[7px] text-white font-black items-center justify-center">AI</span>
+                    </span>
+                  </>
+                )}
+              </button>
+            </div>
       </div>
 
-      {/* ── Idle Session Warning Modal ─────────────────────────── */}
-      {idleWarning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-slide-up-fade">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-5 text-white">
-              <div className="flex items-center space-x-3">
-                <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center text-2xl shrink-0">
-                  ⏱️
-                </div>
-                <div>
-                  <h3 className="font-black text-base leading-tight">Session Expiring Soon</h3>
-                  <p className="text-orange-100 text-xs font-semibold mt-0.5">You've been inactive for 14 minutes</p>
+        {/* ── Idle Session Warning Modal ─────────────────────────── */}
+        {idleWarning && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-slide-up-fade">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-5 text-white">
+                <div className="flex items-center space-x-3">
+                  <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center text-2xl shrink-0">
+                    ⏱️
+                  </div>
+                  <div>
+                    <h3 className="font-black text-base leading-tight">Session Expiring Soon</h3>
+                    <p className="text-orange-100 text-xs font-semibold mt-0.5">You've been inactive for 14 minutes</p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Countdown */}
-            <div className="px-6 py-6 text-center space-y-4">
-              <div className="relative inline-flex items-center justify-center">
-                <svg className="h-20 w-20 -rotate-90" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="15.9" fill="none" stroke="#fed7aa" strokeWidth="2.5" />
-                  <circle
-                    cx="18" cy="18" r="15.9" fill="none"
-                    stroke="#f97316" strokeWidth="2.5"
-                    strokeDasharray={`${(idleCountdown / 60) * 100} 100`}
-                    strokeLinecap="round"
-                    style={{ transition: 'stroke-dasharray 1s linear' }}
-                  />
-                </svg>
-                <span className="absolute font-black text-2xl text-orange-600">{idleCountdown}</span>
+              {/* Countdown */}
+              <div className="px-6 py-6 text-center space-y-4">
+                <div className="relative inline-flex items-center justify-center">
+                  <svg className="h-20 w-20 -rotate-90" viewBox="0 0 36 36">
+                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="#fed7aa" strokeWidth="2.5" />
+                    <circle
+                      cx="18" cy="18" r="15.9" fill="none"
+                      stroke="#f97316" strokeWidth="2.5"
+                      strokeDasharray={`${(idleCountdown / 60) * 100} 100`}
+                      strokeLinecap="round"
+                      style={{ transition: 'stroke-dasharray 1s linear' }}
+                    />
+                  </svg>
+                  <span className="absolute font-black text-2xl text-orange-600">{idleCountdown}</span>
+                </div>
+                <p className="text-gray-600 text-sm font-medium leading-relaxed">
+                  You will be <strong className="text-gray-800">automatically signed out</strong> in{' '}
+                  <span className="text-orange-600 font-black">{idleCountdown} second{idleCountdown !== 1 ? 's' : ''}</span>{' '}
+                  to keep your account secure.
+                </p>
               </div>
-              <p className="text-gray-600 text-sm font-medium leading-relaxed">
-                You will be <strong className="text-gray-800">automatically signed out</strong> in{' '}
-                <span className="text-orange-600 font-black">{idleCountdown} second{idleCountdown !== 1 ? 's' : ''}</span>{' '}
-                to keep your account secure.
-              </p>
-            </div>
 
-            {/* Actions */}
-            <div className="px-6 pb-6 flex gap-3">
-              <button
-                onClick={handleSignOut}
-                className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-all"
-                id="idle-signout-btn"
-              >
-                Sign Out Now
-              </button>
-              <button
-                onClick={resetIdleTimer}
-                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black text-sm shadow-md hover:shadow-lg transition-all"
-                id="idle-stay-btn"
-              >
-                Stay Logged In
-              </button>
+              {/* Actions */}
+              <div className="px-6 pb-6 flex gap-3">
+                <button
+                  onClick={handleSignOut}
+                  className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-all"
+                  id="idle-signout-btn"
+                >
+                  Sign Out Now
+                </button>
+                <button
+                  onClick={resetIdleTimer}
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black text-sm shadow-md hover:shadow-lg transition-all"
+                  id="idle-stay-btn"
+                >
+                  Stay Logged In
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* User Profile Panel */}
-      {profileOpen && (
-        <UserProfile
-          user={currentUser}
-          onSignOut={handleSignOut}
-          onClose={() => setProfileOpen(false)}
-        />
-      )}
-    </div>
-  );
+        {/* User Profile Panel */}
+        {profileOpen && (
+          <UserProfile
+            user={currentUser}
+            onSignOut={handleSignOut}
+            onClose={() => setProfileOpen(false)}
+          />
+        )}
+      </div>
+      );
 }
