@@ -2351,47 +2351,34 @@ export default function App() {
                             {/* Glow behind */}
                             <circle cx="100" cy="100" r="75" fill="url(#farmerGlow)" />
                             
-                            {/* Saree Pallu / Dupatta Head Drape (behind head) */}
-                            <path d="M66 90 C 60 55, 140 55, 134 90 C 145 115, 148 150, 142 180 L 58 180 C 55 150, 58 115, 66 90 Z" fill="#047857" stroke="#065f46" strokeWidth="1" />
-                            
                             {/* Farmer Body (Kurta) */}
                             <path d="M55 180 C 55 145, 145 145, 145 180 Z" fill="#ffffff" stroke="#10b981" strokeWidth="2" />
                             <path d="M75 145 L 100 165 L 125 145" stroke="#10b981" strokeWidth="2" fill="none" />
                             
-                            {/* Saree Drape */}
-                            <path d="M55 180 C 70 155, 95 155, 110 180 Z" fill="#f97316" opacity="0.9" />
+                            {/* Green/Saffron Scarf (Neckerchief / Gamcha) */}
+                            <path d="M70 142 C 85 148, 115 148, 130 142 C 135 155, 130 175, 120 180 C 100 170, 80 180, 70 142" fill="#f97316" opacity="0.9" />
+                            <path d="M70 142 C 78 155, 75 175, 80 180" stroke="#ea580c" strokeWidth="2" />
                             
-                            {/* Head Group */}
-                            <g style={{ transformOrigin: '100px 115px' }}>
-                              {/* Hair Bun (Juda) */}
-                              <circle cx="100" cy="72" r="10" fill="#1e293b" />
-                              
-                              {/* Face */}
-                              <circle cx="100" cy="105" r="32" fill="#fed7aa" stroke="#d97706" strokeWidth="2" />
-                              
-                              {/* Hair detail */}
-                              <path d="M68 95 C 72 85, 85 85, 90 90 C 85 92, 72 98, 70 108" fill="#1e293b" />
-                              <path d="M132 95 C 128 85, 115 85, 110 90 C 115 92, 128 98, 130 108" fill="#1e293b" />
-                              
-                              {/* Bindi */}
-                              <circle cx="100" cy="88" r="3.5" fill="#e11d48" />
-                              
-                              {/* Eyes with eyelashes */}
-                              <path d="M83 103 C 86 100, 94 100, 97 103" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-                              <path d="M117 103 C 114 100, 106 100, 103 103" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-                              <circle cx="90" cy="106" r="3" fill="#1e293b" />
-                              <circle cx="110" cy="106" r="3" fill="#1e293b" />
-                              
-                              {/* Eyebrows */}
-                              <path d="M84 98 C 88 95, 96 97, 96 97" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
-                              <path d="M116 98 C 112 95, 104 97, 104 97" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
-                              
-                              {/* Nose Stud */}
-                              <circle cx="93" cy="113" r="1.5" fill="#f59e0b" />
-                              
-                              {/* Smiling Mouth */}
-                              <path d="M93 124 C 95 128, 105 128, 107 124" stroke="#e11d48" strokeWidth="2.5" strokeLinecap="round" />
-                            </g>
+                            {/* Face */}
+                            <circle cx="100" cy="105" r="32" fill="#fed7aa" stroke="#d97706" strokeWidth="2" />
+                            
+                            {/* Traditional Hat (Pagri/Turban) */}
+                            <path d="M68 95 C 65 80, 80 72, 100 75 C 120 72, 135 80, 132 95 C 135 70, 65 70, 68 95" fill="#f59e0b" />
+                            <path d="M64 88 C 80 65, 120 65, 136 88 C 145 92, 120 72, 100 80 C 80 72, 55 92, 64 88" fill="#ea580c" />
+                            
+                            {/* Eyes */}
+                            <circle cx="90" cy="105" r="3" fill="#1e293b" />
+                            <circle cx="110" cy="105" r="3" fill="#1e293b" />
+                            
+                            {/* Eyebrows */}
+                            <path d="M84 98 C 88 95, 96 97, 96 97" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
+                            <path d="M116 98 C 112 95, 104 97, 104 97" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
+                            
+                            {/* Mustache */}
+                            <path d="M85 118 C 92 114, 100 118, 100 118 C 100 118, 108 114, 115 118 C 120 122, 112 122, 100 120 C 88 122, 80 122, 85 118 Z" fill="#1e293b" />
+                            
+                            {/* Smiling Mouth */}
+                            <path d="M93 124 C 95 128, 105 128, 107 124" stroke="#e11d48" strokeWidth="2.5" strokeLinecap="round" />
 
                             {/* Waving Hand & Arm */}
                             <g className="farmer-hand-wave" style={{ transformOrigin: '135px 145px' }}>
