@@ -6113,101 +6113,122 @@ export default function App() {
           {chatbotOpen && (
             <div className="flex items-end space-x-3.5 mb-4 animate-slide-up-fade">
               {/* Mascot Side Pop-out (Desktop only) */}
-              <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 rounded-2xl border border-emerald-800/80 shadow-2xl p-4 w-[160px] h-[440px] flex flex-col items-center justify-between relative overflow-hidden shrink-0 hidden md:flex border-l-4 border-l-emerald-500">
+              <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 rounded-2xl border border-emerald-800/80 shadow-2xl p-4 w-[160px] h-[440px] flex flex-col justify-between relative overflow-hidden shrink-0 hidden md:flex border-l-4 border-l-emerald-500">
                 {/* Background decorative sprout detail */}
-                <div className="absolute -right-6 -bottom-6 text-emerald-800/20 transform rotate-12 pointer-events-none">
+                <div className="absolute -right-6 -bottom-6 text-emerald-850/10 transform rotate-12 pointer-events-none">
                   <Sprout className="h-28 w-28" />
                 </div>
 
-                <div className="text-center relative z-10 space-y-1">
+                <div className="text-center relative z-20 space-y-1">
                   <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${isSpeaking ? 'bg-emerald-500/25 text-emerald-350 border border-emerald-500/40 animate-pulse' : 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/40'}`}>
                     {isSpeaking ? 'Speaking...' : 'Companion'}
                   </span>
                 </div>
 
-                {/* SVG Animated Waving/Talking Farmer */}
-                <div className="w-28 h-28 shrink-0 flex items-center justify-center bg-emerald-950/60 rounded-xl border border-emerald-800/60 p-1.5 overflow-hidden shadow-inner">
-                  <svg className="w-full h-full" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {/* SVG Animated Young Lady Advisor - Fills the vertical space */}
+                <div className="absolute inset-0 top-10 bottom-0 w-full flex items-end justify-center overflow-hidden">
+                  <svg className="w-full h-full" viewBox="0 0 160 320" fill="none" xmlns="http://www.w3.org/2000/svg">
                     {/* Glow behind */}
-                    <circle cx="100" cy="100" r="75" fill="url(#farmerGlow)" />
+                    <circle cx="80" cy="110" r="70" fill="url(#ladyGlow)" />
 
-                    {/* Saree Pallu / Dupatta Head Drape (behind head) */}
-                    <path d="M66 90 C 60 55, 140 55, 134 90 C 145 115, 148 150, 142 180 L 58 180 C 55 150, 58 115, 66 90 Z" fill="#047857" stroke="#065f46" strokeWidth="1" />
+                    {/* Left arm resting at side */}
+                    <path d="M32 170 C 22 200, 18 240, 22 320" stroke="#0d9488" strokeWidth="16" strokeLinecap="round" />
+                    <path d="M32 170 C 22 200, 18 240, 22 320" stroke="#0f766e" strokeWidth="2" strokeLinecap="round" fill="none" />
 
-                    {/* Farmer Body (Kurta) */}
-                    <path d="M55 180 C 55 145, 145 145, 145 180 Z" fill="#ffffff" stroke="#10b981" strokeWidth="2" />
-                    <path d="M75 145 L 100 165 L 125 145" stroke="#10b981" strokeWidth="2" fill="none" />
+                    {/* Lady Body (Kurti / Top) */}
+                    <path d="M30 320 L 30 170 C 30 150, 45 142, 80 142 C 115 142, 130 150, 130 170 L 130 320 Z" fill="#0d9488" stroke="#0f766e" strokeWidth="1.5" />
+                    
+                    {/* Nehru Collar */}
+                    <path d="M68 142 C 72 135, 88 135, 92 142 L 85 158 L 75 158 Z" fill="#0f766e" />
+                    <path d="M68 142 C 72 135, 88 135, 92 142" stroke="#fbbf24" strokeWidth="1.5" fill="none" />
+                    
+                    {/* Golden central stripe with buttons */}
+                    <path d="M80 158 L 80 240" stroke="#fbbf24" strokeWidth="2" />
+                    <circle cx="80" cy="175" r="2" fill="#ffffff" />
+                    <circle cx="80" cy="195" r="2" fill="#ffffff" />
+                    <circle cx="80" cy="215" r="2" fill="#ffffff" />
 
-                    {/* Saree Drape */}
-                    <path d="M55 180 C 70 155, 95 155, 110 180 Z" fill="#f97316" opacity="0.9" />
+                    {/* Neck */}
+                    <path d="M72 124 L 72 145 L 88 145 L 88 124 Z" fill="#f5b078" />
+                    <path d="M72 134 L 88 134" stroke="#d97706" strokeWidth="1" opacity="0.3" />
 
                     {/* Head Group (bobs when speaking) */}
-                    <g className={isSpeaking ? "farmer-head-talking" : ""} style={{ transformOrigin: '100px 115px' }}>
-                      {/* Hair Bun (Juda) */}
-                      <circle cx="100" cy="72" r="10" fill="#1e293b" />
+                    <g className={isSpeaking ? "farmer-head-talking" : ""} style={{ transformOrigin: '80px 105px' }}>
+                      {/* Hair Bun / Back Hair ponytail */}
+                      <path d="M102 92 C 118 90, 128 102, 125 120 C 118 115, 114 105, 102 98" fill="#1e293b" />
+                      <circle cx="102" cy="95" r="3" fill="#f43f5e" />
 
                       {/* Face */}
-                      <circle cx="100" cy="105" r="32" fill="#fed7aa" stroke="#d97706" strokeWidth="2" />
+                      <ellipse cx="80" cy="105" rx="24" ry="26" fill="#fed7aa" stroke="#d97706" strokeWidth="1.5" />
 
-                      {/* Hair detail */}
-                      <path d="M68 95 C 72 85, 85 85, 90 90 C 85 92, 72 98, 70 108" fill="#1e293b" />
-                      <path d="M132 95 C 128 85, 115 85, 110 90 C 115 92, 128 98, 130 108" fill="#1e293b" />
+                      {/* Hair Front details */}
+                      <path d="M56 100 C 58 85, 75 88, 80 95 C 75 92, 60 92, 58 108" fill="#1e293b" />
+                      <path d="M104 100 C 102 85, 85 88, 80 95 C 85 92, 100 92, 102 108" fill="#1e293b" />
 
-                      {/* Bindi */}
-                      <circle cx="100" cy="88" r="3.5" fill="#e11d48" />
+                      {/* Headset headband */}
+                      <path d="M59 90 C 65 72, 95 72, 101 90" stroke="#475569" strokeWidth="3" fill="none" strokeLinecap="round" />
+                      <rect x="52" y="88" width="7" height="15" rx="3" fill="#334155" />
+                      <rect x="101" y="88" width="7" height="15" rx="3" fill="#334155" />
+                      
+                      {/* Microphone boom */}
+                      <path d="M55 103 C 55 116, 68 118, 73 116" stroke="#334155" strokeWidth="2" fill="none" strokeLinecap="round" />
+                      <circle cx="74" cy="116" r="2" fill="#10b981" />
 
                       {/* Eyes with eyelashes */}
-                      <path d="M83 103 C 86 100, 94 100, 97 103" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-                      <path d="M117 103 C 114 100, 106 100, 103 103" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-                      <circle cx="90" cy="106" r="3" fill="#1e293b" />
-                      <circle cx="110" cy="106" r="3" fill="#1e293b" />
+                      <path d="M66 102 C 69 99, 75 99, 78 102" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                      <circle cx="72" cy="105" r="2.5" fill="#1e293b" />
+                      <circle cx="73" cy="104" r="0.8" fill="#ffffff" />
+                      
+                      <path d="M94 102 C 91 99, 85 99, 82 102" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                      <circle cx="88" cy="105" r="2.5" fill="#1e293b" />
+                      <circle cx="89" cy="104" r="0.8" fill="#ffffff" />
 
                       {/* Eyebrows */}
-                      <path d="M84 98 C 88 95, 96 97, 96 97" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
-                      <path d="M116 98 C 112 95, 104 97, 104 97" stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round" />
+                      <path d="M65 97 C 69 94, 75 95, 76 96" stroke="#1e293b" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+                      <path d="M95 97 C 91 94, 85 95, 84 96" stroke="#1e293b" strokeWidth="1.2" strokeLinecap="round" fill="none" />
 
-                      {/* Nose Stud */}
-                      <circle cx="93" cy="113" r="1.5" fill="#f59e0b" />
+                      {/* Blushing cheeks */}
+                      <circle cx="64" cy="112" r="3.5" fill="#f87171" opacity="0.3" />
+                      <circle cx="96" cy="112" r="3.5" fill="#f87171" opacity="0.3" />
 
                       {/* Smiling Mouth or Open/Flapping Mouth */}
                       {isSpeaking ? (
                         <g>
-                          <ellipse cx="100" cy="123" rx="6" ry="5" fill="#be123c" />
-                          <ellipse cx="100" cy="125" rx="4" ry="2" fill="#fda4af" />
+                          <ellipse cx="80" cy="120" rx="4.5" ry="4" fill="#991b1b" />
+                          <ellipse cx="80" cy="122" rx="3" ry="1.5" fill="#fda4af" />
                         </g>
                       ) : (
-                        <path d="M93 124 C 95 128, 105 128, 107 124" stroke="#e11d48" strokeWidth="2.5" strokeLinecap="round" />
+                        <path d="M74 118 C 76 122, 84 122, 86 118" stroke="#be123c" strokeWidth="2" strokeLinecap="round" fill="none" />
                       )}
                     </g>
 
                     {/* Waving Hand & Arm */}
-                    <g className={isSpeaking ? "farmer-hand-talking" : "farmer-hand-wave"} style={{ transformOrigin: '135px 145px' }}>
-                      {/* Arm sleeve */}
-                      <path d="M135 145 C 150 135, 160 120, 165 105" stroke="#ffffff" strokeWidth="14" strokeLinecap="round" />
-                      <path d="M135 145 C 150 135, 160 120, 165 105" stroke="#10b981" strokeWidth="2" strokeLinecap="round" fill="none" />
-                      {/* Hand/wrist */}
-                      <path d="M165 105 L 170 95" stroke="#fed7aa" strokeWidth="10" strokeLinecap="round" />
-                      {/* Palm/Fingers */}
-                      <circle cx="170" cy="92" r="7" fill="#fed7aa" />
-                      <path d="M166 90 L 164 80" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
-                      <path d="M170 88 L 170 77" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
-                      <path d="M174 89 L 176 78" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
-                      <path d="M178 92 L 182 82" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
-                      <path d="M164 94 L 156 90" stroke="#fed7aa" strokeWidth="2" strokeLinecap="round" />
+                    <g className={isSpeaking ? "farmer-hand-talking" : "farmer-hand-wave"} style={{ transformOrigin: '125px 170px' }}>
+                      <path d="M125 170 C 140 165, 148 150, 150 135" stroke="#0d9488" strokeWidth="12" strokeLinecap="round" />
+                      <path d="M125 170 C 140 165, 148 150, 150 135" stroke="#0f766e" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                      <path d="M150 135 L 152 125" stroke="#fed7aa" strokeWidth="8" strokeLinecap="round" />
+                      <circle cx="152" cy="122" r="5" fill="#fed7aa" />
+                      <path d="M148 120 L 146 110" stroke="#fed7aa" strokeWidth="1.5" strokeLinecap="round" />
+                      <path d="M152 118 L 152 108" stroke="#fed7aa" strokeWidth="1.5" strokeLinecap="round" />
+                      <path d="M156 119 L 158 109" stroke="#fed7aa" strokeWidth="1.5" strokeLinecap="round" />
+                      <path d="M159 122 L 163 113" stroke="#fed7aa" strokeWidth="1.5" strokeLinecap="round" />
                     </g>
 
                     <defs>
-                      <radialGradient id="farmerGlow" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stopColor="#10b981" stopOpacity="0.35" />
+                      <radialGradient id="ladyGlow" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
                         <stop offset="100%" stopColor="#064e3b" stopOpacity="0" />
                       </radialGradient>
                     </defs>
                   </svg>
                 </div>
 
-                <div className="relative z-10 text-center">
-                  <p className="text-[10.5px] font-black text-white leading-tight">Farmer Companion</p>
-                  <p className="text-[8.5px] text-emerald-350 font-medium">Ready to Help</p>
+                {/* Floating overlay text box at the very bottom */}
+                <div className="relative z-20 w-full bg-emerald-950/85 backdrop-blur-md border border-emerald-800/60 rounded-xl p-2 text-center shadow-md">
+                  <p className="text-[10px] font-black text-white leading-tight">Agri Companion</p>
+                  <p className="text-[8px] text-emerald-400 font-bold uppercase tracking-wider mt-0.5">
+                    {isSpeaking ? 'Speaking...' : 'Ready to Help'}
+                  </p>
                 </div>
               </div>
 
@@ -6217,28 +6238,27 @@ export default function App() {
                 <div className="px-4 py-3 bg-emerald-950 text-white flex items-center justify-between shrink-0">
                   <div className="flex items-center space-x-2">
                     <div className="relative">
-                      <div className="p-0.5 bg-emerald-900 rounded-lg text-emerald-300 w-8 h-8 flex items-center justify-center overflow-hidden shrink-0 border border-emerald-800">
-                        {/* Mini Animated Farmer Face */}
-                        <svg className={`w-full h-full ${isSpeaking ? 'animate-bounce' : ''}`} viewBox="20 40 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          {/* Saree Pallu head drape (behind face) */}
-                          <path d="M66 90 C 60 55, 140 55, 134 90 C 145 115, 148 150, 142 180 L 58 180 Z" fill="#047857" stroke="#065f46" strokeWidth="1" />
-                          {/* Hair Bun */}
-                          <circle cx="100" cy="72" r="10" fill="#1e293b" />
+                      <div className="p-0.5 bg-emerald-900 rounded-lg text-emerald-350 w-8 h-8 flex items-center justify-center overflow-hidden shrink-0 border border-emerald-800">
+                        {/* Mini Animated Face */}
+                        <svg className={`w-full h-full ${isSpeaking ? 'animate-bounce' : ''}`} viewBox="50 70 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          {/* Hair ponytail at back */}
+                          <path d="M102 92 C 118 90, 128 102, 125 120" stroke="#1e293b" strokeWidth="4" strokeLinecap="round" />
                           {/* Face */}
-                          <circle cx="100" cy="105" r="32" fill="#fed7aa" stroke="#d97706" strokeWidth="2" />
-                          {/* Hair detail */}
-                          <path d="M68 95 C 72 85, 85 85, 90 90 C 85 92, 72 98, 70 108" fill="#1e293b" />
-                          <path d="M132 95 C 128 85, 115 85, 110 90 C 115 92, 128 98, 130 108" fill="#1e293b" />
-                          {/* Bindi */}
-                          <circle cx="100" cy="88" r="3.5" fill="#e11d48" />
+                          <ellipse cx="80" cy="105" rx="24" ry="26" fill="#fed7aa" stroke="#d97706" strokeWidth="1.5" />
+                          {/* Hair Front details */}
+                          <path d="M56 100 C 58 85, 75 88, 80 95 C 75 92, 60 92, 58 108" fill="#1e293b" />
+                          <path d="M104 100 C 102 85, 85 88, 80 95 C 85 92, 100 92, 102 108" fill="#1e293b" />
+                          {/* Headset */}
+                          <rect x="52" y="88" width="7" height="15" rx="3" fill="#334155" />
+                          <rect x="101" y="88" width="7" height="15" rx="3" fill="#334155" />
                           {/* Eyes */}
-                          <circle cx="90" cy="105" r="3.5" fill="#1e293b" />
-                          <circle cx="110" cy="105" r="3.5" fill="#1e293b" />
+                          <circle cx="72" cy="105" r="2.5" fill="#1e293b" />
+                          <circle cx="88" cy="105" r="2.5" fill="#1e293b" />
                           {/* Mouth */}
                           {isSpeaking ? (
-                            <ellipse cx="100" cy="123" rx="6" ry="5" fill="#be123c" />
+                            <ellipse cx="80" cy="120" rx="4.5" ry="4" fill="#991b1b" />
                           ) : (
-                            <path d="M93 124 C 95 128, 105 128, 107 124" stroke="#e11d48" strokeWidth="2.5" strokeLinecap="round" />
+                            <path d="M74 118 C 76 122, 84 122, 86 118" stroke="#be123c" strokeWidth="2" strokeLinecap="round" fill="none" />
                           )}
                         </svg>
                       </div>
