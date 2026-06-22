@@ -153,6 +153,8 @@ export default function App() {
     setCurrentUser(null);
     setProfileOpen(false);
     setIdleWarning(false);
+    // Force a complete browser reload to clear all in-memory React states between different user sessions
+    window.location.reload();
   };
 
   const clearIdleTimers = () => {
