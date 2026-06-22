@@ -775,6 +775,15 @@ export default function App() {
     }
   };
 
+  // Track Active Tab changes for logging MSP & News views
+  useEffect(() => {
+    if (activeTab === 'gov-msp') {
+      logUserActivity('msp_viewed', 'Looked up Govt MSP prices & forecasts', { tab: 'gov-msp' });
+    } else if (activeTab === 'news-updates') {
+      logUserActivity('news_viewed', 'Read latest agricultural news alerts', { tab: 'news-updates' });
+    }
+  }, [activeTab]);
+
   // 1. Fetch State Detail & Weather (Optimized Parallel Loading with Cache)
   useEffect(() => {
     if (!selectedStateId) return;
@@ -805,6 +814,7 @@ export default function App() {
     axios.get(`${API_BASE_URL}/crops/${cropId}?lang=${lang}`)
       .then(res => {
         setSelectedCropDetail(res.data);
+        logUserActivity('crop_viewed', `Viewed details for crop: ${res.data.crop_name}`, { crop_id: cropId });
       })
       .catch(err => console.error(err));
   };
@@ -815,6 +825,7 @@ export default function App() {
     axios.get(`${API_BASE_URL}/diseases/${diseaseId}?lang=${lang}`)
       .then(res => {
         setSelectedDiseaseDetail(res.data);
+        logUserActivity('disease_viewed', `Looked up disease details for: ${res.data.disease_name}`, { disease_id: diseaseId });
       })
       .catch(err => console.error(err));
   };
@@ -1015,6 +1026,7 @@ export default function App() {
     try {
       const response = await axios.post(`${API_BASE_URL}/gemini/schedule?lang=${lang}`, schedulerForm);
       setSchedulerResult(response.data);
+      logUserActivity('scheduler_used', `Generated cultivation schedule for ${schedulerForm.crop_type} in ${schedulerForm.soil_type} soil`, { crop_type: schedulerForm.crop_type, soil_type: schedulerForm.soil_type });
     } catch (err) {
       console.error(err);
       setSchedulerError(err.response?.data?.error || err.message || 'Failed to generate cultivation schedule.');
@@ -1374,6 +1386,7 @@ export default function App() {
         setAiProgressText('Diagnosis report finalized!');
         setAiResult(res.data);
         setAiAnalyzing(false);
+        logUserActivity('ai_diagnosis', `Diagnosed ${suspectedCrop} leaf image for potential diseases`, { crop_name: suspectedCrop });
       })
       .catch(err => {
         clearInterval(progressInterval);
@@ -2919,7 +2932,10 @@ export default function App() {
                           {filteredStates.map((st) => (
                             <button
                               key={st.id}
-                              onClick={() => setSelectedStateId(st.id.toString())}
+                              onClick={() => {
+                                setSelectedStateId(st.id.toString());
+                                logUserActivity('state_selected', `Explored state: ${st.state_name}`, { state_id: st.id });
+                              }}
                               className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-between ${selectedStateId === st.id.toString()
                                   ? 'bg-emerald-50 text-emerald-800'
                                   : 'text-gray-700 hover:bg-gray-50'
@@ -4719,7 +4735,12 @@ export default function App() {
                           </button>
                           <button
                             disabled={!wizardDiseaseId}
-                            onClick={() => setWizardStep(4)}
+                            onClick={() => {
+                              setWizardStep(4);
+                              const diseaseName = diseases.find(d => d.id === parseInt(wizardDiseaseId))?.disease_name || 'unknown disease';
+                              const cropName = crops.find(c => c.id === parseInt(wizardCropId))?.crop_name || 'unknown crop';
+                              logUserActivity('disease_viewed', `Used Wizard to find treatment for ${diseaseName} on ${cropName}`, { disease_id: wizardDiseaseId, crop_id: wizardCropId });
+                            }}
                             className="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition-all flex items-center justify-center space-x-1"
                           >
                             <span>Generate Advisory</span>
