@@ -206,13 +206,19 @@ export default function App() {
   // Verify stored token on mount (silently clear if expired)
   useEffect(() => {
     const token = localStorage.getItem('agri_token');
-    if (token && !currentUser) {
+    if (token) {
       axios.get(
         (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
           ? 'http://127.0.0.1:5000/api'
           : 'https://agri-future-backend.onrender.com/api') + '/auth/me',
         { headers: { Authorization: `Bearer ${token}` } }
-      ).then(r => setCurrentUser(r.data)).catch(() => handleSignOut());
+      ).then(r => {
+        setCurrentUser(r.data);
+      }).catch((err) => {
+        if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+          handleSignOut();
+        }
+      });
     }
   }, []);
 
@@ -225,7 +231,11 @@ export default function App() {
       : 'https://agri-future-backend.onrender.com/api';
     axios.post(`${base}/auth/activity`, { action_type, description, extra },
       { headers: { Authorization: `Bearer ${token}` } }
-    ).catch(() => {/* silently ignore */ });
+    ).catch((err) => {
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        handleSignOut();
+      }
+    });
   };
 
 

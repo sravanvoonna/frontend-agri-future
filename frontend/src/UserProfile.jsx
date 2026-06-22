@@ -51,8 +51,11 @@ export default function UserProfile({ user, onSignOut, onClose }) {
         headers: { Authorization: `Bearer ${token}` }
       });
       setHistory(res.data);
-    } catch {
+    } catch (err) {
       setHistory([]);
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        onSignOut();
+      }
     } finally {
       setLoading(false);
     }
@@ -68,7 +71,11 @@ export default function UserProfile({ user, onSignOut, onClose }) {
         headers: { Authorization: `Bearer ${token}` }
       });
       setHistory([]);
-    } catch {/* ignore */}
+    } catch (err) {
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        onSignOut();
+      }
+    }
     finally { setClearing(false); }
   };
 
