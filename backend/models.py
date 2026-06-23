@@ -218,3 +218,19 @@ class UserActivity(db.Model):
             "extra":       self.extra,
             "created_at":  self.created_at.isoformat() if self.created_at else None
         }
+
+
+class AdminLog(db.Model):
+    __tablename__ = 'admin_logs'
+    
+    id        = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.String(100), nullable=False)
+    action    = db.Column(db.String(255), nullable=False)
+    status    = db.Column(db.String(50), nullable=False)
+
+    def to_dict(self):
+        return {
+            "timestamp": self.timestamp,
+            "action": self.action,
+            "status": self.status
+        }

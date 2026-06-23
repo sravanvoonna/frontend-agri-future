@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from PIL import Image
 import google.generativeai as genai
 
-from models import db, State, Crop, Soil, CropSoil, Disease, Chemical, NewsUpdate, User, UserActivity
+from models import db, State, Crop, Soil, CropSoil, Disease, Chemical, NewsUpdate, User, UserActivity, AdminLog
 from seed import seed_database
 
 # Load environment variables
@@ -121,21 +121,28 @@ def translate_response(response):
     return response
 
 
-# In-memory activity log for admin actions
-activity_logs = [
-    {"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "action": "Database initialized", "status": "Success"},
-    {"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "action": "Standard seed dataset loaded", "status": "Success"}
-]
+@app.after_request
+def add_cache_control_headers(response):
+    # Prevent caching for user-specific authentication and admin data endpoints
+    if request.path.startswith('/api/auth/') or request.path.startswith('/api/admin/'):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0, private"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
+
+# Database-backed admin activity logs
 def log_activity(action, status="Success"):
-    activity_logs.insert(0, {
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "action": action,
-        "status": status
-    })
-    # Keep only the latest 30 logs
-    if len(activity_logs) > 30:
-        activity_logs.pop()
+    try:
+        new_log = AdminLog(
+            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            action=action,
+            status=status
+        )
+        db.session.add(new_log)
+        db.session.commit()
+    except Exception as e:
+        print(f"Failed to log admin activity to DB: {e}")
 
 def sync_pib_news():
     import urllib.request
@@ -265,6 +272,12 @@ with app.app_context():
             print("Error dropping tables:", e)
 
     db.create_all()
+    # If no admin logs exist, seed the initial logs
+    if AdminLog.query.first() is None:
+        db.session.add(AdminLog(timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"), action="Database initialized", status="Success"))
+        db.session.add(AdminLog(timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"), action="Standard seed dataset loaded", status="Success"))
+        db.session.commit()
+        
     # If no states exist, assume DB is unseeded
     if State.query.first() is None:
         print("Database is empty. Seeding realistic agricultural dataset...")
@@ -436,6 +449,9 @@ def auth_clear_history(current_user):
 @app.route("/api/admin/stats", methods=["GET"])
 def get_admin_stats():
     try:
+        # Query latest 30 logs from the database
+        logs = AdminLog.query.order_by(AdminLog.id.desc()).limit(30).all()
+        logs_data = [log.to_dict() for log in logs]
         return jsonify({
             "total_states": State.query.count(),
             "total_crops": Crop.query.count(),
@@ -443,7 +459,7 @@ def get_admin_stats():
             "total_diseases": Disease.query.count(),
             "total_chemicals": Chemical.query.count(),
             "total_news": NewsUpdate.query.count(),
-            "activity_logs": activity_logs
+            "activity_logs": logs_data
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
