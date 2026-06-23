@@ -123,11 +123,13 @@ def translate_response(response):
 
 @app.after_request
 def add_cache_control_headers(response):
-    # Prevent caching for user-specific authentication and admin data endpoints
-    if request.path.startswith('/api/auth/') or request.path.startswith('/api/admin/'):
+    # Prevent caching for all API endpoints to ensure session isolation in production environments like Azure
+    if request.path.startswith('/api/'):
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0, private"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
+        # Crucial for CDNs to know that the response varies by the Authorization token
+        response.headers["Vary"] = "Authorization"
     return response
 
 
