@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agrifuture-v1';
+const CACHE_NAME = 'agrifuture-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -39,7 +39,7 @@ self.addEventListener('fetch', (event) => {
   // Only cache local requests (pages/styles/JS) and avoid caching remote APIs directly or local dev websocket calls
   const url = new URL(event.request.url);
   
-  if (url.origin !== self.location.origin || event.request.method !== 'GET' || url.pathname.includes('websocket') || url.pathname.includes('dev-server')) {
+  if (url.origin !== self.location.origin || event.request.method !== 'GET' || url.pathname.includes('websocket') || url.pathname.includes('dev-server') || url.pathname.startsWith('/api/')) {
     return;
   }
 
