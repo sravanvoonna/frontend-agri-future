@@ -145,7 +145,11 @@ export default function App() {
   const warnTimerRef = React.useRef(null);
   const countdownRef = React.useRef(null);
 
-  const handleAuthSuccess = (user) => setCurrentUser(user);
+  const handleAuthSuccess = (user) => {
+    setCurrentUser(user);
+    // Force a complete browser reload to clear all in-memory React states and start fresh on the dashboard
+    window.location.reload();
+  };
 
   const handleSignOut = () => {
     localStorage.removeItem('agri_token');
@@ -153,6 +157,8 @@ export default function App() {
     setCurrentUser(null);
     setProfileOpen(false);
     setIdleWarning(false);
+    // Force a complete browser reload to clear all in-memory React states between different user sessions
+    window.location.reload();
   };
 
   const clearIdleTimers = () => {
