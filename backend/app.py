@@ -1002,7 +1002,9 @@ def gemini_chat():
         
         CRITICAL MANDATORY RESPONSE LANGUAGE RULE:
         - The user's currently selected language is {target_lang}.
-        - You MUST write your response ONLY in {target_lang} ({script_name} script). Do not write in any other language.
+        - You MUST write your response ONLY in {target_lang} ({script_name} script). Do not write in any other language or script.
+        - ABSOLUTELY NO ENGLISH OR LATIN CHARACTERS ALLOWED: Do not write even a single word, letter, abbreviation, or name in English script (A-Z, a-z). This is a strict security requirement. Even technical words or chemical names must be translated or phonetically transliterated into {script_name} script characters.
+        - NO BILINGUAL / PARENTHETICAL TERMS: Never write a target language word followed by its English name in brackets (e.g. do NOT write 'उर्वरक (Fertilizer)' or 'నత్రజని (Nitrogen)'). Write ONLY the target language word or its transliteration directly.
         - Irrespective of the language the user types in (even if they type in English, Hinglish, Telugish, Marathish, etc.), your response MUST be 100% in {target_lang} ({script_name} script).
         - If the chat history contains messages in a different language, ignore their language and write your new response ONLY in {target_lang} ({script_name} script).
         - DO NOT translate or repeat any part of your answer in English. All explanations, instructions, list items, and greetings must be in standard, formal {target_lang} ({script_name} script) only.
@@ -1024,7 +1026,7 @@ def gemini_chat():
             messages.append({"role": role, "content": content})
             
         # Strictly append language reminder to the user message to prevent language drift
-        reinforced_message = f"{message}\n\n[SYSTEM REMINDER: Write your response ONLY in {target_lang} ({script_name} script). This rule is absolute and overrides the language of my query or any history.]"
+        reinforced_message = f"{message}\n\n[SYSTEM REMINDER: Write your response 100% ONLY in {target_lang} ({script_name} script). Absolutely NO English words or Latin alphabet characters (a-z, A-Z) are allowed. Transliterate all chemical names and terminology into {script_name} characters if necessary.]"
         messages.append({"role": "user", "content": reinforced_message})
         
         reply = call_azure_openai(messages, temperature=0.75)
