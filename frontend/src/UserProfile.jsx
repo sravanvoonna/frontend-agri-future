@@ -5,10 +5,10 @@ import {
   Bot, Camera, MapPin, Newspaper, Sliders, TrendingUp, User
 } from 'lucide-react';
 
-const API_BASE_URL =
-  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://127.0.0.1:5000/api'
-    : 'https://agri-future-backend.onrender.com/api';
+    : '/api');
 
 /* icon + colour per action type */
 const ACTION_META = {

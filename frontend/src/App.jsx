@@ -36,9 +36,10 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
-const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://127.0.0.1:5000/api'
-  : 'https://agri-future-backend.onrender.com/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://127.0.0.1:5000/api'
+    : '/api');
 
 const STATE_COORDINATES = {
   "Andhra Pradesh": { lat: 15.9129, lon: 79.7400 },
@@ -214,9 +215,7 @@ export default function App() {
     const token = localStorage.getItem('agri_token');
     if (token) {
       axios.get(
-        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-          ? 'http://127.0.0.1:5000/api'
-          : 'https://agri-future-backend.onrender.com/api') + '/auth/me',
+        `${API_BASE_URL}/auth/me`,
         { headers: { Authorization: `Bearer ${token}` } }
       ).then(r => {
         setCurrentUser(r.data);
@@ -232,10 +231,7 @@ export default function App() {
   const logUserActivity = (action_type, description, extra) => {
     const token = localStorage.getItem('agri_token');
     if (!token) return;
-    const base = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      ? 'http://127.0.0.1:5000/api'
-      : 'https://agri-future-backend.onrender.com/api';
-    axios.post(`${base}/auth/activity`, { action_type, description, extra },
+    axios.post(`${API_BASE_URL}/auth/activity`, { action_type, description, extra },
       { headers: { Authorization: `Bearer ${token}` } }
     ).catch((err) => {
       if (err.response && (err.response.status === 401 || err.response.status === 403)) {
