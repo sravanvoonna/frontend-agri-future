@@ -5,7 +5,7 @@ import { Sprout, Eye, EyeOff, Phone, Mail, User, Lock, AlertCircle, CheckCircle2
 const API_BASE_URL = import.meta.env.VITE_API_URL || 
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://127.0.0.1:5000/api'
-    : '/api');
+    : 'https://agrifuture.azurewebsites.net/api');
 
 /* ─── tiny helpers ─── */
 const isEmail = (v) => v.includes('@');
