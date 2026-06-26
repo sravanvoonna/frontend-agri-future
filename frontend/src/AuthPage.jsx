@@ -9,8 +9,11 @@ const API_BASE_URL = import.meta.env.VITE_API_URL ||
 
 /* ─── tiny helpers ─── */
 const isEmail = (v) => v.includes('@');
-const isPhone = (v) => /^[0-9\s\-+()]{7,15}$/.test(v.trim());
 const cleanPh  = (v) => v.replace(/\D/g, '');
+const isPhone = (v) => {
+  const cleaned = cleanPh(v);
+  return /^\d{10}$/.test(cleaned);
+};
 
 /* ════════════════════════════════════════════════
    FARMER AVATAR — eye-tracking + password peek-a-boo

@@ -355,6 +355,11 @@ def auth_register():
         return jsonify({"error": "Name is required"}), 400
     if not email and not phone:
         return jsonify({"error": "Email or phone number is required"}), 400
+    if phone:
+        phone_clean = "".join(filter(str.isdigit, phone))
+        if len(phone_clean) != 10:
+            return jsonify({"error": "Invalid phone number. It must be exactly 10 digits."}), 400
+        phone = phone_clean
     if len(password) < 6:
         return jsonify({"error": "Password must be at least 6 characters"}), 400
 
