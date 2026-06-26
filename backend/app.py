@@ -33,6 +33,7 @@ azure_openai_key = os.getenv("AZURE_OPENAI_KEY")
 azure_openai_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
 azure_openai_deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 azure_openai_api_version = os.getenv("AZURE_OPENAI_API_VERSION")
+sarvam_api_key = os.getenv("SARVAM_API_KEY")
 
 def call_azure_openai(messages, temperature=0.7):
     if not azure_openai_key or not azure_openai_endpoint:
@@ -1388,6 +1389,287 @@ def delete_news(id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 400
+
+
+# -------------------------------------------------------------
+# AquaFuture Backend Proxy Routes
+# -------------------------------------------------------------
+
+@app.route("/api/aquafuture/chat", methods=["POST"])
+def aquafuture_chat():
+    if not azure_openai_key:
+        return jsonify({
+            "error": "Azure OpenAI key is not configured in the backend .env file.",
+            "code": "API_KEY_MISSING"
+        }), 400
+
+    data = request.json or {}
+    message = data.get("message")
+    history = data.get("history") or [] # List of {"role": "user"|"assistant", "content": str}
+    language_code = data.get("language", "en-IN")
+
+    if not message:
+        return jsonify({"error": "Missing 'message' parameter."}), 400
+
+    try:
+        # Map target language based on UI selection
+        lang_map = {
+            "te-IN": ("Telugu", "Telugu"),
+            "hi-IN": ("Hindi", "Devanagari Hindi"),
+            "ta-IN": ("Tamil", "Tamil"),
+            "en-IN": ("English", "English")
+        }
+        target_lang, script_name = lang_map.get(language_code, ("English", "English"))
+
+        system_instruction = f"""You are the AquaFuture AI Advisor, a world-class expert marine biologist and smart aquaculture consultant. You help fish and shrimp farmers optimize their operations.
+Guidelines:
+- Communicate in a professional, scientific yet practical, and helpful tone.
+- Provide advice on feed conversion ratio (FCR), stocking density, water quality diagnostics, disease management (like Hypoxia, White Spot Disease, etc.), biomass prediction, and aquaculture economics.
+- Important: For metrics, always refer to yields or feed weights in Quintals (qtl) and monetary values in Indian Rupees (₹).
+- If asked about AquaFuture pricing, explain that the platform is 100% free and open-source, with no subscription fees or premium modular costs.
+- Keep responses relatively concise, formatted with clear bullet points and markdown if helpful. Avoid long paragraphs.
+- IMPORTANT: You MUST write your entire response completely in the {target_lang} language. Even if the user writes in English, Hindi, Telugu, Tamil, or any other language, your response MUST be translated and written fully in {target_lang} (in its native script, e.g., Devanagari script for Hindi, Telugu script for Telugu, Tamil script for Tamil). Technical acronyms like FCR, pH, DO, mg/L, or brand names like AquaFuture and Cerevyn Solutions may remain in English."""
+
+        messages = [{"role": "system", "content": system_instruction}]
+        
+        for h in history[-10:]: # Keep last 10 messages for context
+            role = "user" if h.get("role") == "user" else "assistant"
+            content = h.get("content") or ""
+            messages.append({"role": role, "content": content})
+            
+        # Reinforced language safety reminder
+        reinforced_message = f"{message}\n\n[SYSTEM REMINDER: Write your response 100% ONLY in {target_lang} ({script_name} script). Absolutely NO English words or Latin alphabet characters (a-z, A-Z) are allowed except technical terms like FCR, pH, DO, mg/L, and brand names.]"
+        messages.append({"role": "user", "content": reinforced_message})
+        
+        reply = call_azure_openai(messages, temperature=0.7)
+        return jsonify({"reply": reply.strip()})
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to get reply: {str(e)}"}), 500
+
+
+@app.route("/api/aquafuture/schedule", methods=["POST"])
+def aquafuture_schedule():
+    if not azure_openai_key:
+        return jsonify({
+            "error": "Azure OpenAI key is not configured in the backend .env file.",
+            "code": "API_KEY_MISSING"
+        }), 400
+
+    data = request.json or {}
+    service_title = data.get("serviceTitle")
+    pond_size = data.get("pondSize", 1)
+    pond_depth = data.get("pondDepth", 5)
+    water_source = data.get("waterSource", "Borewell")
+    aeration_power = data.get("aerationPower", "None")
+    stocking_density = data.get("stockingDensity", 5000)
+    target_weight = data.get("targetWeight", 500)
+
+    try:
+        prompt_text = f"""Generate a customized aquaculture cultivation schedule and planning recommendations for:
+Service Type: {service_title}
+Pond/Farm Parameters:
+- Farm Area: {pond_size} Acres
+- Average Water Depth: {pond_depth} Feet
+- Water Source: {water_source}
+- Aeration Equipment: {aeration_power}
+- Stocking Seed Count: {stocking_density} seeds
+- Target Harvest Weight: {target_weight} grams/piece
+
+Based on these parameters, perform realistic calculations and generate a detailed advisory plan. Return the response strictly as a JSON object with the following fields:
+{{
+  "survivalRate": <number representing estimated survival rate percentage, e.g. 85>,
+  "biomass": <number representing expected harvest biomass in kg, calculated as stockingDensity * (survivalRate/100) * (targetWeight/1000) * pondSize>,
+  "totalFeed": <number representing total feed requirement in kg, calculated as biomass * FCR. Average FCRs: Fish=1.5, Shrimp=1.25, Crab=1.8, Seaweed=0 (no feed)>,
+  "timeline": [
+    {{
+      "phase": "Phase title with days, e.g., Pond Preparation (Days -15 to -1)",
+      "desc": "Detailed instructions on liming, drying, biosecurity setup, and pond preparations."
+    }},
+    ... // exactly 5 or 6 detailed phases
+  ],
+  "waterManagementTips": [
+    "Tip 1 tailored to water source and depth",
+    "Tip 2 tailored to water source and depth"
+  ],
+  "feedTips": [
+    "Feeding guidelines tailored to stocking density",
+    "Feeding frequency and feed size guidance"
+  ],
+  "warnings": [
+    "Critical risk alert 1 (e.g. oxygen depletion, disease warning, salinity changes)",
+    "Critical risk alert 2"
+  ]
+}}
+Ensure the JSON is perfectly valid. Do not include any other text, markdown blocks, or explanation."""
+
+        messages = [
+            {
+                "role": "system",
+                "content": "You are an elite Indian Aquaculture Specialist with expertise in freshwater fish, vannamei shrimp, mud crabs, and marine seaweed farming. You generate custom cultivation timetables and feed recommendations in strict JSON format."
+            },
+            {
+                "role": "user",
+                "content": prompt_text
+            }
+        ]
+
+        response_text = call_azure_openai(messages, temperature=0.3).strip()
+        
+        # Clean markdown wrappers if returned
+        if response_text.startswith("```"):
+            response_text = "\n".join(response_text.split("\n")[1:])
+        if response_text.endswith("```"):
+            response_text = "\n".join(response_text.split("\n")[:-1])
+            
+        parsed_plan = json.loads(response_text.strip())
+        return jsonify(parsed_plan)
+    except Exception as e:
+        return jsonify({"error": f"Failed to generate schedule: {str(e)}"}), 500
+
+
+@app.route("/api/aquafuture/market-rates", methods=["POST"])
+def aquafuture_market_rates():
+    if not azure_openai_key:
+        return jsonify({
+            "error": "Azure OpenAI key is not configured in the backend .env file.",
+            "code": "API_KEY_MISSING"
+        }), 400
+
+    data = request.json or {}
+    state_name = data.get("stateName")
+
+    try:
+        prompt_text = f"""Generate live wholesale aquaculture market rates and regional pond warning alerts for the state of: {state_name}, India.
+Current Date: {datetime.now().strftime('%d/%m/%Y')}
+
+Return strictly as a JSON object with the following schema:
+{{
+  "rates": [
+    {{ "name": "Vannamei Shrimp (100 Count)", "price": "₹255 / kg", "trend": "up", "change": "+₹5" }},
+    ... // exactly 5 major commercial species relevant to this state's culture
+  ],
+  "news": [
+    {{ "title": "Headline of Local Warning", "date": "Current Date", "desc": "Brief 2-3 sentence warning/alert for pond farmers.", "alertLevel": "info" }},
+    ... // exactly 2 regional items (alertLevel can be danger, warning, or info)
+  ]
+}}
+Ensure the JSON is valid. Respond ONLY with the JSON object. Do not include markdown tags like ```json."""
+
+        messages = [
+            {
+                "role": "system",
+                "content": "You are an Indian seafood market pricing analyst. You generate current market rates and regional salinity/weather alerts in strict JSON format."
+            },
+            {
+                "role": "user",
+                "content": prompt_text
+            }
+        ]
+
+        response_text = call_azure_openai(messages, temperature=0.8).strip()
+        
+        if response_text.startswith("```"):
+            response_text = "\n".join(response_text.split("\n")[1:])
+        if response_text.endswith("```"):
+            response_text = "\n".join(response_text.split("\n")[:-1])
+            
+        parsed_feed = json.loads(response_text.strip())
+        return jsonify(parsed_feed)
+    except Exception as e:
+        return jsonify({"error": f"Failed to fetch market rates: {str(e)}"}), 500
+
+
+@app.route("/api/aquafuture/water-advisory", methods=["POST"])
+def aquafuture_water_advisory():
+    if not azure_openai_key:
+        return jsonify({
+            "error": "Azure OpenAI key is not configured in the backend .env file.",
+            "code": "API_KEY_MISSING"
+        }), 400
+
+    data = request.json or {}
+    ph = data.get("ph")
+    do_level = data.get("doLevel")
+    temp = data.get("temp")
+    salinity = data.get("salinity")
+    score = data.get("score")
+    rating = data.get("rating")
+    issues = data.get("issues", [])
+
+    try:
+        prompt_text = f"""Analyze this water quality status:
+- pH Level: {ph}
+- Dissolved Oxygen (DO): {do_level} mg/L
+- Temperature: {temp}°C
+- Salinity: {salinity} ppt
+
+Current score: {score}/100 (Rating: {rating})
+Identified Issues: {', '.join(issues) or 'None'}
+
+Provide a brief, professional explanation of the water's present position and list 3-4 specific, actionable steps the aquaculture farmer must take to improve or maintain the water quality. Keep it concise, practical, and highly scientific."""
+
+        messages = [
+            {
+                "role": "system",
+                "content": "You are a senior water chemistry researcher in aquaculture systems. You analyze data parameters and provide concise, expert biological/chemical remediation advice."
+            },
+            {
+                "role": "user",
+                "content": prompt_text
+            }
+        ]
+
+        reply = call_azure_openai(messages, temperature=0.5)
+        return jsonify({"advice": reply.strip()})
+    except Exception as e:
+        return jsonify({"error": f"Failed to generate advisory: {str(e)}"}), 500
+
+
+@app.route("/api/aquafuture/tts", methods=["POST"])
+def aquafuture_tts():
+    # Dynamically read key in case it was loaded after initial load
+    key = os.getenv("SARVAM_API_KEY") or sarvam_api_key
+    print("[aquafuture_tts] Global Key:", sarvam_api_key, "Dynamic Key:", key)
+    if not key:
+        return jsonify({
+            "error": "Sarvam API key is not configured in the backend .env file.",
+            "code": "API_KEY_MISSING"
+        }), 400
+
+    data = request.json or {}
+    text = data.get("text")
+    language = data.get("language", "en-IN")
+
+    if not text:
+        return jsonify({"error": "Missing 'text' parameter."}), 400
+
+    try:
+        response = requests.post('https://api.sarvam.ai/text-to-speech', 
+            headers={
+                'Content-Type': 'application/json',
+                'api-subscription-key': key
+            },
+            json={
+                'text': text,
+                'speaker': 'ishita',
+                'target_language_code': language,
+                'pace': 1.0,
+                'model': 'bulbul:v3'
+            }
+        )
+
+        if response.status_code != 200:
+            return jsonify({"error": f"Sarvam TTS API returned status: {response.status_code}"}), 400
+
+        res_data = response.json()
+        base64_audio = res_data.get("audios", [None])[0]
+        if not base64_audio:
+            return jsonify({"error": "No audio returned in Sarvam TTS response"}), 400
+
+        return jsonify({"audio": base64_audio})
+    except Exception as e:
+        return jsonify({"error": f"TTS generation failed: {str(e)}"}), 500
 
 
 if __name__ == "__main__":

@@ -437,6 +437,150 @@ export default function App() {
   const [newsSyncing, setNewsSyncing] = useState(false);
   const [newsForm, setNewsForm] = useState({ title: '', content: '', category: 'Scheme', source: '', image_url: '' });
 
+  // ── Smart Farm Tools Constants & State Variables ──
+  const CROP_PRESETS = {
+    rice: { name: 'Paddy / Rice', seedTestWeight: 25, defaultRow: 20, defaultPlant: 15, optimalNPK: { N: 50, P: 25, K: 25 }, defaultPrice: 2300, growthDuration: 16 },
+    wheat: { name: 'Wheat', seedTestWeight: 40, defaultRow: 22.5, defaultPlant: 10, optimalNPK: { N: 60, P: 30, K: 20 }, defaultPrice: 2400, growthDuration: 18 },
+    maize: { name: 'Maize / Corn', seedTestWeight: 250, defaultRow: 60, defaultPlant: 20, optimalNPK: { N: 60, P: 30, K: 30 }, defaultPrice: 2200, growthDuration: 16 },
+    cotton: { name: 'Cotton', seedTestWeight: 100, defaultRow: 90, defaultPlant: 45, optimalNPK: { N: 40, P: 20, K: 20 }, defaultPrice: 7000, growthDuration: 24 }
+  };
+
+  const [toolsTab, setToolsTab] = useState('calculators'); // 'calculators' | 'diagnostics' | 'predictor'
+  const [toolsCalcSubTab, setToolsCalcSubTab] = useState('seed'); // 'seed' | 'npk' | 'water'
+
+  // Seed Rate Calculator States
+  const [seedCrop, setSeedCrop] = useState('rice');
+  const [seedAcres, setSeedAcres] = useState('1');
+  const [seedRowSpacing, setSeedRowSpacing] = useState('20');
+  const [seedPlantSpacing, setSeedPlantSpacing] = useState('15');
+  const [seedGermination, setSeedGermination] = useState('85');
+
+  // NUE/NPK Calculator States
+  const [nueCrop, setNueCrop] = useState('rice');
+  const [nueYield, setNueYield] = useState('20');
+  const [nueUreaBags, setNueUreaBags] = useState('2');
+  const [nueSspBags, setNueSspBags] = useState('2.5');
+  const [nueMopBags, setNueMopBags] = useState('1');
+
+  // Irrigation Calculator States
+  const [waterStage, setWaterStage] = useState('vegetative');
+  const [waterTemp, setWaterTemp] = useState('28');
+  const [waterSoil, setWaterSoil] = useState('loam');
+  const [waterAcres, setWaterAcres] = useState('1');
+
+  // Soil Diagnostics States
+  const [soilDiagPh, setSoilDiagPh] = useState('6.8');
+  const [soilDiagEc, setSoilDiagEc] = useState('0.8');
+  const [soilDiagOc, setSoilDiagOc] = useState('0.6');
+  const [soilDiagN, setSoilDiagN] = useState('Medium');
+  const [soilDiagP, setSoilDiagP] = useState('Medium');
+  const [soilDiagK, setSoilDiagK] = useState('Medium');
+
+  // Yield Predictor States
+  const [predCrop, setPredCrop] = useState('rice');
+  const [predAcres, setPredAcres] = useState('1');
+  const [predExpectedPrice, setPredExpectedPrice] = useState('2300');
+  const [predCultCost, setPredCultCost] = useState('15000');
+  const [predWeeks, setPredWeeks] = useState('12');
+
+  // ── Browser History / Back Button Support ──
+  const isPopStateRef = React.useRef(false);
+
+  useEffect(() => {
+    const initialState = {
+      activeTab: 'dashboard',
+      profileOpen: false,
+      cropDetail: null,
+      diseaseDetail: null,
+      newsDetail: null,
+      stateDetail: null,
+      chatbotOpen: false,
+      adminPasswordModalOpen: false,
+      toolsTab: 'calculators',
+      toolsCalcSubTab: 'seed'
+    };
+    window.history.replaceState(initialState, '');
+
+    const handlePopState = (event) => {
+      if (event.state) {
+        isPopStateRef.current = true;
+        const state = event.state;
+        
+        setActiveTab(state.activeTab || 'dashboard');
+        setProfileOpen(state.profileOpen || false);
+        setSelectedCropDetail(state.cropDetail || null);
+        setSelectedDiseaseDetail(state.diseaseDetail || null);
+        setSelectedNewsDetail(state.newsDetail || null);
+        setStateDetail(state.stateDetail || null);
+        setChatbotOpen(state.chatbotOpen || false);
+        setAdminPasswordModalOpen(state.adminPasswordModalOpen || false);
+        setToolsTab(state.toolsTab || 'calculators');
+        setToolsCalcSubTab(state.toolsCalcSubTab || 'seed');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    if (isPopStateRef.current) {
+      isPopStateRef.current = false;
+      return;
+    }
+
+    const currentState = {
+      activeTab,
+      profileOpen,
+      cropDetail: selectedCropDetail,
+      diseaseDetail: selectedDiseaseDetail,
+      newsDetail: selectedNewsDetail,
+      stateDetail,
+      chatbotOpen,
+      adminPasswordModalOpen,
+      toolsTab,
+      toolsCalcSubTab
+    };
+
+    const historyState = window.history.state;
+    const isDifferent = !historyState ||
+      historyState.activeTab !== currentState.activeTab ||
+      historyState.profileOpen !== currentState.profileOpen ||
+      (historyState.cropDetail?.id !== currentState.cropDetail?.id) ||
+      (historyState.diseaseDetail?.id !== currentState.diseaseDetail?.id) ||
+      (historyState.newsDetail?.id !== currentState.newsDetail?.id) ||
+      (historyState.stateDetail?.id !== currentState.stateDetail?.id) ||
+      historyState.chatbotOpen !== currentState.chatbotOpen ||
+      historyState.adminPasswordModalOpen !== currentState.adminPasswordModalOpen ||
+      historyState.toolsTab !== currentState.toolsTab ||
+      historyState.toolsCalcSubTab !== currentState.toolsCalcSubTab;
+
+    if (isDifferent) {
+      window.history.pushState(currentState, '');
+    }
+  }, [activeTab, profileOpen, selectedCropDetail, selectedDiseaseDetail, selectedNewsDetail, stateDetail, chatbotOpen, adminPasswordModalOpen, toolsTab, toolsCalcSubTab]);
+
+  const handleCloseDetail = (type) => {
+    const state = window.history.state;
+    if (state && (
+      (type === 'crop' && state.cropDetail) ||
+      (type === 'disease' && state.diseaseDetail) ||
+      (type === 'news' && state.newsDetail) ||
+      (type === 'profile' && state.profileOpen) ||
+      (type === 'chatbot' && state.chatbotOpen) ||
+      (type === 'adminPassword' && state.adminPasswordModalOpen)
+    )) {
+      window.history.back();
+    } else {
+      if (type === 'crop') setSelectedCropDetail(null);
+      if (type === 'disease') setSelectedDiseaseDetail(null);
+      if (type === 'news') setSelectedNewsDetail(null);
+      if (type === 'profile') setProfileOpen(false);
+      if (type === 'chatbot') setChatbotOpen(false);
+      if (type === 'adminPassword') setAdminPasswordModalOpen(false);
+    }
+  };
+
   // Agricultural Loading Phrases
   const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
   const loadingPhrases = [
@@ -1985,6 +2129,7 @@ export default function App() {
             { id: 'crop-info', labelKey: 'cropsDirectory', icon: Sprout },
             { id: 'gov-msp', labelKey: 'govtCropsMsp', icon: TrendingUp },
             { id: 'gov-schemes', labelKey: 'govtSchemes', icon: CheckCircle2 },
+            { id: 'tools', labelKey: 'tools', icon: Sliders },
             { id: 'news-updates', labelKey: 'agriNewsAlerts', icon: Newspaper },
             { id: 'soil-info', labelKey: 'soilDetails', icon: Database },
             { id: 'disease-mgmt', labelKey: 'cropHealthHub', icon: ShieldAlert },
@@ -3050,7 +3195,7 @@ export default function App() {
                           <p className="text-xs text-emerald-300 italic">{selectedCropDetail.scientific_name}</p>
                         </div>
                         <button
-                          onClick={() => setSelectedCropDetail(null)}
+                          onClick={() => handleCloseDetail('crop')}
                           className="text-emerald-200 hover:text-white p-1 rounded-lg hover:bg-emerald-800"
                         >
                           <X className="h-5 w-5" />
@@ -4152,6 +4297,885 @@ export default function App() {
               </div>
             )}
 
+            {/* 3b. SMART FARM TOOLS MODULE */}
+            {activeTab === 'tools' && (
+              <div className="space-y-6 animate-fade-in text-left">
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">{t('toolsTitle')}</h2>
+                  <p className="text-sm text-gray-500 mt-1">{t('toolsDesc')}</p>
+                </div>
+
+                {/* Main Tabs for Tools */}
+                <div className="flex border-b border-gray-200">
+                  {[
+                    { id: 'calculators', label: t('calculators') },
+                    { id: 'diagnostics', label: t('soilDiagnostics') },
+                    { id: 'predictor', label: t('growthPredictor') }
+                  ].map((sub) => (
+                    <button
+                      key={sub.id}
+                      onClick={() => setToolsTab(sub.id)}
+                      className={`py-3 px-6 text-sm font-bold border-b-2 transition-all ${
+                        toolsTab === sub.id
+                          ? 'border-emerald-600 text-emerald-800 font-extrabold'
+                          : 'border-transparent text-gray-500 hover:text-emerald-700'
+                      }`}
+                    >
+                      {sub.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* TAB CONTENT: CALCULATORS */}
+                {toolsTab === 'calculators' && (
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {/* Left Navigation for Calculators */}
+                    <div className="md:col-span-1 space-y-1">
+                      {[
+                        { id: 'seed', label: t('seedCalculator') },
+                        { id: 'npk', label: t('nueCalculator') },
+                        { id: 'water', label: t('waterCalculator') }
+                      ].map((calcSub) => (
+                        <button
+                          key={calcSub.id}
+                          onClick={() => setToolsCalcSubTab(calcSub.id)}
+                          className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold transition-all ${
+                            toolsCalcSubTab === calcSub.id
+                              ? 'bg-emerald-50 text-emerald-800 shadow-sm border-l-4 border-l-emerald-600'
+                              : 'text-gray-600 hover:bg-gray-50 hover:text-emerald-700'
+                          }`}
+                        >
+                          {calcSub.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Right Panel for Selected Calculator */}
+                    <div className="md:col-span-3 bg-white rounded-2xl border border-gray-200 p-6 shadow-md">
+                      {/* 1. SEED RATE CALCULATOR */}
+                      {toolsCalcSubTab === 'seed' && (
+                        <div className="space-y-6">
+                          <div>
+                            <h3 className="font-extrabold text-base text-gray-900">{t('seedRateCalculatorTitle')}</h3>
+                            <p className="text-xs text-gray-400 mt-0.5 font-medium">Determine seeds required based on spacing and germination metrics.</p>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Inputs */}
+                            <div className="space-y-4">
+                              <div className="space-y-1.5 text-left">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('cropVariety')}</label>
+                                <select
+                                  value={seedCrop}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setSeedCrop(val);
+                                    if (CROP_PRESETS[val]) {
+                                      setSeedRowSpacing(CROP_PRESETS[val].defaultRow.toString());
+                                      setSeedPlantSpacing(CROP_PRESETS[val].defaultPlant.toString());
+                                    }
+                                  }}
+                                  className="w-full p-2.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-semibold text-gray-700"
+                                >
+                                  {Object.keys(CROP_PRESETS).map((key) => (
+                                    <option key={key} value={key}>{CROP_PRESETS[key].name}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="space-y-1.5 text-left">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('farmSizeAcres')}</label>
+                                <input
+                                  type="number"
+                                  value={seedAcres}
+                                  min="0.1"
+                                  step="0.1"
+                                  onChange={(e) => setSeedAcres(e.target.value)}
+                                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold bg-white"
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5 text-left">
+                                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('rowSpacingCm')}</label>
+                                  <input
+                                    type="number"
+                                    value={seedRowSpacing}
+                                    onChange={(e) => setSeedRowSpacing(e.target.value)}
+                                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold bg-white"
+                                  />
+                                </div>
+                                <div className="space-y-1.5 text-left">
+                                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('plantSpacingCm')}</label>
+                                  <input
+                                    type="number"
+                                    value={seedPlantSpacing}
+                                    onChange={(e) => setSeedPlantSpacing(e.target.value)}
+                                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold bg-white"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="space-y-1.5 text-left">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('germinationRatePct')}</label>
+                                <input
+                                  type="range"
+                                  value={seedGermination}
+                                  min="50"
+                                  max="100"
+                                  onChange={(e) => setSeedGermination(e.target.value)}
+                                  className="w-full accent-emerald-600 h-1.5 bg-gray-200 rounded-lg cursor-pointer"
+                                />
+                                <div className="flex justify-between text-[10px] text-gray-400 font-black">
+                                  <span>50%</span>
+                                  <span className="text-emerald-750 font-extrabold">{seedGermination}%</span>
+                                  <span>100%</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Outputs */}
+                            {(() => {
+                              const acres = parseFloat(seedAcres) || 0;
+                              const row = parseFloat(seedRowSpacing) || 20;
+                              const plant = parseFloat(seedPlantSpacing) || 15;
+                              const germ = parseFloat(seedGermination) || 85;
+                              const preset = CROP_PRESETS[seedCrop] || CROP_PRESETS.rice;
+
+                              // Spacing Population Math
+                              const plantPopulation = Math.round((acres * 4047) / ((row / 100) * (plant / 100)) * (germ / 100));
+                              const seedWeightKg = ((plantPopulation * preset.seedTestWeight) / (1000 * 1000 * (germ / 100))).toFixed(1);
+
+                              return (
+                                <div className="bg-emerald-50/20 border border-emerald-100/50 rounded-2xl p-6 flex flex-col justify-between">
+                                  <div className="space-y-4">
+                                    <h4 className="font-extrabold text-xs text-emerald-800 uppercase tracking-wider">{t('results')}</h4>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div className="bg-white p-3.5 rounded-xl border border-emerald-100/30 shadow-sm text-left">
+                                        <span className="text-[10px] text-gray-400 font-bold block">{t('totalSeedRequired')}</span>
+                                        <span className="text-lg font-black text-emerald-900 mt-1 block">{seedWeightKg} <span className="text-xs">kg</span></span>
+                                      </div>
+                                      <div className="bg-white p-3.5 rounded-xl border border-emerald-100/30 shadow-sm text-left">
+                                        <span className="text-[10px] text-gray-400 font-bold block">{t('seedRatePerAcre')}</span>
+                                        <span className="text-lg font-black text-emerald-900 mt-1 block">{(seedWeightKg / (acres || 1)).toFixed(1)} <span className="text-xs">kg/ac</span></span>
+                                      </div>
+                                    </div>
+
+                                    <div className="bg-white p-3.5 rounded-xl border border-emerald-100/30 shadow-sm text-left">
+                                      <span className="text-[10px] text-gray-400 font-bold block">{t('targetPlantPopulation')}</span>
+                                      <span className="text-lg font-black text-gray-900 mt-1 block">{plantPopulation.toLocaleString()} <span className="text-xs text-gray-400 font-semibold">seedlings</span></span>
+                                    </div>
+                                  </div>
+
+                                  <div className="mt-6 text-left p-3.5 bg-white border border-emerald-100/30 rounded-xl">
+                                    <span className="text-[10px] text-amber-800 font-black block flex items-center">💡 Spacing Tip</span>
+                                    <p className="text-[11px] text-gray-500 mt-1 leading-relaxed font-medium">
+                                      For {preset.name}, optimal row spacing is {preset.defaultRow}cm and plant spacing is {preset.defaultPlant}cm. Adequate spacing avoids plant crowding and minimizes pest migrations.
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 2. NUE/NPK CALCULATOR */}
+                      {toolsCalcSubTab === 'npk' && (
+                        <div className="space-y-6">
+                          <div>
+                            <h3 className="font-extrabold text-base text-gray-900">{t('nueCalculatorTitle')}</h3>
+                            <p className="text-xs text-gray-400 mt-0.5 font-medium">Evaluate chemical fertilizer application efficiency and NPK absorption rates.</p>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Inputs */}
+                            <div className="space-y-4">
+                              <div className="space-y-1.5 text-left">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('cropVariety')}</label>
+                                <select
+                                  value={nueCrop}
+                                  onChange={(e) => setNueCrop(e.target.value)}
+                                  className="w-full p-2.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-semibold text-gray-700"
+                                >
+                                  {Object.keys(CROP_PRESETS).map((key) => (
+                                    <option key={key} value={key}>{CROP_PRESETS[key].name}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="space-y-1.5 text-left">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('actualYieldObtained')}</label>
+                                <input
+                                  type="number"
+                                  value={nueYield}
+                                  min="1"
+                                  onChange={(e) => setNueYield(e.target.value)}
+                                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold bg-white"
+                                />
+                              </div>
+
+                              <div className="space-y-2 text-left">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('fertilizerBagsApplied')}</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] text-gray-400 font-bold block">Urea (N)</span>
+                                    <input
+                                      type="number"
+                                      value={nueUreaBags}
+                                      step="0.5"
+                                      onChange={(e) => setNueUreaBags(e.target.value)}
+                                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold bg-white"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] text-gray-400 font-bold block">SSP (P)</span>
+                                    <input
+                                      type="number"
+                                      value={nueSspBags}
+                                      step="0.5"
+                                      onChange={(e) => setNueSspBags(e.target.value)}
+                                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold bg-white"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] text-gray-400 font-bold block">MOP (K)</span>
+                                    <input
+                                      type="number"
+                                      value={nueMopBags}
+                                      step="0.5"
+                                      onChange={(e) => setNueMopBags(e.target.value)}
+                                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold bg-white"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Outputs */}
+                            {(() => {
+                              const yieldAmt = parseFloat(nueYield) || 1;
+                              const urea = parseFloat(nueUreaBags) || 0;
+                              const ssp = parseFloat(nueSspBags) || 0;
+                              const mop = parseFloat(nueMopBags) || 0;
+
+                              // Apply actual NPK kg conversion
+                              const appliedN = urea * 50 * 0.46;
+                              const appliedP = ssp * 50 * 0.16;
+                              const appliedK = mop * 50 * 0.60;
+                              const totalApplied = Math.max(1, appliedN + appliedP + appliedK);
+
+                              // NPK extraction factors per quintal
+                              const cropFactors = {
+                                rice: { N: 1.8, P: 0.4, K: 1.8 },
+                                wheat: { N: 2.2, P: 0.5, K: 1.9 },
+                                maize: { N: 2.0, P: 0.6, K: 2.0 },
+                                cotton: { N: 3.5, P: 1.0, K: 3.0 }
+                              };
+                              const factors = cropFactors[nueCrop] || cropFactors.rice;
+
+                              const extN = yieldAmt * factors.N;
+                              const extP = yieldAmt * factors.P;
+                              const extK = yieldAmt * factors.K;
+                              const totalExtracted = extN + extP + extK;
+
+                              const nuePct = Math.min(100, Math.round((totalExtracted / totalApplied) * 100));
+
+                              let rating = "Excellent (Balanced)";
+                              let colorClass = "text-emerald-700 bg-emerald-50 border-emerald-150";
+                              let advice = "Superb balance! Nutrient application aligns perfectly with crop metabolic demands. Soil chemical depletion risk is low.";
+
+                              if (nuePct < 35) {
+                                rating = "Poor (Heavy Wastage)";
+                                colorClass = "text-rose-700 bg-rose-50 border-rose-150";
+                                advice = "Excessive fertilizer application detected. Emitters and groundwater are at risk of chemical runoffs, which also lock soil pH.";
+                              } else if (nuePct < 60) {
+                                rating = "Moderate (Slight Overuse)";
+                                colorClass = "text-amber-800 bg-amber-50 border-amber-150";
+                                advice = "Fertilizers are slightly overused. Try reducing Urea or SSP dosage by 10-15% and incorporate organic vermicompost to aid natural uptake.";
+                              }
+
+                              return (
+                                <div className="bg-slate-50/50 border border-slate-200 rounded-2xl p-6 flex flex-col justify-between">
+                                  <div className="space-y-4">
+                                    <h4 className="font-extrabold text-xs text-gray-500 uppercase tracking-wider">{t('results')}</h4>
+                                    
+                                    <div className="flex items-center space-x-4">
+                                      <div className="relative flex items-center justify-center shrink-0">
+                                        <svg className="w-20 h-20 transform -rotate-90">
+                                          <circle cx="40" cy="40" r="34" stroke="#e2e8f0" strokeWidth="6" fill="transparent" />
+                                          <circle cx="40" cy="40" r="34" stroke={nuePct < 35 ? "#ef4444" : nuePct < 60 ? "#f59e0b" : "#10b981"} strokeWidth="6" fill="transparent"
+                                            strokeDasharray={213.6}
+                                            strokeDashoffset={213.6 - (213.6 * nuePct) / 100}
+                                          />
+                                        </svg>
+                                        <span className="absolute text-sm font-black text-gray-900">{nuePct}%</span>
+                                      </div>
+                                      <div className="text-left">
+                                        <span className="text-[10px] text-gray-400 font-bold block">{t('nutrientUseEfficiency')}</span>
+                                        <span className="text-base font-black text-gray-800 mt-0.5 block">{rating}</span>
+                                      </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-2 text-left">
+                                      <div className="bg-white p-2.5 rounded-xl border border-slate-150 shadow-xs">
+                                        <span className="text-[9px] text-gray-400 font-bold block">N Applied</span>
+                                        <span className="text-xs font-extrabold text-gray-700 mt-0.5 block">{appliedN.toFixed(1)} kg</span>
+                                      </div>
+                                      <div className="bg-white p-2.5 rounded-xl border border-slate-150 shadow-xs">
+                                        <span className="text-[9px] text-gray-400 font-bold block">P Applied</span>
+                                        <span className="text-xs font-extrabold text-gray-700 mt-0.5 block">{appliedP.toFixed(1)} kg</span>
+                                      </div>
+                                      <div className="bg-white p-2.5 rounded-xl border border-slate-150 shadow-xs">
+                                        <span className="text-[9px] text-gray-400 font-bold block">K Applied</span>
+                                        <span className="text-xs font-extrabold text-gray-700 mt-0.5 block">{appliedK.toFixed(1)} kg</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className={`mt-6 text-left p-3.5 rounded-xl border font-medium ${colorClass}`}>
+                                    <span className="text-[10px] font-black uppercase tracking-wider block">NPK Advisory</span>
+                                    <p className="text-[11px] mt-1 leading-relaxed text-gray-600">
+                                      {advice}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 3. IRRIGATION WATER CALCULATOR */}
+                      {toolsCalcSubTab === 'water' && (
+                        <div className="space-y-6">
+                          <div>
+                            <h3 className="font-extrabold text-base text-gray-900">{t('waterCalculatorTitle')}</h3>
+                            <p className="text-xs text-gray-400 mt-0.5 font-medium">Determine crop daily water needs based on growth stage, weather, and soil texture.</p>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Inputs */}
+                            <div className="space-y-4">
+                              <div className="space-y-1.5 text-left">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('cropGrowthStage')}</label>
+                                <select
+                                  value={waterStage}
+                                  onChange={(e) => setWaterStage(e.target.value)}
+                                  className="w-full p-2.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-semibold text-gray-700"
+                                >
+                                  <option value="sowing">Sowing / Initial (0-4 Weeks)</option>
+                                  <option value="vegetative">Vegetative Growth (4-8 Weeks)</option>
+                                  <option value="flowering">Flowering / Heading (8-12 Weeks)</option>
+                                  <option value="yield">Yield Formation (12-16 Weeks)</option>
+                                  <option value="harvest">Ripening / Harvesting (16+ Weeks)</option>
+                                </select>
+                              </div>
+
+                              <div className="space-y-1.5 text-left">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('farmSizeAcres')}</label>
+                                <input
+                                  type="number"
+                                  value={waterAcres}
+                                  min="0.1"
+                                  step="0.1"
+                                  onChange={(e) => setWaterAcres(e.target.value)}
+                                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold bg-white"
+                                />
+                              </div>
+
+                              <div className="space-y-1.5 text-left">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('soilTexture')}</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                  {['sand', 'loam', 'clay'].map((s) => (
+                                    <button
+                                      key={s}
+                                      type="button"
+                                      onClick={() => setWaterSoil(s)}
+                                      className={`py-2 border rounded-xl text-center capitalize transition-all text-[10px] font-black ${
+                                        waterSoil === s
+                                          ? 'border-emerald-600 bg-emerald-50 text-emerald-800'
+                                          : 'border-gray-200 bg-white hover:border-gray-300'
+                                      }`}
+                                    >
+                                      {s}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="space-y-1.5 text-left">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('currentTemperature')}</label>
+                                <input
+                                  type="range"
+                                  value={waterTemp}
+                                  min="15"
+                                  max="45"
+                                  onChange={(e) => setWaterTemp(e.target.value)}
+                                  className="w-full accent-emerald-600 h-1.5 bg-gray-200 rounded-lg cursor-pointer"
+                                />
+                                <div className="flex justify-between text-[10px] text-gray-400 font-black">
+                                  <span>15°C</span>
+                                  <span className="text-emerald-750 font-extrabold">{waterTemp}°C</span>
+                                  <span>45°C</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Outputs */}
+                            {(() => {
+                              const acres = parseFloat(waterAcres) || 0;
+                              const temp = parseFloat(waterTemp) || 28;
+
+                              // ETc base factors (mm/day)
+                              const etBaseline = {
+                                sowing: 2.0,
+                                vegetative: 4.5,
+                                flowering: 6.2,
+                                yield: 5.0,
+                                harvest: 1.5
+                              };
+                              const baseEt = etBaseline[waterStage] || 4.5;
+
+                              // Temp multiplier
+                              const tempMult = temp > 35 ? 1.3 : temp < 22 ? 0.75 : 1.0;
+
+                              // Soil drainage multiplier
+                              const soilMult = { sand: 1.25, loam: 1.0, clay: 0.8 };
+                              const sMult = soilMult[waterSoil] || 1.0;
+
+                              const dailyDepthMm = baseEt * tempMult * sMult;
+                              const totalLitres = Math.round(dailyDepthMm * (acres * 4047));
+
+                              // Drip run time (standard emitter delivery at 1.25mm depth equivalent per hour)
+                              const dripRunHours = (dailyDepthMm / 1.25).toFixed(1);
+
+                              return (
+                                <div className="bg-sky-50/20 border border-sky-100/50 rounded-2xl p-6 flex flex-col justify-between">
+                                  <div className="space-y-4">
+                                    <h4 className="font-extrabold text-xs text-sky-800 uppercase tracking-wider">{t('results')}</h4>
+                                    
+                                    <div className="bg-white p-3.5 rounded-xl border border-sky-100/30 shadow-sm text-left">
+                                      <span className="text-[10px] text-gray-400 font-bold block">{t('dailyIrrigationVolume')}</span>
+                                      <span className="text-xl font-black text-sky-900 mt-1 block">
+                                        {totalLitres.toLocaleString()} <span className="text-xs font-semibold text-gray-500">Liters / Day</span>
+                                      </span>
+                                    </div>
+
+                                    <div className="bg-white p-3.5 rounded-xl border border-sky-100/30 shadow-sm text-left">
+                                      <span className="text-[10px] text-gray-400 font-bold block">{t('dripSystemRunTime')}</span>
+                                      <span className="text-xl font-black text-sky-900 mt-1 block">
+                                        {dripRunHours} <span className="text-xs font-semibold text-gray-500">Hours / Day</span>
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <div className="mt-6 text-left p-3.5 bg-white border border-sky-100/30 rounded-xl">
+                                    <span className="text-[10px] text-sky-800 font-black block flex items-center">💡 Hydrology Tip</span>
+                                    <p className="text-[11px] text-gray-500 mt-1 leading-relaxed font-medium">
+                                      {waterSoil === 'sand'
+                                        ? "Sandy soils leach water extremely fast. Water multiple times in shorter durations (e.g. twice daily for half the time) to prevent nutrient leaching."
+                                        : waterSoil === 'clay'
+                                        ? "Clay soils retain water. Avoid excessive watering to prevent root-rot/asphyxiation. Keep spacing intervals larger."
+                                        : "Loam soil offers ideal moisture retention. Maintain standard single irrigation runs."}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB CONTENT: SOIL DIAGNOSTICS */}
+                {toolsTab === 'diagnostics' && (
+                  <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-md">
+                    <div className="border-b border-gray-100 pb-3 mb-6">
+                      <h3 className="font-extrabold text-lg text-gray-900 flex items-center">
+                        <Activity className="h-5 w-5 text-emerald-600 mr-2" />
+                        {t('soilDiagnosticsTitle')}
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5 font-medium">Input laboratory test parameters to calculate health scores and chemical prescriptions.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                      {/* Left 2 Cols: Sliders & Form */}
+                      <div className="lg:col-span-2 space-y-6">
+                        {/* pH & EC Row */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-1.5 text-left">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('soilPhLevel')}</label>
+                            <input
+                              type="range"
+                              value={soilDiagPh}
+                              min="4.5"
+                              max="9.5"
+                              step="0.1"
+                              onChange={(e) => setSoilDiagPh(e.target.value)}
+                              className="w-full accent-emerald-600 h-1.5 bg-gray-200 rounded-lg cursor-pointer"
+                            />
+                            <div className="flex justify-between text-[10px] text-gray-400 font-black">
+                              <span>4.5 (Acidic)</span>
+                              <span className="text-emerald-700 font-extrabold">{soilDiagPh}</span>
+                              <span>9.5 (Alkaline)</span>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5 text-left">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('soilSalinityEc')}</label>
+                            <input
+                              type="range"
+                              value={soilDiagEc}
+                              min="0.1"
+                              max="4.0"
+                              step="0.1"
+                              onChange={(e) => setSoilDiagEc(e.target.value)}
+                              className="w-full accent-emerald-600 h-1.5 bg-gray-200 rounded-lg cursor-pointer"
+                            />
+                            <div className="flex justify-between text-[10px] text-gray-400 font-black">
+                              <span>0.1 (Normal)</span>
+                              <span className="text-emerald-700 font-extrabold">{soilDiagEc} dS/m</span>
+                              <span>4.0 (Highly Saline)</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* OC Row */}
+                        <div className="space-y-1.5 text-left">
+                          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('organicCarbonOc')}</label>
+                          <input
+                            type="range"
+                            value={soilDiagOc}
+                            min="0.1"
+                            max="1.5"
+                            step="0.05"
+                            onChange={(e) => setSoilDiagOc(e.target.value)}
+                            className="w-full accent-emerald-600 h-1.5 bg-gray-200 rounded-lg cursor-pointer"
+                          />
+                          <div className="flex justify-between text-[10px] text-gray-400 font-black">
+                            <span>0.1% (Very Low)</span>
+                            <span className="text-emerald-700 font-extrabold">{soilDiagOc}%</span>
+                            <span>1.5% (High / Rich)</span>
+                          </div>
+                        </div>
+
+                        {/* NPK Level Toggles */}
+                        <div className="space-y-4">
+                          <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider block text-left">Secondary Nutrient Levels (NPK)</span>
+                          <div className="grid grid-cols-3 gap-4">
+                            {[
+                              { label: t('nitrogenLevel'), state: soilDiagN, setter: setSoilDiagN },
+                              { label: t('phosphorusLevel'), state: soilDiagP, setter: setSoilDiagP },
+                              { label: t('potassiumLevel'), state: soilDiagK, setter: setSoilDiagK }
+                            ].map((item, idx) => (
+                              <div key={idx} className="space-y-1.5 text-left">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">{item.label}</label>
+                                <div className="flex border border-gray-200 rounded-xl overflow-hidden text-[10px] font-black bg-white">
+                                  {['Low', 'Medium', 'High'].map((lvl) => (
+                                    <button
+                                      key={lvl}
+                                      type="button"
+                                      onClick={() => item.setter(lvl)}
+                                      className={`flex-1 py-2 text-center transition-all ${
+                                        item.state === lvl
+                                          ? 'bg-emerald-600 text-white'
+                                          : 'bg-white text-gray-500 hover:bg-gray-50'
+                                      }`}
+                                    >
+                                      {lvl}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right 1 Col: Score Gauge and Recommendations */}
+                      {(() => {
+                        const ph = parseFloat(soilDiagPh) || 7.0;
+                        const ec = parseFloat(soilDiagEc) || 0.8;
+                        const oc = parseFloat(soilDiagOc) || 0.6;
+
+                        let penalties = 0;
+                        const warnings = [];
+                        const remedies = [];
+
+                        // pH Penalty
+                        if (ph < 6.0) {
+                          penalties += (6.0 - ph) * 20;
+                          warnings.push(`Acidic soil stress (pH ${ph})`);
+                          remedies.push("Apply Agricultural Lime (calcium carbonate) at 1.5 tons/acre to neutralize acidity.");
+                        } else if (ph > 8.0) {
+                          penalties += (ph - 8.0) * 20;
+                          warnings.push(`Alkaline soil stress (pH ${ph})`);
+                          remedies.push("Buffer alkalinity by applying Gypsum (calcium sulfate) at 2.0 tons/acre.");
+                        }
+
+                        // EC Salinity Penalty
+                        if (ec > 1.6) {
+                          penalties += (ec - 1.6) * 15;
+                          warnings.push(`Elevated Soil Salinity (EC ${ec} dS/m)`);
+                          remedies.push("Improve drainage, leach soil with soft water, and avoid chemical potash inputs.");
+                        }
+
+                        // Organic Carbon Penalty
+                        if (oc < 0.6) {
+                          penalties += (0.6 - oc) * 35;
+                          warnings.push(`Deficient Organic Matter (OC ${oc}%)`);
+                          remedies.push("Incorporate green manure (dhanicha) or add Farmyard Manure (FYM) / Compost.");
+                        }
+
+                        // NPK Penalties
+                        if (soilDiagN === 'Low') penalties += 10;
+                        if (soilDiagP === 'Low') penalties += 10;
+                        if (soilDiagK === 'Low') penalties += 10;
+
+                        const score = Math.max(0, Math.round(100 - penalties));
+                        let scoreColor = "text-emerald-600";
+                        let statusText = "Optimal Soil Parameters";
+
+                        if (score < 50) {
+                          scoreColor = "text-rose-600";
+                          statusText = "Highly Depleted / Degraded Soil";
+                        } else if (score < 80) {
+                          scoreColor = "text-amber-600";
+                          statusText = "Moderate Nutritional Stress";
+                        }
+
+                        return (
+                          <div className="bg-slate-50/50 border border-slate-200 rounded-2xl p-6 flex flex-col justify-between text-left space-y-6">
+                            <div className="space-y-4">
+                              <h4 className="font-extrabold text-xs text-gray-500 uppercase tracking-wider">Health Summary</h4>
+
+                              <div className="flex items-center space-x-4 border-b border-gray-200/50 pb-4">
+                                <div className="relative flex items-center justify-center shrink-0">
+                                  <svg className="w-20 h-20 transform -rotate-90">
+                                    <circle cx="40" cy="40" r="34" stroke="#e2e8f0" strokeWidth="6" fill="transparent" />
+                                    <circle cx="40" cy="40" r="34" stroke={score < 50 ? "#ef4444" : score < 80 ? "#f59e0b" : "#10b981"} strokeWidth="6" fill="transparent"
+                                      strokeDasharray={213.6}
+                                      strokeDashoffset={213.6 - (213.6 * score) / 100}
+                                    />
+                                  </svg>
+                                  <span className="absolute text-base font-black text-gray-900">{score}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-gray-400 font-bold block">{t('soilHealthScore')}</span>
+                                  <span className={`text-sm font-black ${scoreColor} mt-0.5 block`}>{statusText}</span>
+                                </div>
+                              </div>
+
+                              {/* Alarms and Prescriptions */}
+                              <div className="space-y-3">
+                                {warnings.length > 0 ? (
+                                  <div className="space-y-2">
+                                    <span className="text-[10px] text-rose-500 font-extrabold uppercase block font-medium">Deficiency Alerts</span>
+                                    <div className="space-y-1">
+                                      {warnings.map((w, wIdx) => (
+                                        <div key={wIdx} className="p-2 bg-rose-50 border border-rose-100 text-[10px] font-black text-rose-800 rounded-lg flex items-center gap-1.5">
+                                          <span>⚠️</span>
+                                          <span>{w}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-center text-emerald-800 font-black text-xs">
+                                    ✔️ Soil chemistry parameters are perfectly optimal for cultivation!
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {remedies.length > 0 && (
+                              <div className="pt-2 border-t border-gray-200/50 space-y-2">
+                                <span className="text-[10px] text-emerald-800 font-black uppercase tracking-wider block font-medium">{t('remediesAndPrescriptions')}</span>
+                                <div className="space-y-1.5">
+                                  {remedies.map((rem, rIdx) => (
+                                    <div key={rIdx} className="text-[10px] text-gray-600 leading-relaxed font-semibold flex items-start gap-1">
+                                      <span className="text-emerald-600 font-black shrink-0">•</span>
+                                      <span>{rem}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB CONTENT: GROWTH & REVENUE PREDICTOR */}
+                {toolsTab === 'predictor' && (
+                  <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-md">
+                    <div className="border-b border-gray-100 pb-3 mb-6">
+                      <h3 className="font-extrabold text-lg text-gray-900 flex items-center">
+                        <TrendingUp className="h-5 w-5 text-emerald-600 mr-2" />
+                        {t('growthPredictorTitle')}
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5 font-medium">Project harvest yields, estimated cultivation costs, and crop revenues over time.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                      {/* Left Inputs */}
+                      <div className="space-y-6 text-left">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('cropVariety')}</label>
+                          <select
+                            value={predCrop}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setPredCrop(val);
+                              if (CROP_PRESETS[val]) {
+                                setPredExpectedPrice(CROP_PRESETS[val].defaultPrice.toString());
+                                setPredWeeks(CROP_PRESETS[val].growthDuration.toString());
+                              }
+                            }}
+                            className="w-full p-2.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-semibold text-gray-700"
+                          >
+                            {Object.keys(CROP_PRESETS).map((key) => (
+                              <option key={key} value={key}>{CROP_PRESETS[key].name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('farmSizeAcres')}</label>
+                          <input
+                            type="number"
+                            value={predAcres}
+                            min="0.1"
+                            step="0.1"
+                            onChange={(e) => setPredAcres(e.target.value)}
+                            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold bg-white"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('expectedMarketPrice')}</label>
+                            <input
+                              type="number"
+                              value={predExpectedPrice}
+                              onChange={(e) => setPredExpectedPrice(e.target.value)}
+                              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold bg-white"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('cultivationCostPerAcre')}</label>
+                            <input
+                              type="number"
+                              value={predCultCost}
+                              onChange={(e) => setPredCultCost(e.target.value)}
+                              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold bg-white"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">{t('projectedWeeks')}</label>
+                          <input
+                            type="range"
+                            value={predWeeks}
+                            min="4"
+                            max="26"
+                            onChange={(e) => setPredWeeks(e.target.value)}
+                            className="w-full accent-emerald-600 h-1.5 bg-gray-200 rounded-lg cursor-pointer"
+                          />
+                          <div className="flex justify-between text-[10px] text-gray-400 font-black">
+                            <span>4 Weeks</span>
+                            <span className="text-emerald-700 font-extrabold">{predWeeks} Weeks</span>
+                            <span>26 Weeks</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right Projections */}
+                      {(() => {
+                        const acres = parseFloat(predAcres) || 0;
+                        const price = parseFloat(predExpectedPrice) || 2000;
+                        const cost = parseFloat(predCultCost) || 12000;
+                        const w = parseFloat(predWeeks) || 12;
+                        const preset = CROP_PRESETS[predCrop] || CROP_PRESETS.rice;
+
+                        // Baselines per crop: rice: 22 qtl/ac, wheat: 18 qtl/ac, maize: 25 qtl/ac, cotton: 10 qtl/ac
+                        const cropBaselines = { rice: 22, wheat: 18, maize: 25, cotton: 10 };
+                        const base = cropBaselines[predCrop] || 20;
+
+                        // Sigmoid growth curve over optimal weeks
+                        const duration = preset.growthDuration;
+                        const yieldPerAcre = base * (1 / (1 + Math.exp(-0.45 * (w - (duration / 2)))));
+
+                        const totalYield = yieldPerAcre * acres;
+                        const totalCost = cost * acres;
+                        const grossRev = totalYield * price;
+                        const profit = grossRev - totalCost;
+                        const roi = totalCost > 0 ? (profit / totalCost) * 100 : 0;
+
+                        return (
+                          <div className="lg:col-span-2 space-y-6 text-left">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                              <div className="bg-slate-50 p-4 border border-slate-200 rounded-2xl">
+                                <span className="text-[10px] text-gray-400 font-bold block">{t('projectedHarvestYield')}</span>
+                                <span className="text-base font-black text-gray-900 mt-1 block">{totalYield.toFixed(1)} <span className="text-xs font-semibold text-gray-500">Qtl</span></span>
+                              </div>
+                              <div className="bg-slate-50 p-4 border border-slate-200 rounded-2xl">
+                                <span className="text-[10px] text-gray-400 font-bold block">{t('totalEstimatedCost')}</span>
+                                <span className="text-base font-black text-gray-900 mt-1 block">₹{Math.round(totalCost).toLocaleString()}</span>
+                              </div>
+                              <div className="bg-slate-50 p-4 border border-slate-200 rounded-2xl">
+                                <span className="text-[10px] text-gray-400 font-bold block">{t('projectedRevenue')}</span>
+                                <span className="text-base font-black text-gray-900 mt-1 block">₹{Math.round(grossRev).toLocaleString()}</span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className={`p-5 rounded-2xl border ${profit >= 0 ? 'bg-emerald-50/20 border-emerald-250/50 text-emerald-800 animate-pulse-subtle' : 'bg-rose-50/20 border-rose-250/50 text-rose-800'}`}>
+                                <span className="text-[10px] font-black uppercase tracking-wider block">{t('netProjectedProfit')}</span>
+                                <span className="text-2xl font-black mt-1.5 block">
+                                  {profit >= 0 ? "" : "-"}₹{Math.abs(Math.round(profit)).toLocaleString()}
+                                </span>
+                              </div>
+                              <div className={`p-5 rounded-2xl border ${profit >= 0 ? 'bg-emerald-50/20 border-emerald-250/50 text-emerald-800' : 'bg-rose-50/20 border-rose-250/50 text-rose-800'}`}>
+                                <span className="text-[10px] font-black uppercase tracking-wider block">{t('estimatedRoi')}</span>
+                                <span className="text-2xl font-black mt-1.5 block">
+                                  {roi.toFixed(1)}%
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Growth Stage Progress Bar */}
+                            <div className="p-5 border border-gray-200 rounded-2xl space-y-3.5 bg-slate-50/30">
+                              <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider block font-medium">{t('cropGrowthTimeline')}</span>
+                              
+                              <div className="relative">
+                                <div className="h-2 w-full bg-gray-200 rounded-full"></div>
+                                <div className="absolute top-0 h-2 bg-emerald-600 rounded-full transition-all duration-550" style={{ width: `${Math.min(100, (w / duration) * 100)}%` }}></div>
+                              </div>
+
+                              <div className="flex justify-between text-[9px] font-black text-gray-400">
+                                <span className={w <= 4 ? "text-emerald-700 font-extrabold animate-pulse" : ""}>Vegetative (w. 1-4)</span>
+                                <span className={w > 4 && w <= 8 ? "text-emerald-700 font-extrabold animate-pulse" : ""}>Flowering (w. 5-8)</span>
+                                <span className={w > 8 && w <= 12 ? "text-emerald-700 font-extrabold animate-pulse" : ""}>Yield Form (w. 9-12)</span>
+                                <span className={w > 12 ? "text-emerald-700 font-extrabold animate-pulse" : ""}>Harvest (w. {duration}+)</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* 4. SOIL INFORMATION MODULE */}
             {activeTab === 'soil-info' && (
               <div className="space-y-6">
@@ -4517,7 +5541,7 @@ export default function App() {
                           <p className="text-xs text-red-300">Targeting Crop Host: {selectedDiseaseDetail.crop_name}</p>
                         </div>
                         <button
-                          onClick={() => setSelectedDiseaseDetail(null)}
+                          onClick={() => handleCloseDetail('disease')}
                           className="text-red-200 hover:text-white p-1 rounded-lg hover:bg-red-800"
                         >
                           <X className="h-5 w-5" />
@@ -6047,7 +7071,7 @@ export default function App() {
                     <h3 className="text-lg md:text-xl font-extrabold leading-snug">{activeNews.title}</h3>
                   </div>
                   <button
-                    onClick={() => setSelectedNewsDetail(null)}
+                    onClick={() => handleCloseDetail('news')}
                     className="absolute top-4 right-4 bg-black/50 hover:bg-black/80 text-white p-2 rounded-full transition-colors"
                   >
                     <X className="h-4 w-4" />
@@ -6074,7 +7098,7 @@ export default function App() {
                 {/* Footer */}
                 <div className="p-6 pt-0 border-t border-gray-100 mt-auto bg-gray-50/50 flex justify-end">
                   <button
-                    onClick={() => setSelectedNewsDetail(null)}
+                    onClick={() => handleCloseDetail('news')}
                     className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition-all shadow-sm"
                   >
                     Close Bulletin
@@ -6092,7 +7116,7 @@ export default function App() {
               <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-emerald-950 text-white">
                 <h3 className="text-base font-black uppercase tracking-wide">{t('adminAccessRequired')}</h3>
                 <button
-                  onClick={() => setAdminPasswordModalOpen(false)}
+                  onClick={() => handleCloseDetail('adminPassword')}
                   className="text-emerald-200 hover:text-white p-1 rounded-lg hover:bg-emerald-900"
                 >
                   <X className="h-5 w-5" />
@@ -6123,7 +7147,7 @@ export default function App() {
                 <div className="border-t border-gray-100 pt-4 flex justify-end space-x-3">
                   <button
                     type="button"
-                    onClick={() => setAdminPasswordModalOpen(false)}
+                    onClick={() => handleCloseDetail('adminPassword')}
                     className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-50"
                   >
                     {t('cancel')}
@@ -6303,7 +7327,7 @@ export default function App() {
                     </div>
                   </div>
                   <button
-                    onClick={() => setChatbotOpen(false)}
+                    onClick={() => handleCloseDetail('chatbot')}
                     className="text-emerald-200 hover:text-white p-1 rounded-lg hover:bg-emerald-900 transition-all"
                   >
                     <X className="h-4 w-4" />
@@ -6493,7 +7517,7 @@ export default function App() {
 
               {/* Small round icon button */}
               <button
-                onClick={() => setChatbotOpen(!chatbotOpen)}
+                onClick={() => chatbotOpen ? handleCloseDetail('chatbot') : setChatbotOpen(true)}
                 className={`h-12 w-12 rounded-full flex items-center justify-center text-white shadow-2xl transition-all duration-350 hover:scale-105 active:scale-95 cursor-pointer relative z-50 ${chatbotOpen
                     ? 'bg-emerald-850 hover:bg-emerald-900 border border-emerald-800 animate-pulse-subtle'
                     : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:shadow-emerald-500/20 hover:shadow-xl'
@@ -6580,7 +7604,7 @@ export default function App() {
           <UserProfile
             user={currentUser}
             onSignOut={handleSignOut}
-            onClose={() => setProfileOpen(false)}
+            onClose={() => handleCloseDetail('profile')}
           />
         )}
       </div>
