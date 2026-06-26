@@ -2081,8 +2081,16 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-tr from-emerald-50/25 via-white to-amber-50/15 flex flex-col md:flex-row antialiased">
+      {/* Mobile Menu Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 md:hidden animate-fade-in"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar Navigation */}
-      <aside className={`w-full md:w-64 bg-emerald-900 text-white flex flex-col shrink-0 transition-all z-20 md:static ${mobileMenuOpen ? 'fixed inset-0 h-screen' : 'h-auto md:h-screen'}`}>
+      <aside className={`fixed top-0 bottom-0 left-0 z-30 w-64 bg-emerald-900 text-white flex flex-col shrink-0 transition-transform duration-300 ease-in-out transform md:translate-x-0 md:static md:h-screen ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {/* Logo Section */}
         <div className="p-5 border-b border-emerald-800 flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -2106,7 +2114,7 @@ export default function App() {
                 }
               }}
               title={t('adminPanel')}
-              className="hidden md:flex text-emerald-300 hover:text-white p-1.5 rounded-lg hover:bg-emerald-800 transition-all"
+              className="flex text-emerald-300 hover:text-white p-1.5 rounded-lg hover:bg-emerald-800 transition-all"
             >
               <UserCheck className="h-5 w-5" />
             </button>
@@ -2115,7 +2123,7 @@ export default function App() {
               onClick={() => setProfileOpen(true)}
               title="My Profile & History"
               id="user-profile-btn"
-              className="hidden md:flex items-center justify-center h-8 w-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white font-black text-xs shadow-md hover:shadow-lg hover:scale-105 transition-all"
+              className="flex items-center justify-center h-8 w-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white font-black text-xs shadow-md hover:shadow-lg hover:scale-105 transition-all"
             >
               {(currentUser?.name || 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
             </button>
@@ -2247,6 +2255,15 @@ export default function App() {
               className="text-emerald-300 hover:text-white p-1 rounded hover:bg-emerald-800 transition-all animate-fade-in"
             >
               <UserCheck className="h-5 w-5" />
+            </button>
+            {/* User Avatar button for mobile header */}
+            <button
+              onClick={() => setProfileOpen(true)}
+              title="My Profile & History"
+              id="user-profile-btn-mobile"
+              className="flex items-center justify-center h-8 w-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white font-black text-xs shadow-md hover:shadow-lg hover:scale-105 transition-all"
+            >
+              {(currentUser?.name || 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
             </button>
             <button onClick={() => setMobileMenuOpen(true)}>
               <Menu className="h-6 w-6" />
