@@ -231,6 +231,37 @@
   animation: wave-hand 2s ease-in-out infinite;
 }
 
+/* Talking Head Bobbing Animation */
+@keyframes talk-head {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(2px) rotate(1deg);
+  }
+}
+
+.farmer-head-talking {
+  animation: talk-head 0.35s ease-in-out infinite;
+}
+
+/* Talking Hand Gesture Animation */
+@keyframes talk-hand {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-18deg) translateY(-2px);
+  }
+  75% {
+    transform: rotate(-3deg) translateY(1px);
+  }
+}
+
+.farmer-hand-talking {
+  animation: talk-hand 0.8s ease-in-out infinite;
+}
+
 
 
 

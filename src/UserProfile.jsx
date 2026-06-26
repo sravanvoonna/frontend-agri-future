@@ -5,10 +5,10 @@ import {
   Bot, Camera, MapPin, Newspaper, Sliders, TrendingUp, User
 } from 'lucide-react';
 
-const API_BASE_URL =
-  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://127.0.0.1:5000/api'
-    : 'https://agri-future-backend.onrender.com/api';
+    : 'https://agrifuture.azurewebsites.net/api');
 
 /* icon + colour per action type */
 const ACTION_META = {
@@ -51,8 +51,11 @@ export default function UserProfile({ user, onSignOut, onClose }) {
         headers: { Authorization: `Bearer ${token}` }
       });
       setHistory(res.data);
-    } catch {
+    } catch (err) {
       setHistory([]);
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        onSignOut();
+      }
     } finally {
       setLoading(false);
     }
@@ -68,7 +71,11 @@ export default function UserProfile({ user, onSignOut, onClose }) {
         headers: { Authorization: `Bearer ${token}` }
       });
       setHistory([]);
-    } catch {/* ignore */}
+    } catch (err) {
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        onSignOut();
+      }
+    }
     finally { setClearing(false); }
   };
 
