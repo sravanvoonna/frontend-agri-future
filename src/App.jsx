@@ -4203,7 +4203,8 @@ export default function App() {
                             desc: "Supports acquisition of custom machinery to promote modern agricultural technology.",
                             eligible: true,
                             reason: "",
-                            url: "https://agrimachinery.nic.in/"
+                            url: "https://agrimachinery.nic.in/",
+                            altUrl: "https://farmech.dac.gov.in/"
                           });
                         }
 
@@ -4216,7 +4217,8 @@ export default function App() {
                             desc: "Promotes precision farming, pesticide spraying, and crop health monitoring via drones. Special incentives for cooperative groups and FPOs (up to 100% grant).",
                             eligible: true,
                             reason: "",
-                            url: "https://agrimachinery.nic.in/"
+                            url: "https://agrimachinery.nic.in/",
+                            altUrl: "https://farmech.dac.gov.in/"
                           });
                         }
 
@@ -4229,7 +4231,8 @@ export default function App() {
                             desc: `Supports purchase of Happy Seeders, Mulchers, Straw Choppers, and Balers to prevent stubble burning. ${isNorthState ? '🔥 High-priority state subsidy bonus active.' : 'Available for eco-friendly stubble management.'}`,
                             eligible: true,
                             reason: "",
-                            url: "https://agrimachinery.nic.in/"
+                            url: "https://agrimachinery.nic.in/",
+                            altUrl: "https://farmech.dac.gov.in/"
                           });
                         }
 
@@ -4241,7 +4244,8 @@ export default function App() {
                             desc: "Assists FPOs, cooperative societies, and rural youth to establish local machinery hubs. Enables renting out tractors, seeders, and harvesters at subsidised rates.",
                             eligible: true,
                             reason: "",
-                            url: "https://agrimachinery.nic.in/"
+                            url: "https://agrimachinery.nic.in/",
+                            altUrl: "https://farmech.dac.gov.in/"
                           });
                         }
 
@@ -4329,22 +4333,44 @@ export default function App() {
 
                                 <p className="text-gray-500 text-xs leading-relaxed font-medium">{sch.desc}</p>
 
-                                <div className="pt-2 flex justify-end">
-                                  {sch.eligible ? (
-                                    <a
-                                      href={sch.url}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-all shadow-sm flex items-center space-x-1"
-                                    >
-                                      <span>Apply Now</span>
-                                      <ChevronRight className="h-3.5 w-3.5" />
-                                    </a>
-                                  ) : (
-                                    <span className="px-4 py-2 bg-gray-200 text-gray-400 font-bold rounded-lg text-xs cursor-not-allowed">
-                                      Ineligible
+                                <div className="pt-2 flex flex-col sm:flex-row gap-2 justify-between items-center border-t border-gray-100/50 mt-2">
+                                  {sch.altUrl ? (
+                                    <span className="text-[10px] text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md font-semibold border border-amber-200/40">
+                                      ⚠️ Primary portal down? Try the alternative link.
                                     </span>
+                                  ) : (
+                                    <div />
                                   )}
+                                  <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
+                                    {sch.eligible ? (
+                                      <>
+                                        <a
+                                          href={sch.url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-all shadow-sm flex items-center space-x-1 justify-center"
+                                        >
+                                          <span>Apply Now</span>
+                                          <ChevronRight className="h-3.5 w-3.5" />
+                                        </a>
+                                        {sch.altUrl && (
+                                          <a
+                                            href={sch.altUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg text-xs transition-all shadow-sm flex items-center space-x-1 justify-center"
+                                          >
+                                            <span>Alternative Link</span>
+                                            <ChevronRight className="h-3.5 w-3.5" />
+                                          </a>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <span className="px-4 py-2 bg-gray-200 text-gray-400 font-bold rounded-lg text-xs cursor-not-allowed">
+                                        Ineligible
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             ))}
