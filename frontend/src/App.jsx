@@ -428,6 +428,9 @@ export default function App() {
   const [schemeIsTaxpayer, setSchemeIsTaxpayer] = useState(false);
   const [schemeSolarInterest, setSchemeSolarInterest] = useState(false);
   const [schemeMachineryInterest, setSchemeMachineryInterest] = useState(false);
+  const [schemeDroneInterest, setSchemeDroneInterest] = useState(false);
+  const [schemeResidueInterest, setSchemeResidueInterest] = useState(false);
+  const [schemeChcInterest, setSchemeChcInterest] = useState(false);
   const [schemeStateId, setSchemeStateId] = useState('');
   // News Updates States
   const [news, setNews] = useState([]);
@@ -2128,7 +2131,7 @@ export default function App() {
             { id: 'dashboard', labelKey: 'dashboard', icon: Layers },
             { id: 'crop-info', labelKey: 'cropsDirectory', icon: Sprout },
             { id: 'gov-msp', labelKey: 'govtCropsMsp', icon: TrendingUp },
-            { id: 'gov-schemes', labelKey: 'govtSchemes', icon: CheckCircle2 },
+            { id: 'gov-subsidies', labelKey: 'govtSubsidies', icon: CheckCircle2 },
             { id: 'tools', labelKey: 'tools', icon: Sliders },
             { id: 'news-updates', labelKey: 'agriNewsAlerts', icon: Newspaper },
             { id: 'soil-info', labelKey: 'soilDetails', icon: Database },
@@ -3809,20 +3812,20 @@ export default function App() {
             )}
 
             {/* 4b. GOVT SCHEMES ELIGIBILITY MODULE */}
-            {activeTab === 'gov-schemes' && (
+            {activeTab === 'gov-subsidies' && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Government Schemes Eligibility</h2>
-                  <p className="text-sm text-gray-500 mt-1">Interactive wizard to match your farm parameters with current central government subsidy schemes.</p>
+                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">{t('govtSubsidiesTitle')}</h2>
+                  <p className="text-sm text-gray-500 mt-1">{t('govtSubsidiesDesc')}</p>
                 </div>
 
                 <div className="max-w-3xl bg-white rounded-2xl border border-gray-200 p-8 shadow-md mx-auto text-left space-y-6 animate-fade-in">
                   <div className="border-b border-gray-100 pb-3">
                     <h3 className="font-extrabold text-lg text-gray-900 flex items-center">
                       <TrendingUp className="h-5 w-5 text-emerald-600 mr-2" />
-                      Govt Scheme Eligibility Helper
+                      {t('govtSubsidiesTitle')}
                     </h3>
-                    <p className="text-xs text-gray-500 mt-1">Verify your eligibility for Central Government agricultural subsidies and support schemes.</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('govtSubsidiesDesc')}</p>
                   </div>
 
                   {/* Stepper display */}
@@ -4044,6 +4047,27 @@ export default function App() {
                               desc: 'Looking for subsidies on tractors, rotavators, tillers, or custom equipment.',
                               state: schemeMachineryInterest,
                               setter: setSchemeMachineryInterest
+                            },
+                            {
+                              id: 'drone',
+                              label: t('schemeDroneInterest'),
+                              desc: t('schemeDroneDesc'),
+                              state: schemeDroneInterest,
+                              setter: setSchemeDroneInterest
+                            },
+                            {
+                              id: 'residue',
+                              label: t('schemeResidueInterest'),
+                              desc: t('schemeResidueDesc'),
+                              state: schemeResidueInterest,
+                              setter: setSchemeResidueInterest
+                            },
+                            {
+                              id: 'chc',
+                              label: t('schemeChcInterest'),
+                              desc: t('schemeChcDesc'),
+                              state: schemeChcInterest,
+                              setter: setSchemeChcInterest
                             }
                           ].map((item) => (
                             <button
@@ -4160,6 +4184,44 @@ export default function App() {
                             name: "SMAM (Sub-Mission on Agricultural Mechanization)",
                             benefit: `${smamSubs} subsidy for purchasing tractors, power tillers, and sowing equipment.`,
                             desc: "Supports acquisition of custom machinery to promote modern agricultural technology.",
+                            eligible: true,
+                            reason: "",
+                            url: "https://agrimachinery.nic.in/"
+                          });
+                        }
+
+                        // 7. RKVY Agri-Drone Subsidy - Optional based on interest
+                        if (schemeDroneInterest) {
+                          const droneSubs = (schemeDemographic === 'Woman' || schemeDemographic === 'SC_ST' || schemeLandSize === 'Marginal' || schemeLandSize === 'Small') ? '50% (Up to ₹5 Lakhs)' : '40% (Up to ₹4 Lakhs)';
+                          matchedSchemes.push({
+                            name: "RKVY - Agri-Drone Subsidy Scheme",
+                            benefit: `${droneSubs} capital subsidy for purchasing agricultural drones.`,
+                            desc: "Promotes precision farming, pesticide spraying, and crop health monitoring via drones. Special incentives for cooperative groups and FPOs (up to 100% grant).",
+                            eligible: true,
+                            reason: "",
+                            url: "https://agrimachinery.nic.in/"
+                          });
+                        }
+
+                        // 8. Crop Residue Management (CRM) Scheme - Optional based on interest
+                        if (schemeResidueInterest) {
+                          const isNorthState = stateName && (stateName.includes("Punjab") || stateName.includes("Haryana") || stateName.includes("Uttar Pradesh") || stateName.includes("Delhi") || stateName.includes("UP"));
+                          matchedSchemes.push({
+                            name: "Crop Residue Management (CRM) Scheme",
+                            benefit: "50% capital subsidy for individual farmers; 80% subsidy for cooperative societies.",
+                            desc: `Supports purchase of Happy Seeders, Mulchers, Straw Choppers, and Balers to prevent stubble burning. ${isNorthState ? '🔥 High-priority state subsidy bonus active.' : 'Available for eco-friendly stubble management.'}`,
+                            eligible: true,
+                            reason: "",
+                            url: "https://agrimachinery.nic.in/"
+                          });
+                        }
+
+                        // 9. Custom Hiring Centre (CHC) Promotion Scheme - Optional based on interest
+                        if (schemeChcInterest) {
+                          matchedSchemes.push({
+                            name: "Custom Hiring Centre (CHC) Promotion Scheme",
+                            benefit: "40% to 80% capital subsidy on farm machinery bank projects up to ₹10-25 Lakhs.",
+                            desc: "Assists FPOs, cooperative societies, and rural youth to establish local machinery hubs. Enables renting out tractors, seeders, and harvesters at subsidised rates.",
                             eligible: true,
                             reason: "",
                             url: "https://agrimachinery.nic.in/"
@@ -4284,6 +4346,9 @@ export default function App() {
                             setSchemeIsTaxpayer(false);
                             setSchemeSolarInterest(false);
                             setSchemeMachineryInterest(false);
+                            setSchemeDroneInterest(false);
+                            setSchemeResidueInterest(false);
+                            setSchemeChcInterest(false);
                             setSchemeStateId('');
                           }}
                           className="bg-gray-150 hover:bg-gray-200 text-gray-700 font-bold px-6 py-2.5 rounded-xl text-xs transition-all shadow-sm"
