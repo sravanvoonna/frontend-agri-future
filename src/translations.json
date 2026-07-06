@@ -264,7 +264,8 @@
     "projectedRevenue": "Projected Gross Revenue",
     "netProjectedProfit": "Net Projected Profit",
     "estimatedRoi": "Estimated ROI",
-    "cropGrowthTimeline": "Simulated Crop Growth Timeline"
+    "cropGrowthTimeline": "Simulated Crop Growth Timeline",
+    "satelliteHub": "Satellite Hub"
   },
   "te": {
     "dashboard": "డ్యాష్‌బోర్డ్",
@@ -531,7 +532,8 @@
     "projectedRevenue": "అంచనా వేసిన మొత్తం ఆదాయం",
     "netProjectedProfit": "అంచనా వేసిన నికర లాభం",
     "estimatedRoi": "అంచనా వేసిన ROI",
-    "cropGrowthTimeline": "పంట ఎదుగుదల కాలక్రమం"
+    "cropGrowthTimeline": "పంట ఎదుగుదల కాలక్రమం",
+    "satelliteHub": "శాటిలైట్ హబ్"
   },
   "hi": {
     "dashboard": "डैशबोर्ड",
@@ -798,7 +800,8 @@
     "projectedRevenue": "अनुमानित कुल राजस्व",
     "netProjectedProfit": "अनुमानित शुद्ध लाभ",
     "estimatedRoi": "अनुमानित ROI",
-    "cropGrowthTimeline": "फसल वृद्धि समयरेखा"
+    "cropGrowthTimeline": "फसल वृद्धि समयरेखा",
+    "satelliteHub": "सैटेलाइट हब"
   },
   "mr": {
     "dashboard": "डॅशबोर्ड",
@@ -1065,6 +1068,7 @@
     "projectedRevenue": "अंदाजित एकूण महसूल",
     "netProjectedProfit": "अंदाजित निव्वळ नफा",
     "estimatedRoi": "अंदाजित ROI",
-    "cropGrowthTimeline": "पीक वाढीचा सिम्युलेटेड कालक्रम"
+    "cropGrowthTimeline": "पीक वाढीचा सिम्युलेटेड कालक्रम",
+    "satelliteHub": "सॅटेलाइट हब"
   }
 }

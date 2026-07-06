@@ -1,6 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import {
+  Chart as ChartJS,
+  CategoryScale, LinearScale, PointElement, LineElement,
+  BarElement, ArcElement, Filler, Tooltip, Legend, Title
+} from 'chart.js';
+import { Line, Bar, Doughnut } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale, LinearScale, PointElement, LineElement,
+  BarElement, ArcElement, Filler, Tooltip, Legend, Title
+);
 import AuthPage from './AuthPage';
 import UserProfile from './UserProfile';
 import {
@@ -74,6 +85,167 @@ const STATE_COORDINATES = {
   "Puducherry": { lat: 11.9416, lon: 79.8083 }
 };
 
+const DISTRICT_COORDINATES = {
+  "Andhra Pradesh": {
+    "Guntur (Chillies & Cotton)": { lat: 16.3067, lon: 80.4365 },
+    "Anantapur (Groundnut)": { lat: 14.6819, lon: 77.6006 },
+    "Nellore (Rice)": { lat: 14.4426, lon: 79.9865 },
+    "Kurnool (Paddy & Groundnut)": { lat: 15.8281, lon: 78.0373 },
+    "East Godavari (Coconut & Paddy)": { lat: 17.2300, lon: 81.8500 }
+  },
+  "Arunachal Pradesh": {
+    "Tawang (Apples)": { lat: 27.5861, lon: 91.8594 },
+    "West Kameng (Horticulture)": { lat: 27.2642, lon: 92.4162 },
+    "Papum Pare (Rice & Maize)": { lat: 27.1020, lon: 93.6920 }
+  },
+  "Assam": {
+    "Dibrugarh (Tea Gardens)": { lat: 27.4728, lon: 94.9120 },
+    "Jorhat (Tea & Paddy)": { lat: 26.7509, lon: 94.2037 },
+    "Nagaon (Jute & Rice)": { lat: 26.3483, lon: 92.6841 },
+    "Kamrup (Rice & Mustard)": { lat: 26.3144, lon: 91.5976 }
+  },
+  "Bihar": {
+    "Rohtas (Rice Bowl of Bihar)": { lat: 24.9392, lon: 84.0152 },
+    "Muzaffarpur (Shahi Litchi)": { lat: 26.1197, lon: 85.3910 },
+    "Patna (Paddy & Pulses)": { lat: 25.6110, lon: 85.1440 },
+    "Bhagalpur (Mangoes & Silk)": { lat: 25.2425, lon: 87.0149 }
+  },
+  "Chhattisgarh": {
+    "Raipur (Rice & Oilseeds)": { lat: 21.2514, lon: 81.6296 },
+    "Bilaspur (Paddy & Maize)": { lat: 22.0790, lon: 82.1391 },
+    "Bastar (Millets & Pulses)": { lat: 19.0736, lon: 81.9937 }
+  },
+  "Goa": {
+    "North Goa (Cashew & Coconut)": { lat: 15.6033, lon: 73.9669 },
+    "South Goa (Paddy & Cashew)": { lat: 15.1950, lon: 74.0722 }
+  },
+  "Gujarat": {
+    "Anand (Milk Capital / Dairy)": { lat: 22.5645, lon: 72.9289 },
+    "Surat (Sugarcane & Cotton)": { lat: 21.1702, lon: 72.8311 },
+    "Rajkot (Groundnut & Cotton)": { lat: 22.3039, lon: 70.8022 },
+    "Junagadh (Kesar Mangoes)": { lat: 21.5222, lon: 70.4579 }
+  },
+  "Haryana": {
+    "Karnal (Rice Bowl of Haryana)": { lat: 29.6857, lon: 76.9905 },
+    "Hisar (Wheat & Cotton)": { lat: 29.1492, lon: 75.7217 },
+    "Sirsa (Cotton & Wheat)": { lat: 29.5312, lon: 75.0318 },
+    "Ambala (Sugarcane & Paddy)": { lat: 30.3782, lon: 76.7767 }
+  },
+  "Himachal Pradesh": {
+    "Kangra (Tea & Rice)": { lat: 32.1024, lon: 76.2735 },
+    "Shimla (Apple State Hub)": { lat: 31.1048, lon: 77.1734 },
+    "Kullu (Apples & Plums)": { lat: 31.9578, lon: 77.1095 }
+  },
+  "Jharkhand": {
+    "Ranchi (Vegetable Hub)": { lat: 23.3441, lon: 85.3096 },
+    "Hazaribagh (Paddy & Maize)": { lat: 23.9937, lon: 85.3622 },
+    "Dumka (Paddy)": { lat: 24.2698, lon: 87.2527 }
+  },
+  "Karnataka": {
+    "Belagavi (Sugarcane Hub)": { lat: 15.8497, lon: 74.4977 },
+    "Mysuru (Paddy & Tobacco)": { lat: 12.2958, lon: 76.6394 },
+    "Shimoga (Areca Nut & Paddy)": { lat: 13.9299, lon: 75.5681 },
+    "Dharwad (Cotton & Millets)": { lat: 15.4589, lon: 75.0078 }
+  },
+  "Kerala": {
+    "Wayanad (Coffee, Pepper, Tea)": { lat: 11.6854, lon: 76.1320 },
+    "Palakkad (Granary of Kerala)": { lat: 10.7867, lon: 76.6547 },
+    "Idukki (Spices & Cardamom)": { lat: 9.8500, lon: 76.9667 },
+    "Alappuzha (Kuttanad Paddy)": { lat: 9.4981, lon: 76.3388 }
+  },
+  "Madhya Pradesh": {
+    "Hoshangabad (Wheat Hub)": { lat: 22.7533, lon: 77.7242 },
+    "Indore (Soyabean & Wheat)": { lat: 22.7196, lon: 75.8577 },
+    "Bhopal (Paddy & Pulses)": { lat: 23.2599, lon: 77.4126 },
+    "Jabalpur (Gram & Peas)": { lat: 23.1815, lon: 79.9864 }
+  },
+  "Maharashtra": {
+    "Nashik (Grape Capital of India)": { lat: 19.9975, lon: 73.7898 },
+    "Pune (Sugarcane & Veggies)": { lat: 18.5204, lon: 73.8567 },
+    "Nagpur (Orange City)": { lat: 21.1458, lon: 79.0882 },
+    "Solapur (Pomegranate & Jowar)": { lat: 17.6599, lon: 75.9064 },
+    "Ahmednagar (Sugarcane & Onion)": { lat: 19.0948, lon: 74.7480 },
+    "Kolhapur (Sugarcane & Jaggery)": { lat: 16.7050, lon: 74.2433 }
+  },
+  "Manipur": {
+    "Imphal West (Rice)": { lat: 24.8170, lon: 93.9368 },
+    "Thoubal (Paddy & Mustard)": { lat: 24.6300, lon: 94.0200 }
+  },
+  "Meghalaya": {
+    "East Khasi Hills (Potato & Oranges)": { lat: 25.5788, lon: 91.8931 },
+    "West Garo Hills (Cashew & Rubber)": { lat: 25.5186, lon: 90.2201 }
+  },
+  "Mizoram": {
+    "Aizawl (Ginger & Turmeric)": { lat: 23.7271, lon: 92.7176 },
+    "Champhai (Rice Bowl)": { lat: 23.4560, lon: 93.3280 }
+  },
+  "Nagaland": {
+    "Dimapur (Organic Pineapples)": { lat: 25.9064, lon: 93.7270 },
+    "Kohima (Terrace Paddy)": { lat: 25.6751, lon: 94.1086 }
+  },
+  "Odisha": {
+    "Ganjam (Rice Bowl of Odisha)": { lat: 19.3800, lon: 84.8000 },
+    "Cuttack (Rice & Vegetables)": { lat: 20.4625, lon: 85.8830 },
+    "Sambalpur (Paddy Hub)": { lat: 21.4669, lon: 83.9812 }
+  },
+  "Punjab": {
+    "Ludhiana (Wheat & Paddy Hub)": { lat: 30.9010, lon: 75.8573 },
+    "Amritsar (Basmati Rice)": { lat: 31.6340, lon: 74.8723 },
+    "Bathinda (Cotton Belt)": { lat: 30.2110, lon: 74.9455 },
+    "Firozpur (Wheat & Rice)": { lat: 30.9248, lon: 74.6223 }
+  },
+  "Rajasthan": {
+    "Sri Ganganagar (Food Basket)": { lat: 29.9159, lon: 73.8739 },
+    "Jaipur (Mustard & Bajra)": { lat: 26.9124, lon: 75.7873 },
+    "Kota (Soyabean & Wheat)": { lat: 25.2138, lon: 75.8648 },
+    "Alwar (Mustard Hub)": { lat: 27.5530, lon: 76.6013 }
+  },
+  "Sikkim": {
+    "East Sikkim (Cardamom & Ginger)": { lat: 27.3276, lon: 88.6146 },
+    "North Sikkim (Apples & Cardamom)": { lat: 27.6000, lon: 88.5800 }
+  },
+  "Tamil Nadu": {
+    "Thanjavur (Rice Bowl of TN)": { lat: 10.7870, lon: 79.1378 },
+    "Coimbatore (Cotton & Coconut)": { lat: 11.0168, lon: 76.9558 },
+    "Erode (Turmeric City)": { lat: 11.3410, lon: 77.7172 },
+    "Salem (Tapioca & Mangoes)": { lat: 11.6643, lon: 78.1460 }
+  },
+  "Telangana": {
+    "Karimnagar (Rice & Maize Hub)": { lat: 18.4386, lon: 79.1288 },
+    "Nizamabad (Turmeric & Paddy)": { lat: 18.6725, lon: 78.0941 },
+    "Warangal (Red Chillies & Cotton)": { lat: 17.9689, lon: 79.5941 },
+    "Nalgonda (Paddy & Sweet Orange)": { lat: 17.0575, lon: 79.2684 }
+  },
+  "Tripura": {
+    "West Tripura (Rubber & Pineapple)": { lat: 23.8400, lon: 91.2800 },
+    "South Tripura (Paddy & Jackfruit)": { lat: 23.3300, lon: 91.4700 }
+  },
+  "Uttar Pradesh": {
+    "Bareilly (Sugarcane & Rice)": { lat: 28.3670, lon: 79.4304 },
+    "Meerut (Sugarcane & Wheat Belt)": { lat: 28.9845, lon: 77.7064 },
+    "Gorakhpur (Sugarcane & Paddy)": { lat: 26.7606, lon: 83.3731 },
+    "Varanasi (Vegetable Export Hub)": { lat: 25.3176, lon: 82.9739 },
+    "Kanpur (Pulses & Potato Belt)": { lat: 26.4499, lon: 80.3319 }
+  },
+  "Uttarakhand": {
+    "Udham Singh Nagar (Rice Bowl)": { lat: 29.0163, lon: 79.5678 },
+    "Dehradun (Basmati & Litchi)": { lat: 30.3165, lon: 78.0322 }
+  },
+  "West Bengal": {
+    "Bardhaman (Rice Bowl of WB)": { lat: 23.2324, lon: 87.8630 },
+    "Murshidabad (Jute & Mangoes)": { lat: 24.1800, lon: 88.2700 },
+    "Hooghly (Potato & Jute Belt)": { lat: 22.9022, lon: 88.3958 }
+  },
+  "Jammu & Kashmir": {
+    "Anantnag (Saffron & Apples)": { lat: 33.7311, lon: 75.1487 },
+    "Jammu (Wheat & Paddy)": { lat: 32.7266, lon: 74.8570 }
+  },
+  "Puducherry": {
+    "Puducherry City (Paddy & Sugarcane)": { lat: 11.9416, lon: 79.8083 },
+    "Karaikal (Coastal Paddy)": { lat: 10.9254, lon: 79.8380 }
+  }
+};
+
 const getWeatherDescription = (code, isDay = 1) => {
   const isNight = isDay === 0;
   const codes = {
@@ -128,6 +300,450 @@ const getWeatherGradient = (code, isDay = 1) => {
     return 'from-sky-600 via-blue-700 to-slate-800';
   }
   return 'from-sky-500 via-blue-600 to-indigo-700';
+};
+
+const LandVisualizer = ({
+  satelliteState,
+  satelliteDistrict,
+  customCoords,
+  setCustomCoords,
+  getSatelliteCoords,
+  satelliteLoading
+}) => {
+  const coords = getSatelliteCoords(satelliteState, satelliteDistrict);
+  const [mapLat, setMapLat] = useState(coords.lat);
+  const [mapLon, setMapLon] = useState(coords.lon);
+  const [mapMode, setMapMode] = useState('satellite'); // 'satellite' | 'ndvi'
+  const [boundaryEnabled, setBoundaryEnabled] = useState(false);
+
+  // Pin Code State
+  const [pincode, setPincode] = useState('');
+  const [pincodeError, setPincodeError] = useState('');
+  const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [resolvedAddress, setResolvedAddress] = useState('');
+
+  // Map Refs
+  const mapContainerRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
+  const ndviRectsRef = useRef([]);
+  const boundaryPolygonRef = useRef(null);
+
+  // Sync coordinates when the parent state/district changes (but only if NOT in custom coordinates mode)
+  useEffect(() => {
+    if (!customCoords && mapInstanceRef.current) {
+      setMapLat(coords.lat);
+      setMapLon(coords.lon);
+      mapInstanceRef.current.setView([coords.lat, coords.lon], 14);
+      if (markerRef.current) {
+        markerRef.current.setLatLng([coords.lat, coords.lon]);
+        markerRef.current.setPopupContent(`
+          <div class="text-xs font-semibold p-1">
+            <p class="font-bold text-sm text-blue-700">🚜 Your Farm Pin</p>
+            <p class="text-gray-500 mt-1">Drag me onto your exact field and click Apply to analyze!</p>
+            <p class="text-[10px] text-gray-400 mt-0.5">Lat: ${coords.lat.toFixed(4)}, Lon: ${coords.lon.toFixed(4)}</p>
+          </div>
+        `);
+      }
+      setResolvedAddress('');
+      setPincode('');
+    }
+  }, [coords.lat, coords.lon, customCoords]);
+
+  // Handle PIN Code Lookup
+  const handlePincodeSearch = async (e) => {
+    e.preventDefault();
+    if (!/^\d{6}$/.test(pincode)) {
+      setPincodeError('Please enter a valid 6-digit Indian PIN code.');
+      return;
+    }
+    setPincodeError('');
+    setPincodeLoading(true);
+    try {
+      // 1. Try Nominatim postalcode query directly
+      let resolvedItem = null;
+      try {
+        const res = await axios.get(
+          `https://nominatim.openstreetmap.org/search?postalcode=${pincode}&country=India&format=json`,
+          { headers: { 'User-Agent': 'AgriFutureApp/1.0' } }
+        );
+        if (res.data && res.data.length > 0) {
+          resolvedItem = {
+            lat: parseFloat(res.data[0].lat),
+            lon: parseFloat(res.data[0].lon),
+            address: res.data[0].display_name
+          };
+        }
+      } catch (err) {
+        console.warn('Direct Nominatim lookup failed, attempting fallback...', err);
+      }
+
+      // 2. Try Post Office Directory Fallback if needed
+      if (!resolvedItem) {
+        const postRes = await axios.get(`https://api.postalpincode.in/pincode/${pincode}`);
+        if (postRes.data && postRes.data[0] && postRes.data[0].Status === 'Success') {
+          const po = postRes.data[0].PostOffice[0];
+          const query = `${po.Name}, ${po.District}, ${po.State}, India`;
+          
+          // Search resolved name in Nominatim
+          try {
+            const res = await axios.get(
+              `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json`,
+              { headers: { 'User-Agent': 'AgriFutureApp/1.0' } }
+            );
+            if (res.data && res.data.length > 0) {
+              resolvedItem = {
+                lat: parseFloat(res.data[0].lat),
+                lon: parseFloat(res.data[0].lon),
+                address: `${pincode} - ${po.Name}, ${po.District}, ${po.State}`
+              };
+            } else {
+              // Final fallback: search by District & State
+              const distQuery = `${po.District}, ${po.State}, India`;
+              const distRes = await axios.get(
+                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(distQuery)}&format=json`,
+                { headers: { 'User-Agent': 'AgriFutureApp/1.0' } }
+              );
+              if (distRes.data && distRes.data.length > 0) {
+                resolvedItem = {
+                  lat: parseFloat(distRes.data[0].lat),
+                  lon: parseFloat(distRes.data[0].lon),
+                  address: `${pincode} - ${po.District} Hub, ${po.State}`
+                };
+              }
+            }
+          } catch (err) {
+            console.error('Nominatim query by text failed:', err);
+          }
+        }
+      }
+
+      if (resolvedItem) {
+        const { lat: latVal, lon: lonVal, address } = resolvedItem;
+        
+        setMapLat(latVal);
+        setMapLon(lonVal);
+        setResolvedAddress(address);
+
+        // Apply immediately to analysis coords
+        setCustomCoords({ lat: latVal, lon: lonVal });
+
+        // Update Map position & marker
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.setView([latVal, lonVal], 14);
+        }
+        if (markerRef.current) {
+          markerRef.current.setLatLng([latVal, lonVal]);
+          markerRef.current.bindPopup(`
+            <div class="text-xs font-semibold p-1">
+              <p class="font-bold text-emerald-700">🎯 PIN Code Resolved</p>
+              <p class="text-[10px] text-gray-600 mt-1">${address.split(',').slice(0, 3).join(',')}</p>
+              <p class="text-[10px] text-gray-400 mt-0.5">Lat: ${latVal.toFixed(4)}, Lon: ${lonVal.toFixed(4)}</p>
+            </div>
+          `).openPopup();
+        }
+      } else {
+        setPincodeError('PIN code not found. Please try another one.');
+      }
+    } catch (err) {
+      console.error('PIN code search error:', err);
+      setPincodeError('Failed to connect to PIN code database. Try again.');
+    } finally {
+      setPincodeLoading(false);
+    }
+  };
+
+  // Map Initialization Effect (Runs exactly once)
+  useEffect(() => {
+    let mapInstance = null;
+    let markerInstance = null;
+
+    const loadLeafletResources = () => {
+      const initMap = () => {
+        if (!document.getElementById('sat-visualizer-map')) return;
+        const L = window.L;
+
+        // Initialize Map
+        mapInstance = L.map('sat-visualizer-map', { zoomControl: true }).setView([mapLat, mapLon], 14);
+        mapInstanceRef.current = mapInstance;
+
+        // Esri Satellite Tiles
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          attribution: 'Esri Satellite'
+        }).addTo(mapInstance);
+
+        // Custom divIcon representing tractor/farm marker
+        const farmerIcon = L.divIcon({
+          html: `<div class="flex items-center justify-center h-8 w-8 rounded-full bg-blue-600 border-2 border-white text-white text-base shadow-xl">🚜</div>`,
+          className: '',
+          iconSize: [32, 32],
+          iconAnchor: [16, 16]
+        });
+
+        // Add Draggable Marker
+        markerInstance = L.marker([mapLat, mapLon], { icon: farmerIcon, draggable: true }).addTo(mapInstance);
+        markerRef.current = markerInstance;
+
+        markerInstance.bindPopup(`
+          <div class="text-xs font-semibold p-1">
+            <p class="font-bold text-sm text-blue-700">🚜 Your Farm Pin</p>
+            <p class="text-gray-500 mt-1">Drag me onto your exact field and click Apply to analyze!</p>
+            <p class="text-[10px] text-gray-400 mt-0.5">Lat: ${mapLat.toFixed(4)}, Lon: ${mapLon.toFixed(4)}</p>
+          </div>
+        `).openPopup();
+
+        // Listen for drag end events
+        markerInstance.on('dragend', (e) => {
+          const pos = e.target.getLatLng();
+          setMapLat(pos.lat);
+          setMapLon(pos.lng);
+          markerInstance.setPopupContent(`
+            <div class="text-xs font-semibold p-1">
+              <p class="font-bold text-sm text-blue-700">🚜 Current Location</p>
+              <p class="text-gray-500 mt-1">Click "Apply coordinates to analysis" to pull Copernicus forecast data</p>
+              <p class="text-[10px] text-gray-400 mt-0.5">Lat: ${pos.lat.toFixed(4)}, Lon: ${pos.lng.toFixed(4)}</p>
+            </div>
+          `);
+        });
+      };
+
+      if (window.L) {
+        initMap();
+      } else {
+        if (!document.getElementById('leaflet-css')) {
+          const link = document.createElement('link');
+          link.id = 'leaflet-css';
+          link.rel = 'stylesheet';
+          link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+          document.head.appendChild(link);
+        }
+        if (!document.getElementById('leaflet-js')) {
+          const script = document.createElement('script');
+          script.id = 'leaflet-js';
+          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+          script.onload = initMap;
+          document.head.appendChild(script);
+        }
+      }
+    };
+
+    loadLeafletResources();
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, []);
+
+  // Sync Overlay Layers on Map Mode / Coords Changes (No map teardowns!)
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    const L = window.L;
+    if (!L) return;
+
+    // 1. Clear old NDVI overlay rectangles
+    ndviRectsRef.current.forEach(rect => rect.remove());
+    ndviRectsRef.current = [];
+
+    // 2. Add NDVI Grid if enabled
+    if (mapMode === 'ndvi') {
+      const step = 0.003;
+      for (let i = -2; i <= 2; i++) {
+        for (let j = -2; j <= 2; j++) {
+          const rLat = mapLat + i * step;
+          const rLon = mapLon + j * step;
+          const seed = Math.sin(rLat * 999) * Math.cos(rLon * 999);
+          const ndvi = 0.45 + seed * 0.35;
+          const color = ndvi > 0.65 ? '#10b981' : ndvi > 0.4 ? '#fbbf24' : '#f87171';
+          
+          const rect = L.rectangle([
+            [rLat - step/2, rLon - step/2],
+            [rLat + step/2, rLon + step/2]
+          ], {
+            color: 'transparent',
+            fillColor: color,
+            fillOpacity: 0.35
+          }).addTo(mapInstanceRef.current);
+
+          rect.bindPopup(`NDVI Index: ${ndvi.toFixed(2)} (${ndvi > 0.65 ? 'Excellent Health' : ndvi > 0.4 ? 'Moderate' : 'Under Stress'})`);
+          ndviRectsRef.current.push(rect);
+        }
+      }
+    }
+
+    // 3. Clear and draw Boundary Polygon if enabled
+    if (boundaryPolygonRef.current) {
+      boundaryPolygonRef.current.remove();
+      boundaryPolygonRef.current = null;
+    }
+
+    if (boundaryEnabled) {
+      const delta = 0.004;
+      boundaryPolygonRef.current = L.polygon([
+        [mapLat - delta * 0.5, mapLon - delta * 0.8],
+        [mapLat - delta * 0.4, mapLon + delta * 0.7],
+        [mapLat + delta * 0.6, mapLon + delta * 0.6],
+        [mapLat + delta * 0.5, mapLon - delta * 0.7]
+      ], {
+        color: '#10b981',
+        fillColor: '#22c55e',
+        fillOpacity: 0.25,
+        weight: 3
+      }).addTo(mapInstanceRef.current);
+
+      boundaryPolygonRef.current.bindPopup(`
+        <div class="text-xs font-semibold p-1">
+          <p class="font-bold text-emerald-700">🌾 Registered Boundary</p>
+          <p class="text-gray-500 mt-1">Area: 2.8 Acres</p>
+          <p class="text-gray-500">Average NDVI: 0.68 (Healthy)</p>
+        </div>
+      `).openPopup();
+    }
+
+  }, [mapLat, mapLon, mapMode, boundaryEnabled]);
+
+  return (
+    <div className="space-y-6">
+      {/* Search Header (including PIN code resolver) */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm animate-fade-in text-left">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center justify-between">
+          <div className="space-y-1">
+            <h3 className="text-sm font-black text-gray-700">🗺️ Farm Explorer & Boundary Mapping</h3>
+            <p className="text-[10px] text-gray-400">Locate your land, drag the pin to your field, and analyze precise Copernicus weather/soil readings</p>
+          </div>
+          
+          {/* PIN code lookup form */}
+          <form onSubmit={handlePincodeSearch} className="flex gap-2 justify-end w-full">
+            <div className="relative flex-grow max-w-[240px]">
+              <input
+                type="text"
+                placeholder="Enter 6-Digit PIN Code (e.g. 422001)"
+                value={pincode}
+                onChange={e => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={pincodeLoading}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition-all flex items-center gap-1.5"
+            >
+              {pincodeLoading ? <RefreshCw className="h-3 w-3 animate-spin" /> : '🔍'} Search
+            </button>
+          </form>
+        </div>
+
+        {pincodeError && (
+          <p className="text-xs font-bold text-red-600 mt-2">{pincodeError}</p>
+        )}
+
+        {resolvedAddress && (
+          <div className="bg-blue-50 rounded-xl p-3 mt-3 border border-blue-100">
+            <p className="text-[10px] text-blue-600 font-bold uppercase">📍 Resolved Location</p>
+            <p className="text-xs font-black text-blue-800 mt-0.5">{resolvedAddress}</p>
+          </div>
+        )}
+
+        <hr className="my-4 border-gray-100" />
+
+        {/* Action Toggles */}
+        <div className="flex items-center gap-3 flex-wrap justify-between">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setMapMode(prev => prev === 'satellite' ? 'ndvi' : 'satellite')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border ${
+                mapMode === 'ndvi'
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              🌱 {mapMode === 'ndvi' ? 'Disable NDVI' : 'Enable NDVI Overlay'}
+            </button>
+            <button
+              onClick={() => setBoundaryEnabled(prev => !prev)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border ${
+                boundaryEnabled
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              🌾 {boundaryEnabled ? 'Clear Boundary' : 'Simulate Farm Boundary'}
+            </button>
+          </div>
+
+          <div className="text-xs text-gray-400 font-bold">
+            💡 Drag marker pin 🚜 over any location to pull values!
+          </div>
+        </div>
+
+        <hr className="my-4 border-gray-100" />
+
+        {/* Manual Input Fields */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div>
+            <label className="text-[10px] font-bold text-gray-400 uppercase">Latitude</label>
+            <input
+              type="number"
+              step="0.0001"
+              value={mapLat}
+              onChange={e => setMapLat(parseFloat(e.target.value))}
+              className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-gray-400 uppercase">Longitude</label>
+            <input
+              type="number"
+              step="0.0001"
+              value={mapLon}
+              onChange={e => setMapLon(parseFloat(e.target.value))}
+              className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+            />
+          </div>
+          <div className="col-span-2 flex items-end gap-2">
+            <button
+              onClick={() => {
+                setCustomCoords({ lat: mapLat, lon: mapLon });
+              }}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 rounded-xl text-xs shadow-sm transition-all"
+            >
+              🎯 Apply coordinates to analysis
+            </button>
+            {customCoords && (
+              <button
+                onClick={() => {
+                  setCustomCoords(null);
+                  const original = getSatelliteCoords(satelliteState, satelliteDistrict);
+                  setMapLat(original.lat);
+                  setMapLon(original.lon);
+                  setResolvedAddress('');
+                  setPincode('');
+                }}
+                className="bg-red-50 text-red-600 hover:bg-red-100 font-bold px-3 py-1.5 rounded-xl text-xs transition-all border border-red-100"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Map Container */}
+      <div className="bg-white rounded-3xl border-4 border-white shadow-xl relative overflow-hidden">
+        <div id="sat-visualizer-map" style={{ height: 450 }} className="w-full z-10" />
+        
+        {/* Overlay Indicator if coords are overridden */}
+        {customCoords && (
+          <div className="absolute top-4 right-4 bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-lg z-[400] flex items-center gap-1.5 animate-pulse">
+            <span className="h-2 w-2 rounded-full bg-white block" />
+            Custom Pin Active
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default function App() {
@@ -408,6 +1024,52 @@ export default function App() {
   const [dashboardWeather, setDashboardWeather] = useState(null);
   const [dashboardWeatherLoading, setDashboardWeatherLoading] = useState(false);
 
+  // 13. Satellite Hub States
+  const [satelliteTab, setSatelliteTab] = useState('crop-intel');
+  const [satelliteState, setSatelliteState] = useState('Maharashtra');
+  const [satelliteDistrict, setSatelliteDistrict] = useState('Nashik (Grape Capital of India)');
+  const [customCoords, setCustomCoords] = useState(null); // { lat, lon }
+  const [satelliteLoading, setSatelliteLoading] = useState(false);
+  const [satelliteData, setSatelliteData] = useState(null);   // current + hourly ECMWF data
+  const [satelliteHistory, setSatelliteHistory] = useState(null); // 7-day data
+  const [airQualityData, setAirQualityData] = useState(null);
+  const [airQualityLoading, setAirQualityLoading] = useState(false);
+  const satelliteStateNames = Object.keys(STATE_COORDINATES);
+
+  // Static land-use data per state (approx %)
+  const LAND_USE_DATA = {
+    'Andhra Pradesh':    { agri: 62, forest: 23, urban: 8,  water: 7 },
+    'Arunachal Pradesh': { agri: 4,  forest: 82, urban: 2,  water: 12 },
+    'Assam':             { agri: 52, forest: 35, urban: 6,  water: 7 },
+    'Bihar':             { agri: 78, forest: 7,  urban: 10, water: 5 },
+    'Chhattisgarh':      { agri: 38, forest: 44, urban: 6,  water: 12 },
+    'Goa':               { agri: 28, forest: 52, urban: 14, water: 6 },
+    'Gujarat':           { agri: 55, forest: 12, urban: 18, water: 15 },
+    'Haryana':           { agri: 80, forest: 4,  urban: 12, water: 4 },
+    'Himachal Pradesh':  { agri: 22, forest: 65, urban: 4,  water: 9 },
+    'Jharkhand':         { agri: 32, forest: 45, urban: 8,  water: 15 },
+    'Karnataka':         { agri: 58, forest: 20, urban: 14, water: 8 },
+    'Kerala':            { agri: 48, forest: 29, urban: 16, water: 7 },
+    'Madhya Pradesh':    { agri: 50, forest: 31, urban: 8,  water: 11 },
+    'Maharashtra':       { agri: 60, forest: 17, urban: 14, water: 9 },
+    'Manipur':           { agri: 18, forest: 71, urban: 5,  water: 6 },
+    'Meghalaya':         { agri: 12, forest: 78, urban: 4,  water: 6 },
+    'Mizoram':           { agri: 8,  forest: 86, urban: 3,  water: 3 },
+    'Nagaland':          { agri: 14, forest: 76, urban: 4,  water: 6 },
+    'Odisha':            { agri: 52, forest: 33, urban: 6,  water: 9 },
+    'Punjab':            { agri: 84, forest: 4,  urban: 9,  water: 3 },
+    'Rajasthan':         { agri: 45, forest: 8,  urban: 10, water: 37 },
+    'Sikkim':            { agri: 14, forest: 77, urban: 3,  water: 6 },
+    'Tamil Nadu':        { agri: 55, forest: 17, urban: 18, water: 10 },
+    'Telangana':         { agri: 65, forest: 18, urban: 10, water: 7 },
+    'Tripura':           { agri: 30, forest: 60, urban: 5,  water: 5 },
+    'Uttar Pradesh':     { agri: 78, forest: 6,  urban: 12, water: 4 },
+    'Uttarakhand':       { agri: 18, forest: 65, urban: 5,  water: 12 },
+    'West Bengal':       { agri: 70, forest: 14, urban: 11, water: 5 },
+    'Jammu & Kashmir':   { agri: 12, forest: 48, urban: 5,  water: 35 },
+    'Puducherry':        { agri: 38, forest: 12, urban: 42, water: 8 },
+  };
+
   const [mandiPrices, setMandiPrices] = useState({});
   const [calcAcres, setCalcAcres] = useState('1');
   const [calcCostPerAcre, setCalcCostPerAcre] = useState('15000');
@@ -613,11 +1275,27 @@ export default function App() {
     const coords = STATE_COORDINATES[stateName] || { lat: 28.6139, lon: 79.7400 };
     setWeatherLoading(true);
     try {
-      const res = await axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current_weather=true`);
-      if (res.data && res.data.current_weather) {
+      // Enhanced API: Copernicus ECMWF satellite-derived weather + soil + agricultural parameters
+      const res = await axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,is_day,surface_pressure,cloud_cover,uv_index&hourly=soil_temperature_0cm,soil_moisture_0_to_1cm,et0_fao_evapotranspiration&forecast_days=1`);
+      if (res.data && res.data.current) {
+        const hourlyIdx = res.data.hourly?.time ? Math.min(new Date().getHours(), res.data.hourly.time.length - 1) : 0;
         const wData = {
-          ...res.data.current_weather,
-          stateName: stateName
+          temperature: res.data.current.temperature_2m,
+          humidity: res.data.current.relative_humidity_2m,
+          apparent_temperature: res.data.current.apparent_temperature,
+          precipitation: res.data.current.precipitation,
+          weathercode: res.data.current.weather_code,
+          windspeed: res.data.current.wind_speed_10m,
+          winddirection: res.data.current.wind_direction_10m,
+          is_day: res.data.current.is_day,
+          surface_pressure: res.data.current.surface_pressure,
+          cloud_cover: res.data.current.cloud_cover,
+          uv_index: res.data.current.uv_index,
+          soil_temperature: res.data.hourly?.soil_temperature_0cm?.[hourlyIdx] ?? null,
+          soil_moisture: res.data.hourly?.soil_moisture_0_to_1cm?.[hourlyIdx] ?? null,
+          evapotranspiration: res.data.hourly?.et0_fao_evapotranspiration?.[hourlyIdx] ?? null,
+          stateName: stateName,
+          data_source: 'Copernicus ECMWF IFS'
         };
         setWeatherCache(prev => ({ ...prev, [stateName]: wData }));
         setWeatherData(wData);
@@ -635,9 +1313,27 @@ export default function App() {
       try {
         const lat = 28.6139; // New Delhi
         const lon = 77.2090;
-        const res = await axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
-        if (res.data && res.data.current_weather) {
-          setDashboardWeather(res.data.current_weather);
+        // Enhanced API: Copernicus ECMWF satellite-derived weather + soil + agricultural parameters
+        const res = await axios.get(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,is_day,surface_pressure,cloud_cover,uv_index&hourly=soil_temperature_0cm,soil_moisture_0_to_1cm,et0_fao_evapotranspiration&forecast_days=1`);
+        if (res.data && res.data.current) {
+          const hourlyIdx = res.data.hourly?.time ? Math.min(new Date().getHours(), res.data.hourly.time.length - 1) : 0;
+          setDashboardWeather({
+            temperature: res.data.current.temperature_2m,
+            humidity: res.data.current.relative_humidity_2m,
+            apparent_temperature: res.data.current.apparent_temperature,
+            precipitation: res.data.current.precipitation,
+            weathercode: res.data.current.weather_code,
+            windspeed: res.data.current.wind_speed_10m,
+            winddirection: res.data.current.wind_direction_10m,
+            is_day: res.data.current.is_day,
+            surface_pressure: res.data.current.surface_pressure,
+            cloud_cover: res.data.current.cloud_cover,
+            uv_index: res.data.current.uv_index,
+            soil_temperature: res.data.hourly?.soil_temperature_0cm?.[hourlyIdx] ?? null,
+            soil_moisture: res.data.hourly?.soil_moisture_0_to_1cm?.[hourlyIdx] ?? null,
+            evapotranspiration: res.data.hourly?.et0_fao_evapotranspiration?.[hourlyIdx] ?? null,
+            data_source: 'Copernicus ECMWF IFS'
+          });
         }
       } catch (err) {
         console.error("Error fetching dashboard weather:", err);
@@ -647,6 +1343,120 @@ export default function App() {
     };
     fetchDashboardWeather();
   }, []);
+
+  // ── Satellite Hub Data Fetchers ────────────────────────────
+  const getSatelliteCoords = (stateName, districtName) => {
+    if (customCoords) return customCoords;
+    if (stateName && districtName && DISTRICT_COORDINATES[stateName]?.[districtName]) {
+      return DISTRICT_COORDINATES[stateName][districtName];
+    }
+    if (stateName && STATE_COORDINATES[stateName]) {
+      return STATE_COORDINATES[stateName];
+    }
+    return { lat: 20.5937, lon: 78.9629 };
+  };
+
+  const fetchSatelliteData = async (stateName, districtName) => {
+    if (!stateName) return;
+    const coords = getSatelliteCoords(stateName, districtName);
+    setSatelliteLoading(true);
+    try {
+      const res = await axios.get(
+        `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}` +
+        `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,` +
+        `wind_speed_10m,is_day,surface_pressure,cloud_cover,uv_index` +
+        `&hourly=soil_temperature_0cm,soil_temperature_6cm,soil_temperature_18cm,soil_temperature_54cm,` +
+        `soil_moisture_0_to_1cm,soil_moisture_1_to_3cm,soil_moisture_3_to_9cm,` +
+        `et0_fao_evapotranspiration,precipitation,precipitation_probability` +
+        `&forecast_days=1`
+      );
+      if (res.data && res.data.current) {
+        const h = res.data.hourly;
+        const idx = Math.min(new Date().getHours(), (h?.time?.length || 1) - 1);
+        setSatelliteData({
+          stateName,
+          districtName,
+          temperature: res.data.current.temperature_2m,
+          humidity: res.data.current.relative_humidity_2m,
+          apparent_temperature: res.data.current.apparent_temperature,
+          precipitation: res.data.current.precipitation,
+          weathercode: res.data.current.weather_code,
+          windspeed: res.data.current.wind_speed_10m,
+          is_day: res.data.current.is_day,
+          surface_pressure: res.data.current.surface_pressure,
+          cloud_cover: res.data.current.cloud_cover,
+          uv_index: res.data.current.uv_index,
+          soil_temp_0cm:  h?.soil_temperature_0cm?.[idx] ?? null,
+          soil_temp_6cm:  h?.soil_temperature_6cm?.[idx] ?? null,
+          soil_temp_18cm: h?.soil_temperature_18cm?.[idx] ?? null,
+          soil_temp_54cm: h?.soil_temperature_54cm?.[idx] ?? null,
+          soil_moisture_0_1:  h?.soil_moisture_0_to_1cm?.[idx] ?? null,
+          soil_moisture_1_3:  h?.soil_moisture_1_to_3cm?.[idx] ?? null,
+          soil_moisture_3_9:  h?.soil_moisture_3_to_9cm?.[idx] ?? null,
+          evapotranspiration: h?.et0_fao_evapotranspiration?.[idx] ?? null,
+          precipitation_probability: h?.precipitation_probability?.[idx] ?? null,
+        });
+      }
+    } catch (err) {
+      console.error('Satellite fetch error:', err);
+    } finally {
+      setSatelliteLoading(false);
+    }
+  };
+
+  const fetchSatelliteHistory = async (stateName, districtName) => {
+    if (!stateName) return;
+    const coords = getSatelliteCoords(stateName, districtName);
+    try {
+      const res = await axios.get(
+        `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}` +
+        `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,et0_fao_evapotranspiration,` +
+        `soil_moisture_0_to_7cm_mean,uv_index_max` +
+        `&forecast_days=7`
+      );
+      if (res.data && res.data.daily) {
+        setSatelliteHistory(res.data.daily);
+      }
+    } catch (err) {
+      console.error('Satellite history fetch error:', err);
+    }
+  };
+
+  const fetchAirQuality = async (stateName, districtName) => {
+    if (!stateName) return;
+    const coords = getSatelliteCoords(stateName, districtName);
+    setAirQualityLoading(true);
+    try {
+      const res = await axios.get(
+        `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${coords.lat}&longitude=${coords.lon}` +
+        `&current=pm2_5,pm10,nitrogen_dioxide,ozone,uv_index,dust,carbon_monoxide,sulphur_dioxide`
+      );
+      if (res.data && res.data.current) {
+        setAirQualityData({ ...res.data.current, stateName, districtName });
+      }
+    } catch (err) {
+      console.error('Air quality fetch error:', err);
+    } finally {
+      setAirQualityLoading(false);
+    }
+  };
+
+  // Auto-fetch satellite data when state/district changes in satellite hub
+  useEffect(() => {
+    if (activeTab === 'satellite-hub' && satelliteState) {
+      fetchSatelliteData(satelliteState, satelliteDistrict);
+      fetchSatelliteHistory(satelliteState, satelliteDistrict);
+      if (satelliteTab === 'advanced') fetchAirQuality(satelliteState, satelliteDistrict);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, satelliteState, satelliteDistrict]);
+
+  useEffect(() => {
+    if (activeTab === 'satellite-hub' && satelliteTab === 'advanced' && satelliteState) {
+      fetchAirQuality(satelliteState, satelliteDistrict);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [satelliteTab]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -2146,7 +2956,8 @@ export default function App() {
             { id: 'disease-mgmt', labelKey: 'cropHealthHub', icon: ShieldAlert },
             { id: 'disease-finder', labelKey: 'advisoryDiseaseFinder', icon: HelpCircle },
             { id: 'smart-scheduler', labelKey: 'smartScheduler', icon: FileText },
-            { id: 'ai-detection', labelKey: 'aiCropDiagnosis', icon: Bot }
+            { id: 'ai-detection', labelKey: 'aiCropDiagnosis', icon: Bot },
+            { id: 'satellite-hub', labelKey: 'satelliteHub', icon: Activity }
           ].map((tab) => {
             const Icon = tab.icon;
             return (
@@ -2596,9 +3407,9 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* live Weather Card */}
+                      {/* live Weather Card — Copernicus ECMWF Satellite Data */}
                       {dashboardWeather && (
-                        <div className={`p-6 rounded-2xl bg-gradient-to-br ${getWeatherGradient(dashboardWeather.weathercode, dashboardWeather.is_day)} text-white shadow-md border border-white/10 flex flex-col justify-between gap-4 transition-all duration-300 hover:shadow-lg animate-fade-in relative overflow-hidden`}>
+                        <div className={`p-6 rounded-2xl bg-gradient-to-br ${getWeatherGradient(dashboardWeather.weathercode, dashboardWeather.is_day)} text-white shadow-md border border-white/10 flex flex-col justify-between gap-3 transition-all duration-300 hover:shadow-lg animate-fade-in relative overflow-hidden`}>
                           {/* Dynamic Weather Overlay */}
                           {(() => {
                             const code = dashboardWeather.weathercode;
@@ -2616,18 +3427,48 @@ export default function App() {
                           <div className="flex items-center gap-5 relative z-10 text-left">
                             <span className="text-4xl md:text-5xl">{getWeatherDescription(dashboardWeather.weathercode, dashboardWeather.is_day).icon}</span>
                             <div className="space-y-0.5">
-                              <span className="text-[9px] font-black uppercase tracking-wider text-white/70 bg-white/15 px-2 py-0.5 rounded inline-block">NCR Weather</span>
+                              <span className="text-[8px] font-black uppercase tracking-wider text-white/70 bg-white/15 px-2 py-0.5 rounded inline-block">🛰️ Copernicus ECMWF Satellite</span>
                               <h3 className="text-2xl font-black">{dashboardWeather.temperature}°C</h3>
                               <p className="text-xs font-bold leading-none">{getWeatherDescription(dashboardWeather.weathercode, dashboardWeather.is_day).desc}</p>
-                              <p className="text-[10px] text-white/80">Wind: {dashboardWeather.windspeed} km/h</p>
+                              <p className="text-[10px] text-white/80">Feels like {dashboardWeather.apparent_temperature ?? dashboardWeather.temperature}°C</p>
                             </div>
                           </div>
-                          <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3.5 rounded-xl text-left relative z-10">
-                            <h4 className="text-[10px] font-black uppercase tracking-wider text-emerald-300">Agricultural Advisory</h4>
+                          {/* Satellite Data Grid */}
+                          <div className="grid grid-cols-3 gap-1.5 relative z-10">
+                            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2 py-1.5 text-center">
+                              <p className="text-[8px] text-white/60 font-bold uppercase">Wind</p>
+                              <p className="text-xs font-black">💨 {dashboardWeather.windspeed} km/h</p>
+                            </div>
+                            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2 py-1.5 text-center">
+                              <p className="text-[8px] text-white/60 font-bold uppercase">Humidity</p>
+                              <p className="text-xs font-black">💧 {dashboardWeather.humidity ?? '--'}%</p>
+                            </div>
+                            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2 py-1.5 text-center">
+                              <p className="text-[8px] text-white/60 font-bold uppercase">UV Index</p>
+                              <p className="text-xs font-black">☀️ {dashboardWeather.uv_index != null ? dashboardWeather.uv_index.toFixed(1) : '--'}</p>
+                            </div>
+                            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2 py-1.5 text-center">
+                              <p className="text-[8px] text-white/60 font-bold uppercase">Soil Temp</p>
+                              <p className="text-xs font-black">🌡️ {dashboardWeather.soil_temperature != null ? `${dashboardWeather.soil_temperature}°C` : '--'}</p>
+                            </div>
+                            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2 py-1.5 text-center">
+                              <p className="text-[8px] text-white/60 font-bold uppercase">Soil Moisture</p>
+                              <p className="text-xs font-black">🌱 {dashboardWeather.soil_moisture != null ? `${dashboardWeather.soil_moisture.toFixed(2)} m³/m³` : '--'}</p>
+                            </div>
+                            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2 py-1.5 text-center">
+                              <p className="text-[8px] text-white/60 font-bold uppercase">Cloud Cover</p>
+                              <p className="text-xs font-black">☁️ {dashboardWeather.cloud_cover ?? '--'}%</p>
+                            </div>
+                          </div>
+                          {/* Agricultural Advisory */}
+                          <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3 rounded-xl text-left relative z-10">
+                            <h4 className="text-[10px] font-black uppercase tracking-wider text-emerald-300">🌾 Satellite Agricultural Advisory</h4>
                             <p className="text-[11px] text-white/90 leading-relaxed mt-1">
                               {[0, 1, 2].includes(dashboardWeather.weathercode) ? "Ideal conditions for pesticide application and sowing." :
                                 [3, 45, 48].includes(dashboardWeather.weathercode) ? "Cool weather. Monitor crops for fungal pathogens." :
                                   "Rain expected. Delay irrigation & spraying. Ensure soil drainage."}
+                              {dashboardWeather.soil_moisture != null && dashboardWeather.soil_moisture < 0.15 ? " ⚠️ Low soil moisture — irrigation recommended." : ""}
+                              {dashboardWeather.uv_index != null && dashboardWeather.uv_index > 8 ? " ☀️ High UV — shade-sensitive crops at risk." : ""}
                             </p>
                           </div>
                         </div>
@@ -3143,16 +3984,45 @@ export default function App() {
                               {weatherLoading ? (
                                 <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-gray-400 flex items-center gap-3 w-fit">
                                   <RefreshCw className="h-4 w-4 animate-spin text-emerald-600" />
-                                  <span className="text-xs font-semibold">Loading Weather...</span>
+                                  <span className="text-xs font-semibold">Loading Satellite Weather...</span>
                                 </div>
                               ) : weatherData && (
-                                <div className={`p-4 rounded-2xl bg-gradient-to-br ${getWeatherGradient(weatherData.weathercode, weatherData.is_day)} text-white flex items-center gap-4 shadow-sm border border-white/10 max-w-xs shrink-0`}>
-                                  <span className="text-4xl">{getWeatherDescription(weatherData.weathercode, weatherData.is_day).icon}</span>
-                                  <div className="text-left">
-                                    <span className="text-[9px] font-black uppercase tracking-wider text-white/70 block">{t('liveWeather')}</span>
-                                    <span className="text-xl font-black">{weatherData.temperature}°C</span>
-                                    <span className="text-xs font-bold block">{getWeatherDescription(weatherData.weathercode, weatherData.is_day).desc}</span>
-                                    <span className="text-[10px] text-white/80 block mt-0.5">💨 {weatherData.windspeed} km/h {t('wind')}</span>
+                                <div className={`p-4 rounded-2xl bg-gradient-to-br ${getWeatherGradient(weatherData.weathercode, weatherData.is_day)} text-white shadow-sm border border-white/10 max-w-md shrink-0`}>
+                                  <div className="flex items-center gap-4">
+                                    <span className="text-4xl">{getWeatherDescription(weatherData.weathercode, weatherData.is_day).icon}</span>
+                                    <div className="text-left">
+                                      <span className="text-[8px] font-black uppercase tracking-wider text-white/70 block">🛰️ Copernicus ECMWF Satellite</span>
+                                      <span className="text-xl font-black">{weatherData.temperature}°C</span>
+                                      <span className="text-xs font-bold block">{getWeatherDescription(weatherData.weathercode, weatherData.is_day).desc}</span>
+                                      <span className="text-[10px] text-white/80 block mt-0.5">Feels like {weatherData.apparent_temperature ?? weatherData.temperature}°C</span>
+                                    </div>
+                                  </div>
+                                  {/* Satellite Metrics Grid */}
+                                  <div className="grid grid-cols-3 gap-1 mt-2.5">
+                                    <div className="bg-white/10 rounded-md px-1.5 py-1 text-center">
+                                      <p className="text-[7px] text-white/50 font-bold uppercase">Wind</p>
+                                      <p className="text-[10px] font-black">💨 {weatherData.windspeed} km/h</p>
+                                    </div>
+                                    <div className="bg-white/10 rounded-md px-1.5 py-1 text-center">
+                                      <p className="text-[7px] text-white/50 font-bold uppercase">Humidity</p>
+                                      <p className="text-[10px] font-black">💧 {weatherData.humidity ?? '--'}%</p>
+                                    </div>
+                                    <div className="bg-white/10 rounded-md px-1.5 py-1 text-center">
+                                      <p className="text-[7px] text-white/50 font-bold uppercase">UV</p>
+                                      <p className="text-[10px] font-black">☀️ {weatherData.uv_index != null ? weatherData.uv_index.toFixed(1) : '--'}</p>
+                                    </div>
+                                    <div className="bg-white/10 rounded-md px-1.5 py-1 text-center">
+                                      <p className="text-[7px] text-white/50 font-bold uppercase">Soil Temp</p>
+                                      <p className="text-[10px] font-black">🌡️ {weatherData.soil_temperature != null ? `${weatherData.soil_temperature}°C` : '--'}</p>
+                                    </div>
+                                    <div className="bg-white/10 rounded-md px-1.5 py-1 text-center">
+                                      <p className="text-[7px] text-white/50 font-bold uppercase">Soil Moisture</p>
+                                      <p className="text-[10px] font-black">🌱 {weatherData.soil_moisture != null ? `${weatherData.soil_moisture.toFixed(2)}` : '--'}</p>
+                                    </div>
+                                    <div className="bg-white/10 rounded-md px-1.5 py-1 text-center">
+                                      <p className="text-[7px] text-white/50 font-bold uppercase">Cloud</p>
+                                      <p className="text-[10px] font-black">☁️ {weatherData.cloud_cover ?? '--'}%</p>
+                                    </div>
                                   </div>
                                 </div>
                               )}
@@ -6836,6 +7706,820 @@ export default function App() {
                 </div>
               </div>
             )}
+
+            {/* 🛰️ SATELLITE HUB — Copernicus ECMWF Data */}
+            {activeTab === 'satellite-hub' && (() => {
+              const sd = satelliteData;
+              const hist = satelliteHistory;
+
+              // ── Helper functions ──────────────────────────────────
+              const getNdviScore = (sd) => {
+                if (!sd) return null;
+                const sm = sd.soil_moisture_0_1 ?? 0.2;
+                const temp = sd.temperature ?? 25;
+                const cloud = sd.cloud_cover ?? 30;
+                const tempScore = temp > 10 && temp < 35 ? 1 : 0.5;
+                const moistureScore = sm > 0.1 && sm < 0.45 ? Math.min(sm / 0.3, 1) : sm < 0.1 ? 0.2 : 0.7;
+                const cloudPenalty = cloud > 80 ? 0.8 : 1;
+                return Math.min(Math.round((moistureScore * 0.6 + tempScore * 0.4) * cloudPenalty * 100), 100);
+              };
+
+              const getNdviLabel = (score) => {
+                if (score === null) return { label: '—', color: 'gray' };
+                if (score >= 75) return { label: 'Excellent', color: 'emerald' };
+                if (score >= 55) return { label: 'Good', color: 'green' };
+                if (score >= 35) return { label: 'Moderate', color: 'yellow' };
+                return { label: 'Stressed', color: 'red' };
+              };
+
+              const getGrowthStage = (sd) => {
+                if (!sd) return { stage: '—', progress: 0, next: '—' };
+                const month = new Date().getMonth() + 1;
+                const sm = sd.soil_moisture_0_1 ?? 0.2;
+                if (sm < 0.12) return { stage: 'Pre-Sowing', progress: 10, next: 'Sowing', icon: '🌾', color: 'gray' };
+                if (month >= 6 && month <= 8) return { stage: 'Vegetative', progress: 45, next: 'Flowering', icon: '🌱', color: 'green' };
+                if (month >= 9 && month <= 10) return { stage: 'Flowering', progress: 70, next: 'Grain Fill', icon: '🌸', color: 'pink' };
+                if (month >= 11 || month <= 1) return { stage: 'Grain Fill', progress: 88, next: 'Harvest', icon: '🌽', color: 'amber' };
+                if (month >= 2 && month <= 4) return { stage: 'Harvest Ready', progress: 98, next: 'Sowing', icon: '🏆', color: 'orange' };
+                return { stage: 'Sowing', progress: 20, next: 'Vegetative', icon: '🌿', color: 'teal' };
+              };
+
+              const getFloodRisk = (sd) => {
+                if (!sd) return { level: '—', score: 0 };
+                const sm = sd.soil_moisture_3_9 ?? 0.2;
+                const precip = sd.precipitation_probability ?? 20;
+                const score = Math.round(sm * 100 + precip * 0.5);
+                if (score > 80) return { level: 'High Risk', score: Math.min(score, 100), color: 'red', icon: '🌊' };
+                if (score > 50) return { level: 'Moderate', score, color: 'orange', icon: '⚠️' };
+                if (score > 25) return { level: 'Watch', score, color: 'yellow', icon: '👀' };
+                return { level: 'Normal', score, color: 'green', icon: '✅' };
+              };
+
+              const getFireRisk = (sd) => {
+                if (!sd) return { level: '—', score: 0 };
+                const temp = sd.temperature ?? 25;
+                const humidity = sd.humidity ?? 50;
+                const wind = sd.windspeed ?? 10;
+                const sm = sd.soil_moisture_0_1 ?? 0.2;
+                const score = Math.round((temp * 1.2 + wind * 0.8 - humidity * 0.7 - sm * 50) / 2);
+                const s = Math.max(0, Math.min(score, 100));
+                if (s > 75) return { level: 'Extreme', score: s, color: 'red', icon: '🔥' };
+                if (s > 55) return { level: 'High', score: s, color: 'orange', icon: '🔶' };
+                if (s > 30) return { level: 'Moderate', score: s, color: 'yellow', icon: '⚠️' };
+                return { level: 'Low', score: s, color: 'green', icon: '✅' };
+              };
+
+              const getDroughtRisk = (sd) => {
+                if (!sd) return { level: '—', score: 0 };
+                const sm = sd.soil_moisture_0_1 ?? 0.2;
+                const et = sd.evapotranspiration ?? 2;
+                const precip = sd.precipitation ?? 0;
+                const deficit = Math.max(0, et - precip);
+                const score = Math.round((1 - sm / 0.5) * 50 + deficit * 15);
+                const s = Math.min(score, 100);
+                if (s > 70) return { level: 'Severe Drought', score: s, color: 'red', icon: '🏜️' };
+                if (s > 50) return { level: 'Moderate Drought', score: s, color: 'orange', icon: '⚠️' };
+                if (s > 30) return { level: 'Dry Spell', score: s, color: 'yellow', icon: '☀️' };
+                return { level: 'Normal', score: s, color: 'green', icon: '✅' };
+              };
+
+              const getSowingRecommendation = (sd) => {
+                if (!sd) return { status: '—', advice: '' };
+                const temp = sd.soil_temp_6cm ?? sd.temperature ?? 20;
+                const sm = sd.soil_moisture_0_1 ?? 0.25;
+                const month = new Date().getMonth() + 1;
+                const kharifSeason = month >= 5 && month <= 7;
+                const rabiSeason = month >= 10 && month <= 12;
+                const tempOk = temp >= 18 && temp <= 32;
+                const moistureOk = sm >= 0.15 && sm <= 0.40;
+                if ((kharifSeason || rabiSeason) && tempOk && moistureOk)
+                  return { status: 'Optimal Window 🌟', advice: 'Current satellite conditions are ideal for sowing. Soil temperature and moisture levels are within the recommended range.', color: 'emerald' };
+                if (!tempOk)
+                  return { status: 'Wait for Warmth 🌡️', advice: `Soil temperature (${temp?.toFixed(1)}°C) is outside the 18–32°C optimal range. Monitor and sow when conditions improve.`, color: 'orange' };
+                if (!moistureOk && sm < 0.15)
+                  return { status: 'Irrigate First 💧', advice: 'Soil moisture is too low for germination. Apply irrigation before sowing to reach optimal levels.', color: 'yellow' };
+                return { status: 'Sub-Optimal 📊', advice: 'Current conditions are marginal. Consider waiting 1–2 weeks and monitoring satellite data again.', color: 'blue' };
+              };
+
+              const getYieldEstimate = (sd) => {
+                if (!sd) return { label: '—', score: 0 };
+                const sm = sd.soil_moisture_1_3 ?? 0.25;
+                const temp = sd.temperature ?? 25;
+                const uv = sd.uv_index ?? 5;
+                const et = sd.evapotranspiration ?? 3;
+                const smScore = sm > 0.15 && sm < 0.40 ? 100 : sm < 0.10 ? 30 : 60;
+                const tempScore = temp > 20 && temp < 32 ? 100 : temp < 15 ? 40 : 70;
+                const uvScore = uv > 3 && uv < 9 ? 90 : 60;
+                const etScore = et > 1 && et < 6 ? 80 : 50;
+                const score = Math.round((smScore * 0.35 + tempScore * 0.30 + uvScore * 0.20 + etScore * 0.15));
+                if (score >= 80) return { label: 'Excellent 🏆', score, color: 'emerald' };
+                if (score >= 65) return { label: 'Good 🌟', score, color: 'green' };
+                if (score >= 45) return { label: 'Average 📊', score, color: 'yellow' };
+                return { label: 'Poor ⚠️', score, color: 'red' };
+              };
+
+              const getVHI = (sd) => {
+                if (!sd) return { score: 0, label: '—' };
+                const ndvi = getNdviScore(sd) ?? 50;
+                const temp = sd.temperature ?? 25;
+                const tempStress = temp > 38 || temp < 5 ? 20 : temp > 32 ? 60 : 95;
+                const vhi = Math.round(0.5 * ndvi + 0.5 * tempStress);
+                if (vhi >= 70) return { score: vhi, label: 'Healthy', color: 'emerald' };
+                if (vhi >= 50) return { score: vhi, label: 'Moderate Stress', color: 'yellow' };
+                return { score: vhi, label: 'Severe Stress', color: 'red' };
+              };
+
+              const getAQI = (aq) => {
+                if (!aq) return { label: '—', color: 'gray', score: 0 };
+                const pm25 = aq.pm2_5 ?? 0;
+                if (pm25 < 12) return { label: 'Good', color: 'emerald', score: Math.round(pm25 * 4) };
+                if (pm25 < 35) return { label: 'Moderate', color: 'yellow', score: Math.round(50 + pm25) };
+                if (pm25 < 55) return { label: 'Unhealthy for Sensitive', color: 'orange', score: Math.round(100 + pm25) };
+                if (pm25 < 150) return { label: 'Unhealthy', color: 'red', score: Math.round(150 + pm25 * 0.5) };
+                return { label: 'Hazardous', color: 'red', score: 300 };
+              };
+
+              // Chart configs
+              const histLabels = hist?.time?.map(t => {
+                const d = new Date(t); return `${d.getDate()}/${d.getMonth()+1}`;
+              }) ?? ['D1','D2','D3','D4','D5','D6','D7'];
+
+              const tempChartData = {
+                labels: histLabels,
+                datasets: [
+                  { label: 'Max Temp (°C)', data: hist?.temperature_2m_max ?? [], borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.4 },
+                  { label: 'Min Temp (°C)', data: hist?.temperature_2m_min ?? [], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4 },
+                ],
+              };
+
+              const soilMoistureChartData = {
+                labels: histLabels,
+                datasets: [
+                  { label: 'Soil Moisture (m³/m³)', data: hist?.soil_moisture_0_to_7cm_mean ?? [], borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.15)', fill: true, tension: 0.4, pointRadius: 4 },
+                ],
+              };
+
+              const precipChartData = {
+                labels: histLabels,
+                datasets: [
+                  { label: 'Precipitation (mm)', data: hist?.precipitation_sum ?? [], backgroundColor: '#6366f1', borderRadius: 6 },
+                ],
+              };
+
+              const landUse = LAND_USE_DATA[satelliteState] || { agri: 55, forest: 20, urban: 15, water: 10 };
+              const landUseChart = {
+                labels: ['Agriculture', 'Forest', 'Urban', 'Water'],
+                datasets: [{ data: [landUse.agri, landUse.forest, landUse.urban, landUse.water], backgroundColor: ['#10b981','#22c55e','#f59e0b','#3b82f6'], borderWidth: 0 }],
+              };
+
+              const chartOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } } }, scales: { x: { ticks: { font: { size: 9 } } }, y: { ticks: { font: { size: 9 } } } } };
+              const doughnutOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 10 }, boxWidth: 12 } } }, cutout: '65%' };
+
+              const ndviScore = getNdviScore(sd);
+              const ndviInfo = getNdviLabel(ndviScore);
+              const growthStage = getGrowthStage(sd);
+              const vhi = getVHI(sd);
+              const flood = getFloodRisk(sd);
+              const fire = getFireRisk(sd);
+              const drought = getDroughtRisk(sd);
+              const sowing = getSowingRecommendation(sd);
+              const yieldEst = getYieldEstimate(sd);
+              const aqi = getAQI(airQualityData);
+
+              const textColors = {
+                red: 'text-red-600',
+                orange: 'text-orange-600',
+                yellow: 'text-yellow-600',
+                green: 'text-green-600',
+                emerald: 'text-emerald-600',
+                blue: 'text-blue-600',
+                slate: 'text-slate-600',
+                pink: 'text-pink-600',
+                amber: 'text-amber-600',
+                teal: 'text-teal-600',
+                gray: 'text-gray-600'
+              };
+
+              const bgColors = {
+                red: 'bg-red-500',
+                orange: 'bg-orange-500',
+                yellow: 'bg-yellow-500',
+                green: 'bg-green-500',
+                emerald: 'bg-emerald-500',
+                blue: 'bg-blue-500',
+                slate: 'bg-slate-500',
+                pink: 'bg-pink-500',
+                amber: 'bg-amber-500',
+                teal: 'bg-teal-500',
+                gray: 'bg-gray-500'
+              };
+
+              const SatCard = ({ icon, label, value, sub, color = 'emerald' }) => (
+                <div className={`bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-all`}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{icon} {label}</p>
+                  <p className={`text-xl font-black mt-1 ${textColors[color] || 'text-emerald-600'}`}>{value}</p>
+                  {sub && <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>}
+                </div>
+              );
+
+              const RiskBar = ({ label, score, color, level, icon }) => (
+                <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-gray-600">{label}</span>
+                    <span className={`text-xs font-black ${textColors[color] || 'text-emerald-600'}`}>{icon} {level}</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div className={`h-2 rounded-full ${bgColors[color] || 'bg-emerald-500'} transition-all duration-700`} style={{ width: `${score}%` }} />
+                  </div>
+                  <p className="text-[9px] text-gray-400 mt-1 text-right">{score}/100</p>
+                </div>
+              );
+
+              return (
+                <div className="space-y-6 animate-fade-in text-left">
+                  {/* Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-2">
+                        🛰️ Satellite Hub
+                      </h2>
+                      <p className="text-sm text-gray-500 mt-1">Real-time agricultural intelligence powered by <span className="font-bold text-blue-600">Copernicus ECMWF satellite data</span></p>
+                    </div>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <select
+                        value={satelliteState}
+                        onChange={e => {
+                          const newState = e.target.value;
+                          setSatelliteState(newState);
+                          setCustomCoords(null); // Clear custom map coordinates
+                          const districts = Object.keys(DISTRICT_COORDINATES[newState] || {});
+                          if (districts.length > 0) {
+                            setSatelliteDistrict(districts[0]);
+                          } else {
+                            setSatelliteDistrict('');
+                          }
+                        }}
+                        className="border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                      >
+                        {satelliteStateNames.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+
+                      {Object.keys(DISTRICT_COORDINATES[satelliteState] || {}).length > 0 && (
+                        <select
+                          value={satelliteDistrict}
+                          onChange={e => {
+                            setSatelliteDistrict(e.target.value);
+                            setCustomCoords(null); // Clear custom map coordinates
+                          }}
+                          className="border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm animate-fade-in"
+                        >
+                          {Object.keys(DISTRICT_COORDINATES[satelliteState]).map(d => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
+                      )}
+
+                      <button
+                        onClick={() => {
+                          fetchSatelliteData(satelliteState, satelliteDistrict);
+                          fetchSatelliteHistory(satelliteState, satelliteDistrict);
+                          if (satelliteTab === 'advanced') fetchAirQuality(satelliteState, satelliteDistrict);
+                        }}
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-sm shadow-sm transition-all"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${satelliteLoading ? 'animate-spin' : ''}`} />
+                        Refresh
+                      </button>
+                      <span className="text-[9px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded-lg">🛰️ Copernicus</span>
+                    </div>
+                  </div>
+
+                  {/* Sub-tabs */}
+                  <div className="flex gap-1 bg-gray-100 p-1 rounded-2xl overflow-x-auto">
+                    {[
+                      { id: 'crop-intel', label: '🌾 Crop Intelligence' },
+                      { id: 'env-alerts', label: '⚠️ Environmental Alerts' },
+                      { id: 'land-monitor', label: '🌍 Land Monitoring' },
+                      { id: 'visualizer', label: '🗺️ Land Visualizer' },
+                      { id: 'analytics', label: '📊 Analytics & Planning' },
+                      { id: 'advanced', label: '🌍 Advanced Monitoring' },
+                    ].map(tab => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setSatelliteTab(tab.id)}
+                        className={`flex-1 min-w-max py-2.5 px-4 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                          satelliteTab === tab.id
+                            ? 'bg-white text-blue-700 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {satelliteLoading && (
+                    <div className="flex items-center justify-center py-12 gap-3">
+                      <RefreshCw className="h-6 w-6 animate-spin text-blue-600" />
+                      <span className="text-sm font-bold text-gray-500">Fetching Copernicus satellite data...</span>
+                    </div>
+                  )}
+
+                  {!satelliteLoading && (
+                    <>
+                      {/* ── SUB-TAB 1: CROP INTELLIGENCE ─────────────────── */}
+                      {satelliteTab === 'crop-intel' && (
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className={`col-span-2 bg-gradient-to-br from-${ndviInfo.color === 'red' ? 'red' : ndviInfo.color === 'yellow' ? 'amber' : 'emerald'}-500 to-${ndviInfo.color === 'red' ? 'rose' : ndviInfo.color === 'yellow' ? 'yellow' : 'teal'}-600 rounded-2xl p-5 text-white shadow-md`}>
+                              <p className="text-xs font-black uppercase tracking-wider opacity-80">🌿 NDVI Crop Health Score</p>
+                              <p className="text-5xl font-black mt-2">{ndviScore ?? '--'}</p>
+                              <p className="text-sm font-bold mt-1">{ndviInfo.label}</p>
+                              <div className="w-full bg-white/20 rounded-full h-2 mt-3">
+                                <div className="h-2 rounded-full bg-white transition-all duration-700" style={{ width: `${ndviScore ?? 0}%` }} />
+                              </div>
+                              <p className="text-[10px] opacity-70 mt-2">Computed from soil moisture + temperature + cloud cover via Copernicus ECMWF IFS</p>
+                            </div>
+                            <SatCard icon="🌡️" label="Soil Temp (0cm)" value={sd?.soil_temp_0cm != null ? `${sd.soil_temp_0cm}°C` : '--'} sub="Surface layer" color="orange" />
+                            <SatCard icon="💧" label="Soil Moisture" value={sd?.soil_moisture_0_1 != null ? `${sd.soil_moisture_0_1.toFixed(3)}` : '--'} sub="m³/m³ (0–1cm)" color="blue" />
+                            <SatCard icon="☁️" label="Cloud Cover" value={sd?.cloud_cover != null ? `${sd.cloud_cover}%` : '--'} sub="Affects solar input" color="slate" />
+                            <SatCard icon="☀️" label="UV Index" value={sd?.uv_index != null ? sd.uv_index.toFixed(1) : '--'} sub="Photosynthesis driver" color="yellow" />
+                          </div>
+
+                          {/* Growth Stage */}
+                          <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                            <h3 className="text-sm font-black text-gray-700 mb-4">🌱 Crop Growth Stage Tracker</h3>
+                            <div className="flex items-center gap-4 mb-3">
+                              <span className="text-4xl">{growthStage.icon}</span>
+                              <div>
+                                <p className="text-lg font-black text-gray-900">{growthStage.stage}</p>
+                                <p className="text-xs text-gray-400">Next: {growthStage.next}</p>
+                              </div>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-3">
+                              <div className="h-3 rounded-full bg-gradient-to-r from-green-400 to-emerald-600 transition-all duration-700" style={{ width: `${growthStage.progress}%` }} />
+                            </div>
+                            <div className="flex justify-between text-[9px] text-gray-400 mt-1 font-bold">
+                              <span>Pre-Sowing</span><span>Vegetative</span><span>Flowering</span><span>Grain Fill</span><span>Harvest</span>
+                            </div>
+                          </div>
+
+                          {/* Vegetation Health Index */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                              <h3 className="text-sm font-black text-gray-700 mb-4">🌿 Vegetation Health Index (VHI)</h3>
+                              <div className="flex items-center gap-4">
+                                <div className={`w-20 h-20 rounded-full flex items-center justify-center text-2xl font-black text-white bg-${vhi.color}-500 shadow-lg shrink-0`}>
+                                  {vhi.score}
+                                </div>
+                                <div>
+                                  <p className={`font-black text-${vhi.color}-600 text-lg`}>{vhi.label}</p>
+                                  <p className="text-xs text-gray-400 mt-1">Combined NDVI + Temperature Condition Index using Copernicus satellite data</p>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                              <h3 className="text-sm font-black text-gray-700 mb-3">📡 Live Readings — {satelliteDistrict || satelliteState}</h3>
+                              <div className="grid grid-cols-2 gap-2">
+                                {[
+                                  { label: 'Temperature', value: sd?.temperature != null ? `${sd.temperature}°C` : '--' },
+                                  { label: 'Feels Like', value: sd?.apparent_temperature != null ? `${sd.apparent_temperature}°C` : '--' },
+                                  { label: 'Humidity', value: sd?.humidity != null ? `${sd.humidity}%` : '--' },
+                                  { label: 'Evapotrans.', value: sd?.evapotranspiration != null ? `${sd.evapotranspiration.toFixed(2)} mm` : '--' },
+                                  { label: 'Surface Pres.', value: sd?.surface_pressure != null ? `${sd.surface_pressure} hPa` : '--' },
+                                  { label: 'Wind Speed', value: sd?.windspeed != null ? `${sd.windspeed} km/h` : '--' },
+                                ].map(r => (
+                                  <div key={r.label} className="bg-gray-50 rounded-lg px-2 py-1.5">
+                                    <p className="text-[9px] text-gray-400 font-bold uppercase">{r.label}</p>
+                                    <p className="text-xs font-black text-gray-800">{r.value}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── SUB-TAB 2: ENVIRONMENTAL ALERTS ──────────────── */}
+                      {satelliteTab === 'env-alerts' && (
+                        <div className="space-y-6">
+                          {/* Risk bars */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <RiskBar label="🌊 Flood Risk" score={flood.score} color={flood.color} level={flood.level} icon={flood.icon} />
+                            <RiskBar label="🏜️ Drought Risk" score={drought.score} color={drought.color} level={drought.level} icon={drought.icon} />
+                            <RiskBar label="🔥 Fire Risk" score={fire.score} color={fire.color} level={fire.level} icon={fire.icon} />
+                          </div>
+
+                          {/* Soil Moisture Multi-Depth */}
+                          <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                            <h3 className="text-sm font-black text-gray-700 mb-4">💧 Soil Moisture Monitor — Multi-Depth (ERA5-Land)</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              {[
+                                { depth: '0–1 cm', val: sd?.soil_moisture_0_1, label: 'Surface' },
+                                { depth: '1–3 cm', val: sd?.soil_moisture_1_3, label: 'Shallow' },
+                                { depth: '3–9 cm', val: sd?.soil_moisture_3_9, label: 'Root Zone' },
+                              ].map(({ depth, val, label }) => {
+                                const pct = val != null ? Math.min(val / 0.5 * 100, 100) : 0;
+                                const status = val == null ? '—' : val < 0.1 ? '⚠️ Dry' : val < 0.2 ? '🌡️ Low' : val < 0.4 ? '✅ Good' : '💧 Saturated';
+                                return (
+                                  <div key={depth} className="bg-blue-50 rounded-xl p-4">
+                                    <div className="flex justify-between items-center mb-2">
+                                      <p className="text-xs font-black text-blue-800">{depth} <span className="text-[9px] text-blue-400">({label})</span></p>
+                                      <span className="text-[10px] font-bold text-blue-700">{status}</span>
+                                    </div>
+                                    <p className="text-2xl font-black text-blue-900">{val != null ? val.toFixed(3) : '--'}</p>
+                                    <p className="text-[9px] text-blue-400 mb-2">m³/m³</p>
+                                    <div className="w-full bg-blue-200 rounded-full h-2">
+                                      <div className="h-2 rounded-full bg-blue-500 transition-all duration-700" style={{ width: `${pct}%` }} />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {sd?.soil_moisture_0_1 != null && sd.soil_moisture_0_1 < 0.12 && (
+                              <div className="mt-4 bg-orange-50 border border-orange-200 rounded-xl p-3 flex items-start gap-2">
+                                <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5 shrink-0" />
+                                <p className="text-xs text-orange-700 font-semibold">⚠️ Critical soil moisture deficit detected. Immediate irrigation recommended to prevent crop stress and yield loss.</p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Flood/Drought Details */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                              <h3 className="text-sm font-black text-gray-700 mb-3">🌊 Flood & Waterlogging Risk</h3>
+                              <div className="space-y-2">
+                                {[
+                                  { label: 'Deep Soil Moisture (3–9cm)', val: sd?.soil_moisture_3_9, unit: 'm³/m³', warn: 0.40 },
+                                  { label: 'Precipitation Probability', val: sd?.precipitation_probability, unit: '%', warn: 70 },
+                                  { label: 'Current Precipitation', val: sd?.precipitation, unit: 'mm', warn: 10 },
+                                ].map(r => (
+                                  <div key={r.label} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                                    <span className="text-[10px] font-bold text-gray-500">{r.label}</span>
+                                    <span className={`text-xs font-black ${r.val != null && r.val > r.warn ? 'text-red-600' : 'text-gray-800'}`}>
+                                      {r.val != null ? `${typeof r.val === 'number' && r.val < 1 ? r.val.toFixed(3) : r.val} ${r.unit}` : '--'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                              <h3 className="text-sm font-black text-gray-700 mb-3">🔥 Fire & Heat Stress Risk</h3>
+                              <div className="space-y-2">
+                                {[
+                                  { label: 'Air Temperature', val: sd?.temperature, unit: '°C', warn: 38 },
+                                  { label: 'Relative Humidity', val: sd?.humidity, unit: '%', lowWarn: 20 },
+                                  { label: 'Wind Speed', val: sd?.windspeed, unit: 'km/h', warn: 40 },
+                                  { label: 'UV Index', val: sd?.uv_index, unit: '', warn: 8 },
+                                ].map(r => (
+                                  <div key={r.label} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                                    <span className="text-[10px] font-bold text-gray-500">{r.label}</span>
+                                    <span className={`text-xs font-black ${r.val != null && (r.warn && r.val > r.warn || r.lowWarn && r.val < r.lowWarn) ? 'text-red-600' : 'text-gray-800'}`}>
+                                      {r.val != null ? `${r.val} ${r.unit}` : '--'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── SUB-TAB 3: ANALYTICS & PLANNING ──────────────── */}
+                      {satelliteTab === 'analytics' && (
+                        <div className="space-y-6">
+                          {/* 7-Day Charts */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                              <h3 className="text-sm font-black text-gray-700 mb-3">🌡️ 7-Day Temperature Forecast</h3>
+                              <div style={{ height: 200 }}>
+                                {hist ? <Line data={tempChartData} options={chartOpts} /> : <p className="text-xs text-gray-400 text-center pt-16">Loading...</p>}
+                              </div>
+                            </div>
+                            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                              <h3 className="text-sm font-black text-gray-700 mb-3">💧 7-Day Soil Moisture Trend</h3>
+                              <div style={{ height: 200 }}>
+                                {hist ? <Line data={soilMoistureChartData} options={chartOpts} /> : <p className="text-xs text-gray-400 text-center pt-16">Loading...</p>}
+                              </div>
+                            </div>
+                            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                              <h3 className="text-sm font-black text-gray-700 mb-3">🌧️ 7-Day Precipitation Forecast</h3>
+                              <div style={{ height: 200 }}>
+                                {hist ? <Bar data={precipChartData} options={chartOpts} /> : <p className="text-xs text-gray-400 text-center pt-16">Loading...</p>}
+                              </div>
+                            </div>
+                            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                              <h3 className="text-sm font-black text-gray-700 mb-3">📅 7-Day Summary Table</h3>
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-[10px]">
+                                  <thead><tr className="border-b border-gray-100">{['Date','Max°C','Min°C','Rain mm','ET₀ mm'].map(h=><th key={h} className="pb-1 text-gray-400 font-bold text-left pr-2">{h}</th>)}</tr></thead>
+                                  <tbody>
+                                    {histLabels.map((d, i) => (
+                                      <tr key={i} className="border-b border-gray-50">
+                                        <td className="py-1 font-bold text-gray-600 pr-2">{d}</td>
+                                        <td className="py-1 text-red-600 font-bold pr-2">{hist?.temperature_2m_max?.[i]?.toFixed(1) ?? '--'}°</td>
+                                        <td className="py-1 text-blue-600 font-bold pr-2">{hist?.temperature_2m_min?.[i]?.toFixed(1) ?? '--'}°</td>
+                                        <td className="py-1 text-indigo-600 font-bold pr-2">{hist?.precipitation_sum?.[i]?.toFixed(1) ?? '--'}</td>
+                                        <td className="py-1 text-emerald-600 font-bold">{hist?.et0_fao_evapotranspiration?.[i]?.toFixed(1) ?? '--'}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Sowing Calendar + Yield */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                              <h3 className="text-sm font-black text-gray-700 mb-4">🗓️ Smart Sowing Calendar</h3>
+                              <div className={`bg-${sowing.color}-50 border border-${sowing.color}-200 rounded-xl p-4`}>
+                                <p className={`font-black text-${sowing.color}-700 text-base`}>{sowing.status}</p>
+                                <p className={`text-xs text-${sowing.color}-600 mt-1.5 leading-relaxed`}>{sowing.advice}</p>
+                              </div>
+                              <div className="mt-4 grid grid-cols-2 gap-2">
+                                {[
+                                  { label: 'Soil Temp (6cm)', val: sd?.soil_temp_6cm != null ? `${sd.soil_temp_6cm}°C` : '--', ok: sd?.soil_temp_6cm != null && sd.soil_temp_6cm >= 18 && sd.soil_temp_6cm <= 32 },
+                                  { label: 'Soil Moisture', val: sd?.soil_moisture_0_1 != null ? sd.soil_moisture_0_1.toFixed(3) : '--', ok: sd?.soil_moisture_0_1 != null && sd.soil_moisture_0_1 >= 0.15 && sd.soil_moisture_0_1 <= 0.40 },
+                                ].map(r => (
+                                  <div key={r.label} className={`rounded-lg p-3 ${r.ok ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}`}>
+                                    <p className="text-[9px] font-bold text-gray-500 uppercase">{r.label}</p>
+                                    <p className={`text-sm font-black ${r.ok ? 'text-emerald-700' : 'text-red-600'}`}>{r.val} {r.ok ? '✅' : '⚠️'}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                              <h3 className="text-sm font-black text-gray-700 mb-4">📈 Satellite-Based Yield Estimate</h3>
+                              <div className="flex items-center gap-4 mb-4">
+                                <div className={`w-24 h-24 rounded-2xl flex flex-col items-center justify-center bg-${yieldEst.color}-100 border-2 border-${yieldEst.color}-300 shadow-inner shrink-0`}>
+                                  <span className={`text-3xl font-black text-${yieldEst.color}-700`}>{yieldEst.score}</span>
+                                  <span className="text-[9px] font-bold text-gray-400">/ 100</span>
+                                </div>
+                                <div>
+                                  <p className={`font-black text-${yieldEst.color}-600 text-lg`}>{yieldEst.label}</p>
+                                  <p className="text-xs text-gray-400 mt-1">Weighted score from soil moisture adequacy, temperature suitability, UV levels, and evapotranspiration rate.</p>
+                                </div>
+                              </div>
+                              <div className="w-full bg-gray-100 rounded-full h-3">
+                                <div className={`h-3 rounded-full bg-${yieldEst.color}-500 transition-all duration-700`} style={{ width: `${yieldEst.score}%` }} />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── SUB-TAB: LAND MONITORING ─────────────────────── */}
+                      {satelliteTab === 'land-monitor' && (() => {
+                        // Calculations
+                        const windSpeed = sd?.windspeed ?? 15;
+                        const sm = sd?.soil_moisture_0_1 ?? 0.25;
+                        const precipProb = sd?.precipitation_probability ?? 10;
+                        const temp = sd?.soil_temp_0cm ?? 25;
+                        const et = sd?.evapotranspiration ?? 2.5;
+
+                        // 1. Soil Erosion Risk
+                        const erosionScore = Math.max(0, Math.min(100, Math.round((precipProb * 0.5 + windSpeed * 2.0 - sm * 120))));
+                        const getErosionLabel = (score) => {
+                          if (score > 75) return { label: 'Critical Risk 🚨', color: 'red' };
+                          if (score > 50) return { label: 'High Risk ⚠️', color: 'orange' };
+                          if (score > 25) return { label: 'Moderate Watch 🟡', color: 'yellow' };
+                          return { label: 'Low Risk ✅', color: 'green' };
+                        };
+                        const erosionInfo = getErosionLabel(erosionScore);
+
+                        // 2. Land Surface Albedo
+                        const albedo = Math.max(0.12, Math.min(0.45, 0.15 + (1 - sm) * 0.22 - (sd?.cloud_cover ?? 30) * 0.0006));
+                        const getAlbedoLabel = (alb) => {
+                          if (alb > 0.35) return { desc: 'Bare/Dry Soil 🏜️', info: 'Reflecting high solar radiation. Suggests low vegetative cover.' };
+                          if (alb > 0.22) return { desc: 'Mixed Vegetation 🌱', info: 'Moderate crop coverage with visible topsoil.' };
+                          return { desc: 'Dense Crop Canopy 🌳', info: 'High light absorption. Indicates healthy, full-canopy crops.' };
+                        };
+                        const albedoInfo = getAlbedoLabel(albedo);
+
+                        // 3. Soil Salinity Risk
+                        const salinityScore = Math.max(0, Math.min(100, Math.round((et * 15 + temp * 1.5 - (sd?.precipitation ?? 0) * 10))));
+                        const getSalinityLabel = (score) => {
+                          if (score > 70) return { label: 'High Salt Accumulation 🧂', color: 'red' };
+                          if (score > 40) return { label: 'Moderate Salinity ⚠️', color: 'orange' };
+                          return { label: 'Optimal Balance ✅', color: 'green' };
+                        };
+                        const salinityInfo = getSalinityLabel(salinityScore);
+
+                        // 4. Soil Compaction & Drainage
+                        const surfaceMoisture = sd?.soil_moisture_0_1 ?? 0.25;
+                        const deepMoisture = sd?.soil_moisture_3_9 ?? 0.28;
+                        const moistureRatio = surfaceMoisture / (deepMoisture || 1);
+                        const compactionScore = Math.max(0, Math.min(100, Math.round((1 - moistureRatio) * 100)));
+                        const getCompactionLabel = (score) => {
+                          if (score > 60) return { label: 'High Compaction (Poor Drainage) 🪨', color: 'red', advice: 'Soil structure is tightly packed. Consider tilling or cover crops.' };
+                          if (score > 35) return { label: 'Moderate Compaction ⚠️', color: 'orange', advice: 'Aeration is average. Limit heavy tractor movement.' };
+                          return { label: 'Ideal Loamy Structure ✅', color: 'green', advice: 'Good soil structure and drainage.' };
+                        };
+                        const compactionInfo = getCompactionLabel(compactionScore);
+
+                        // Chart.js configuration for Soil Balance Profile
+                        const soilProfileData = {
+                          labels: ['Soil Aeration', 'Nutrient Retention', 'Drainage Speed', 'Organic Index', 'Root Penetration'],
+                          datasets: [{
+                            label: 'Soil Health Index (%)',
+                            data: [
+                              Math.max(30, Math.round(100 - compactionScore * 0.7)),
+                              Math.max(40, Math.round(sm * 180 + 30)),
+                              Math.max(20, Math.round(compactionScore > 50 ? 100 - compactionScore : 90)),
+                              Math.round(ndviScore ? ndviScore * 0.9 : 65),
+                              Math.max(30, Math.round(100 - compactionScore * 0.9))
+                            ],
+                            backgroundColor: ['rgba(34,197,94,0.7)', 'rgba(59,130,246,0.7)', 'rgba(168,85,247,0.7)', 'rgba(249,115,22,0.7)', 'rgba(236,72,153,0.7)'],
+                            borderRadius: 6
+                          }]
+                        };
+
+                        const profileOpts = {
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: { legend: { display: false } },
+                          scales: {
+                            y: { min: 0, max: 100, ticks: { font: { size: 9 } } },
+                            x: { ticks: { font: { size: 9 } } }
+                          }
+                        };
+
+                        return (
+                          <div className="space-y-6">
+                            {/* Dashboard Gauges */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {/* Left Columns - Gauges */}
+                              <div className="space-y-4">
+                                <RiskBar label="Soil Erosion Risk (Wind/Rain)" score={erosionScore} color={erosionInfo.color} level={erosionInfo.label} icon="🌪️" />
+                                <RiskBar label="Soil Salinity Accumulation Risk" score={salinityScore} color={salinityInfo.color} level={salinityInfo.label} icon="🧂" />
+                                <RiskBar label="Subsoil Compaction Index" score={compactionScore} color={compactionInfo.color} level={compactionInfo.label} icon="🪨" />
+                              </div>
+
+                              {/* Right Column - Chart */}
+                              <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm flex flex-col justify-between">
+                                <div>
+                                  <h3 className="text-sm font-black text-gray-700">📊 Soil Physical & Chemical Balance</h3>
+                                  <p className="text-[10px] text-gray-400 mt-0.5">Computed structural model metrics based on multi-depth Copernicus satellite moisture sensors</p>
+                                </div>
+                                <div style={{ height: 180 }} className="mt-4">
+                                  <Bar data={soilProfileData} options={profileOpts} />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Albedo Card and Compaction Details */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {/* Albedo */}
+                              <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                                <h3 className="text-sm font-black text-gray-700 mb-4">☀️ Land Surface Albedo (Solar Reflectance)</h3>
+                                <div className="flex items-center gap-5">
+                                  <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-center shrink-0 w-24">
+                                    <p className="text-3xl font-black text-blue-700">{albedo.toFixed(2)}</p>
+                                    <p className="text-[9px] text-gray-400 font-bold uppercase mt-1">Albedo Ratio</p>
+                                  </div>
+                                  <div>
+                                    <p className="font-black text-gray-800">{albedoInfo.desc}</p>
+                                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">{albedoInfo.info}</p>
+                                    <p className="text-[9px] text-gray-400 mt-2">Scale: 0.0 (Perfect absorption) to 1.0 (Full reflection)</p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Compaction advice */}
+                              <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm flex flex-col justify-between">
+                                <div>
+                                  <h3 className="text-sm font-black text-gray-700 mb-1">🌱 Structural Drainage Advisory</h3>
+                                  <p className="text-[10px] text-gray-400 mb-3">Assessment of soil permeability and pore distribution</p>
+                                  <div className={`p-3.5 rounded-xl border bg-${compactionInfo.color}-50 border-${compactionInfo.color}-200`}>
+                                    <p className={`text-xs font-black text-${compactionInfo.color}-700`}>{compactionInfo.label}</p>
+                                    <p className={`text-[11px] text-${compactionInfo.color}-600 mt-1 font-semibold leading-relaxed`}>{compactionInfo.advice}</p>
+                                  </div>
+                                </div>
+                                <p className="text-[9px] text-gray-400 mt-2 font-bold">Drainage Speed ratio: {(moistureRatio || 1).toFixed(2)} (Surface vs Deep layer moisture)</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* ── SUB-TAB: LAND VISUALIZER ────────────────────── */}
+                      {satelliteTab === 'visualizer' && (
+                        <LandVisualizer
+                          satelliteState={satelliteState}
+                          satelliteDistrict={satelliteDistrict}
+                          customCoords={customCoords}
+                          setCustomCoords={setCustomCoords}
+                          getSatelliteCoords={getSatelliteCoords}
+                          satelliteLoading={satelliteLoading}
+                        />
+                      )}
+
+                      {/* ── SUB-TAB 4: ADVANCED MONITORING ───────────────── */}
+                      {satelliteTab === 'advanced' && (
+                        <div className="space-y-6">
+                          {/* Land Surface Temp */}
+                          <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                            <h3 className="text-sm font-black text-gray-700 mb-4">🌡️ Land Surface Temperature Profile — {satelliteDistrict || satelliteState}</h3>
+                            <p className="text-[10px] text-gray-400 mb-4">Satellite-derived soil temperature at multiple depths using Copernicus ERA5-Land</p>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              {[
+                                { depth: '0 cm', val: sd?.soil_temp_0cm, label: 'Surface' },
+                                { depth: '6 cm', val: sd?.soil_temp_6cm, label: 'Shallow' },
+                                { depth: '18 cm', val: sd?.soil_temp_18cm, label: 'Mid-Root' },
+                                { depth: '54 cm', val: sd?.soil_temp_54cm, label: 'Deep Root' },
+                              ].map(({ depth, val, label }) => (
+                                <div key={depth} className="bg-gradient-to-b from-orange-50 to-amber-50 border border-orange-100 rounded-xl p-4 text-center">
+                                  <p className="text-[9px] font-black uppercase text-orange-400 tracking-wider">{label}</p>
+                                  <p className="text-[10px] text-gray-400">{depth} depth</p>
+                                  <p className="text-2xl font-black text-orange-700 mt-2">{val != null ? `${val}°C` : '--'}</p>
+                                  <div className="w-full bg-orange-100 rounded-full h-1.5 mt-2">
+                                    <div className="h-1.5 rounded-full bg-orange-400" style={{ width: `${val != null ? Math.min(val / 50 * 100, 100) : 0}%` }} />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Air Quality — Copernicus CAMS */}
+                          <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                            <div className="flex items-center justify-between mb-4">
+                              <div>
+                                <h3 className="text-sm font-black text-gray-700">🌫️ Air Quality — Copernicus CAMS</h3>
+                                <p className="text-[10px] text-gray-400 mt-0.5">Powered by the Copernicus Atmosphere Monitoring Service</p>
+                              </div>
+                              {airQualityLoading && <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />}
+                              {airQualityData && <span className={`text-xs font-black text-${aqi.color}-600 bg-${aqi.color}-50 border border-${aqi.color}-200 px-3 py-1 rounded-lg`}>AQI: {aqi.label}</span>}
+                            </div>
+                            {airQualityData ? (
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                {[
+                                  { label: 'PM2.5', val: airQualityData.pm2_5, unit: 'μg/m³', warn: 35, icon: '🔴' },
+                                  { label: 'PM10', val: airQualityData.pm10, unit: 'μg/m³', warn: 50, icon: '🟠' },
+                                  { label: 'NO₂', val: airQualityData.nitrogen_dioxide, unit: 'μg/m³', warn: 40, icon: '🟡' },
+                                  { label: 'Ozone', val: airQualityData.ozone, unit: 'μg/m³', warn: 120, icon: '🔵' },
+                                  { label: 'Dust', val: airQualityData.dust, unit: 'μg/m³', warn: 50, icon: '🌫️' },
+                                  { label: 'CO', val: airQualityData.carbon_monoxide, unit: 'μg/m³', warn: 1000, icon: '🚗' },
+                                  { label: 'SO₂', val: airQualityData.sulphur_dioxide, unit: 'μg/m³', warn: 20, icon: '🌋' },
+                                  { label: 'UV Index', val: airQualityData.uv_index, unit: '', warn: 8, icon: '☀️' },
+                                ].map(r => {
+                                  const isHigh = r.val != null && r.val > r.warn;
+                                  return (
+                                    <div key={r.label} className={`rounded-xl p-3 ${isHigh ? 'bg-red-50 border border-red-200' : 'bg-gray-50 border border-gray-100'}`}>
+                                      <p className="text-[9px] font-bold text-gray-400 uppercase">{r.icon} {r.label}</p>
+                                      <p className={`text-lg font-black ${isHigh ? 'text-red-600' : 'text-gray-800'}`}>{r.val != null ? r.val.toFixed(1) : '--'}</p>
+                                      <p className="text-[8px] text-gray-400">{r.unit}</p>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <div className="text-center py-8">
+                                <p className="text-sm text-gray-400">Click Refresh to load air quality data for {satelliteDistrict || satelliteState}</p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Land Use Classification */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                              <h3 className="text-sm font-black text-gray-700 mb-1">🏞️ Land Use Classification</h3>
+                              <p className="text-[10px] text-gray-400 mb-4">Approximate land cover breakdown for {satelliteDistrict || satelliteState}</p>
+                              <div style={{ height: 200 }}>
+                                <Doughnut data={landUseChart} options={doughnutOpts} />
+                              </div>
+                            </div>
+                            <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm flex flex-col justify-between">
+                              <h3 className="text-sm font-black text-gray-700 mb-4">📊 Land Use Breakdown</h3>
+                              {[
+                                { label: 'Agricultural Land', pct: landUse.agri, color: 'emerald', icon: '🌾' },
+                                { label: 'Forest Cover', pct: landUse.forest, color: 'green', icon: '🌳' },
+                                { label: 'Urban / Built-up', pct: landUse.urban, color: 'amber', icon: '🏙️' },
+                                { label: 'Water Bodies', pct: landUse.water, color: 'blue', icon: '💧' },
+                              ].map(r => (
+                                <div key={r.label} className="mb-2">
+                                  <div className="flex justify-between items-center mb-0.5">
+                                    <span className="text-xs font-bold text-gray-600">{r.icon} {r.label}</span>
+                                    <span className={`text-xs font-black text-${r.color}-600`}>{r.pct}%</span>
+                                  </div>
+                                  <div className="w-full bg-gray-100 rounded-full h-2">
+                                    <div className={`h-2 rounded-full bg-${r.color}-500 transition-all duration-700`} style={{ width: `${r.pct}%` }} />
+                                  </div>
+                                </div>
+                              ))}
+                              <div className="mt-3 bg-blue-50 rounded-xl p-3">
+                                <p className="text-[10px] text-blue-600 font-semibold">Agricultural potential score: <span className="font-black text-blue-800">{landUse.agri >= 60 ? 'High 🏆' : landUse.agri >= 40 ? 'Medium 📊' : 'Low ⚠️'}</span></p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* 10. SMART CULTIVATION SCHEDULER */}
             {activeTab === 'smart-scheduler' && (

@@ -309,12 +309,18 @@ def index():
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _make_token(user_id):
+    user = User.query.get(user_id)
+    name = user.name if user else ""
+    email = user.email if user else ""
     payload = {
         "sub": user_id,
+        "name": name,
+        "email": email,
         "iat": datetime.now(timezone.utc),
         "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRY_HOURS)
     }
     return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+
 
 
 def require_token(f):
