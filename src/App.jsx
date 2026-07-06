@@ -316,6 +316,12 @@ const LandVisualizer = ({
   const [mapMode, setMapMode] = useState('satellite'); // 'satellite' | 'ndvi'
   const [boundaryEnabled, setBoundaryEnabled] = useState(false);
 
+  // Drawing States & Refs
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawPoints, setDrawPoints] = useState([]);
+  const customPolygonRef = useRef(null);
+  const customMarkersRef = useRef([]);
+
   // Pin Code State
   const [pincode, setPincode] = useState('');
   const [pincodeError, setPincodeError] = useState('');
@@ -604,6 +610,109 @@ const LandVisualizer = ({
 
   }, [mapLat, mapLon, mapMode, boundaryEnabled]);
 
+  // Area Calculation using flat Shoelace projection
+  const calculatePolygonArea = (points) => {
+    if (points.length < 3) return 0;
+    let area = 0;
+    const refLat = points[0].lat;
+    const refLon = points[0].lng;
+    const R_LAT = 111320; // meters per degree latitude
+    const R_LON = 111320 * Math.cos(refLat * Math.PI / 180); // meters per degree longitude
+
+    const projected = points.map(p => ({
+      x: (p.lng - refLon) * R_LON,
+      y: (p.lat - refLat) * R_LAT
+    }));
+
+    const numPoints = projected.length;
+    for (let i = 0; i < numPoints; i++) {
+      const j = (i + 1) % numPoints;
+      area += projected[i].x * projected[j].y;
+      area -= projected[j].x * projected[i].y;
+    }
+    area = Math.abs(area) / 2.0; // area in square meters
+    return area;
+  };
+
+  const areaInSqM = calculatePolygonArea(drawPoints);
+  const areaInAcres = areaInSqM / 4046.86;
+  const areaInHectares = areaInSqM / 10000;
+
+  // Handle map click in drawing mode
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    const L = window.L;
+    if (!L) return;
+
+    const handleMapClick = (e) => {
+      setDrawPoints(prev => [...prev, e.latlng]);
+    };
+
+    if (isDrawing) {
+      mapInstanceRef.current.getContainer().style.cursor = 'crosshair';
+      mapInstanceRef.current.on('click', handleMapClick);
+    } else {
+      mapInstanceRef.current.getContainer().style.cursor = '';
+    }
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.off('click', handleMapClick);
+      }
+    };
+  }, [isDrawing]);
+
+  // Sync Custom Drawing layer and draggable corner markers
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    const L = window.L;
+    if (!L) return;
+
+    // 1. Clear old custom markers
+    customMarkersRef.current.forEach(m => m.remove());
+    customMarkersRef.current = [];
+
+    // 2. Clear old custom polygon
+    if (customPolygonRef.current) {
+      customPolygonRef.current.remove();
+      customPolygonRef.current = null;
+    }
+
+    // 3. Draw polygon if 3 or more points
+    if (drawPoints.length >= 3) {
+      customPolygonRef.current = L.polygon(drawPoints, {
+        color: '#ef4444',
+        fillColor: '#ef4444',
+        fillOpacity: 0.25,
+        weight: 3
+      }).addTo(mapInstanceRef.current);
+    }
+
+    // 4. Draw interactive draggable corner points
+    drawPoints.forEach((pt, index) => {
+      const dotIcon = L.divIcon({
+        html: `<div class="h-5 w-5 rounded-full bg-red-600 border-2 border-white shadow-lg cursor-move flex items-center justify-center text-[10px] font-black text-white">${index + 1}</div>`,
+        className: '',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+
+      const cornerMarker = L.marker([pt.lat, pt.lng], { icon: dotIcon, draggable: true }).addTo(mapInstanceRef.current);
+
+      cornerMarker.on('drag', (e) => {
+        const newPos = e.target.getLatLng();
+        setDrawPoints(prev => {
+          const next = [...prev];
+          next[index] = newPos;
+          return next;
+        });
+      });
+
+      customMarkersRef.current.push(cornerMarker);
+    });
+
+  }, [drawPoints]);
+
   return (
     <div className="space-y-6">
       {/* Search Header (including PIN code resolver) */}
@@ -671,12 +780,59 @@ const LandVisualizer = ({
             >
               🌾 {boundaryEnabled ? 'Clear Boundary' : 'Simulate Farm Boundary'}
             </button>
+
+            {/* Custom Drawing Tool */}
+            <button
+              onClick={() => {
+                setIsDrawing(!isDrawing);
+                if (!isDrawing) setDrawPoints([]); // reset points when opening drawing mode
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border ${
+                isDrawing
+                  ? 'bg-red-600 text-white border-red-600 shadow-sm animate-pulse'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              ✏️ {isDrawing ? 'Cancel Drawing' : 'Draw Custom Boundary'}
+            </button>
+
+            {drawPoints.length > 0 && (
+              <>
+                <button
+                  onClick={() => setDrawPoints(prev => prev.slice(0, -1))}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 transition-all"
+                >
+                  ↩️ Undo Point
+                </button>
+                <button
+                  onClick={() => setDrawPoints([])}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 transition-all"
+                >
+                  🗑️ Clear
+                </button>
+              </>
+            )}
           </div>
 
           <div className="text-xs text-gray-400 font-bold">
-            💡 Drag marker pin 🚜 over any location to pull values!
+            💡 Drag marker pin 🚜 or turn on Draw tool to select boundaries!
           </div>
         </div>
+
+        {drawPoints.length > 0 && (
+          <div className="bg-red-50 border border-red-100 rounded-xl p-3.5 mt-3 text-left animate-fade-in">
+            <p className="text-[10px] text-red-600 font-bold uppercase tracking-wider">📐 Live Area Measurement</p>
+            <p className="text-xs font-bold text-red-800 mt-1">
+              {drawPoints.length < 3
+                ? `Click at least 3 points on the satellite map to enclose your field (need ${3 - drawPoints.length} more)...`
+                : `Measured Area: ${areaInAcres.toFixed(2)} Acres (${areaInHectares.toFixed(2)} Hectares / ${(areaInSqM / 40.4686).toFixed(0)} Gunthas)`
+              }
+            </p>
+            {drawPoints.length >= 3 && (
+              <p className="text-[9px] text-red-500 mt-1">💡 You can drag any numbered corner red marker on the map to fine-tune your boundaries!</p>
+            )}
+          </div>
+        )}
 
         <hr className="my-4 border-gray-100" />
 
