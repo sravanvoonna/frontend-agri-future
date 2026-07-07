@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from PIL import Image
 import google.generativeai as genai
 
-from models import db, State, Crop, Soil, CropSoil, Disease, Chemical, NewsUpdate, User, UserActivity, AdminLog
+from models import db, State, Crop, Soil, CropSoil, Disease, Chemical, NewsUpdate, User, UserActivity, AdminLog, Field, ScoutingTask
 from seed import seed_database
 
 # Load environment variables
@@ -458,6 +458,117 @@ def auth_clear_history(current_user):
     UserActivity.query.filter_by(user_id=current_user.id).delete()
     db.session.commit()
     return jsonify({"ok": True, "message": "History cleared"})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LIVE FIELD & DIGITAL SCOUTING API ENDPOINTS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.route("/api/fields", methods=["GET"])
+@require_token
+def get_user_fields(current_user):
+    fields = Field.query.filter_by(user_id=current_user.id).all()
+    if not fields:
+        # Auto-seed 3 realistic defaults for Nashik, Pune, and Nagpur if empty
+        f1 = Field(user_id=current_user.id, name="Nashik Grape Vineyard 🍇", crop="Grapes", area="4.5 Acres", avg_ndvi=0.76, trend="increasing", alerts=0, lat=20.001, lon=73.799)
+        f2 = Field(user_id=current_user.id, name="Pune Pomegranate Orchard 🍎", crop="Pomegranates", area="6.2 Acres", avg_ndvi=0.64, trend="stable", alerts=1, lat=18.520, lon=73.856)
+        f3 = Field(user_id=current_user.id, name="Nagpur Mandarin Field 🍊", crop="Oranges", area="8.0 Acres", avg_ndvi=0.49, trend="decreasing", alerts=3, lat=21.145, lon=79.088)
+        db.session.add_all([f1, f2, f3])
+        db.session.commit()
+        fields = [f1, f2, f3]
+    return jsonify([f.to_dict() for f in fields])
+
+
+@app.route("/api/fields", methods=["POST"])
+@require_token
+def create_user_field(current_user):
+    data = request.json or {}
+    name = data.get("name")
+    crop = data.get("crop", "Wheat")
+    area = data.get("area", "5.0 Acres")
+    lat = data.get("lat")
+    lon = data.get("lon")
+    
+    if not name or lat is None or lon is None:
+        return jsonify({"error": "name, lat, and lon are required"}), 400
+        
+    field = Field(
+        user_id=current_user.id,
+        name=name,
+        crop=crop,
+        area=area,
+        avg_ndvi=round(0.5 + 0.25 * (len(name) % 10) / 10, 2),
+        trend='stable',
+        alerts=0,
+        lat=float(lat),
+        lon=float(lon)
+    )
+    db.session.add(field)
+    db.session.commit()
+    return jsonify(field.to_dict()), 201
+
+
+@app.route("/api/fields/<int:field_id>", methods=["DELETE"])
+@require_token
+def delete_user_field(current_user, field_id):
+    field = Field.query.filter_by(id=field_id, user_id=current_user.id).first()
+    if not field:
+        return jsonify({"error": "Field not found"}), 404
+    db.session.delete(field)
+    db.session.commit()
+    return jsonify({"message": "Field deleted successfully", "ok": True})
+
+
+@app.route("/api/scouting", methods=["GET"])
+@require_token
+def get_user_scouting_tasks(current_user):
+    tasks = ScoutingTask.query.filter_by(user_id=current_user.id).order_by(ScoutingTask.created_at.desc()).all()
+    if not tasks:
+        # Auto-seed 2 realistic default scouting tasks if empty
+        t1 = ScoutingTask(user_id=current_user.id, lat=20.001, lon=73.799, task_type="Pest Infestation 🐛", priority="High", status="Pending", desc="Check Nashik Grape region 3 for Downy Mildew signs.")
+        t2 = ScoutingTask(user_id=current_user.id, lat=20.015, lon=73.805, task_type="Irrigation Leak 💧", priority="Medium", status="In Progress", desc="Drip line pressure drop detected on northern boundary.")
+        db.session.add_all([t1, t2])
+        db.session.commit()
+        tasks = [t1, t2]
+    return jsonify([t.to_dict() for t in tasks])
+
+
+@app.route("/api/scouting", methods=["POST"])
+@require_token
+def create_user_scouting_task(current_user):
+    data = request.json or {}
+    lat = data.get("lat")
+    lon = data.get("lon")
+    task_type = data.get("type", "General Scouting")
+    priority = data.get("priority", "Medium")
+    desc = data.get("desc", "")
+    
+    if lat is None or lon is None or not desc:
+        return jsonify({"error": "lat, lon, and desc are required"}), 400
+        
+    task = ScoutingTask(
+        user_id=current_user.id,
+        lat=float(lat),
+        lon=float(lon),
+        task_type=task_type,
+        priority=priority,
+        status="Pending",
+        desc=desc
+    )
+    db.session.add(task)
+    db.session.commit()
+    return jsonify(task.to_dict()), 201
+
+
+@app.route("/api/scouting/<int:task_id>", methods=["DELETE"])
+@require_token
+def delete_user_scouting_task(current_user, task_id):
+    task = ScoutingTask.query.filter_by(id=task_id, user_id=current_user.id).first()
+    if not task:
+        return jsonify({"error": "Task not found"}), 404
+    db.session.delete(task)
+    db.session.commit()
+    return jsonify({"message": "Task resolved successfully", "ok": True})
 
 # --- ADMIN STATS & LOGS ---
 @app.route("/api/admin/stats", methods=["GET"])

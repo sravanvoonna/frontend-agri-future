@@ -234,3 +234,59 @@ class AdminLog(db.Model):
             "action": self.action,
             "status": self.status
         }
+
+
+class Field(db.Model):
+    __tablename__ = 'farm_fields'
+    
+    id       = db.Column(db.Integer, primary_key=True)
+    user_id  = db.Column(db.Integer, db.ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
+    name     = db.Column(db.String(120), nullable=False)
+    crop     = db.Column(db.String(80), nullable=False)
+    area     = db.Column(db.String(50), nullable=False)
+    avg_ndvi = db.Column(db.Float, default=0.6)
+    trend    = db.Column(db.String(20), default='stable')
+    alerts   = db.Column(db.Integer, default=0)
+    lat      = db.Column(db.Float, nullable=False)
+    lon      = db.Column(db.Float, nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "name": self.name,
+            "crop": self.crop,
+            "area": self.area,
+            "avgNdvi": self.avg_ndvi,
+            "trend": self.trend,
+            "alerts": self.alerts,
+            "lat": self.lat,
+            "lon": self.lon
+        }
+
+
+class ScoutingTask(db.Model):
+    __tablename__ = 'scouting_tasks'
+    
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
+    lat        = db.Column(db.Float, nullable=False)
+    lon        = db.Column(db.Float, nullable=False)
+    task_type  = db.Column(db.String(100), nullable=False)
+    priority   = db.Column(db.String(50), nullable=False)
+    status     = db.Column(db.String(50), default='Pending')
+    desc       = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=_dt.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "lat": self.lat,
+            "lon": self.lon,
+            "type": self.task_type,
+            "priority": self.priority,
+            "status": self.status,
+            "desc": self.desc,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }

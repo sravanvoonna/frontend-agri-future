@@ -1129,6 +1129,7 @@ const EOSCropMap = ({
 
 const EOSCropMonitor = ({
   registeredFields,
+  setRegisteredFields,
   scoutingTasks,
   setScoutingTasks,
   eosActiveField,
@@ -1140,16 +1141,24 @@ const EOSCropMonitor = ({
   const activeFieldObj = registeredFields.find(f => f.id === eosActiveField) || registeredFields[0];
 
   // Local scouting form states
-  const [scoutFormLat, setScoutFormLat] = useState(activeFieldObj.lat);
-  const [scoutFormLon, setScoutFormLon] = useState(activeFieldObj.lon);
+  const [scoutFormLat, setScoutFormLat] = useState(activeFieldObj?.lat || 20.001);
+  const [scoutFormLon, setScoutFormLon] = useState(activeFieldObj?.lon || 73.799);
   const [scoutFormType, setScoutFormType] = useState('Pest Infestation 🐛');
   const [scoutFormPriority, setScoutFormPriority] = useState('High');
   const [scoutFormDesc, setScoutFormDesc] = useState('');
 
+  // Add field form states
+  const [showAddFieldForm, setShowAddFieldForm] = useState(false);
+  const [newFieldName, setNewFieldName] = useState('');
+  const [newFieldCrop, setNewFieldCrop] = useState('Grapes');
+  const [newFieldArea, setNewFieldArea] = useState('5.0 Acres');
+
   // Keep form lat/lon in sync with active field selection
   useEffect(() => {
-    setScoutFormLat(activeFieldObj.lat);
-    setScoutFormLon(activeFieldObj.lon);
+    if (activeFieldObj) {
+      setScoutFormLat(activeFieldObj.lat);
+      setScoutFormLon(activeFieldObj.lon);
+    }
   }, [activeFieldObj]);
 
   const handleAddScoutingTask = (lat, lon) => {
@@ -1164,38 +1173,101 @@ const EOSCropMonitor = ({
 
   const submitScoutingForm = (e) => {
     e.preventDefault();
-    const newTask = {
-      id: Date.now(),
+    const token = localStorage.getItem('agri_token');
+    if (!token) return;
+
+    axios.post(`${API_BASE_URL}/scouting`, {
       lat: parseFloat(scoutFormLat),
       lon: parseFloat(scoutFormLon),
       type: scoutFormType,
       priority: scoutFormPriority,
-      status: 'Pending',
       desc: scoutFormDesc || 'Routine inspection requested.'
-    };
-    setScoutingTasks(prev => [newTask, ...prev]);
-    setScoutFormDesc('');
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => {
+      setScoutingTasks(prev => [res.data, ...prev]);
+      setScoutFormDesc('');
+    })
+    .catch(err => {
+      console.error("Error creating scouting task:", err);
+    });
   };
 
-  const vraPresets = {
-    f1: [
-      { zone: 'Zone 1 (High Veg: >0.75)', seed: '32,000 / Acre', nfk: '45 kg / Acre', color: 'emerald' },
-      { zone: 'Zone 2 (Medium Veg: 0.5-0.75)', seed: '28,000 / Acre', nfk: '55 kg / Acre', color: 'amber' },
-      { zone: 'Zone 3 (Low Veg: <0.5)', seed: '24,000 / Acre', nfk: '65 kg / Acre', color: 'red' },
-    ],
-    f2: [
-      { zone: 'Zone 1 (High Veg: >0.7)', seed: '30,000 / Acre', nfk: '50 kg / Acre', color: 'emerald' },
-      { zone: 'Zone 2 (Medium Veg: 0.45-0.7)', seed: '26,000 / Acre', nfk: '60 kg / Acre', color: 'amber' },
-      { zone: 'Zone 3 (Low Veg: <0.45)', seed: '22,000 / Acre', nfk: '70 kg / Acre', color: 'red' },
-    ],
-    f3: [
-      { zone: 'Zone 1 (High Veg: >0.65)', seed: '28,000 / Acre', nfk: '55 kg / Acre', color: 'emerald' },
-      { zone: 'Zone 2 (Medium Veg: 0.4-0.65)', seed: '24,000 / Acre', nfk: '65 kg / Acre', color: 'amber' },
-      { zone: 'Zone 3 (Low Veg: <0.4)', seed: '20,000 / Acre', nfk: '75 kg / Acre', color: 'red' },
-    ],
-  }[activeFieldObj.id] || [];
+  const resolveScoutingTask = (taskId) => {
+    const token = localStorage.getItem('agri_token');
+    if (!token) return;
+
+    axios.delete(`${API_BASE_URL}/scouting/${taskId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(() => {
+      setScoutingTasks(prev => prev.filter(t => t.id !== taskId));
+    })
+    .catch(err => {
+      console.error("Error resolving scouting task:", err);
+    });
+  };
+
+  const handleAddNewField = (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('agri_token');
+    if (!token) return;
+
+    // Default to Nashik coordinates if no custom coords exist yet
+    const targetLat = activeFieldObj ? activeFieldObj.lat : 20.001;
+    const targetLon = activeFieldObj ? activeFieldObj.lon : 73.799;
+
+    axios.post(`${API_BASE_URL}/fields`, {
+      name: newFieldName,
+      crop: newFieldCrop,
+      area: newFieldArea,
+      lat: targetLat,
+      lon: targetLon
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => {
+      setRegisteredFields(prev => [...prev, res.data]);
+      setEosActiveField(res.data.id);
+      setNewFieldName('');
+      setShowAddFieldForm(false);
+    })
+    .catch(err => {
+      console.error("Error creating new field:", err);
+    });
+  };
+
+  const handleDeleteField = (e, fieldId) => {
+    e.stopPropagation();
+    const token = localStorage.getItem('agri_token');
+    if (!token) return;
+
+    axios.delete(`${API_BASE_URL}/fields/${fieldId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(() => {
+      setRegisteredFields(prev => {
+        const updated = prev.filter(f => f.id !== fieldId);
+        if (updated.length > 0 && eosActiveField === fieldId) {
+          setEosActiveField(updated[0].id);
+        }
+        return updated;
+      });
+    })
+    .catch(err => {
+      console.error("Error deleting field:", err);
+    });
+  };
+
+  const vraPresets = [
+    { zone: 'Zone 1 (High Veg: >0.75)', seed: '32,000 / Acre', nfk: '45 kg / Acre', color: 'emerald' },
+    { zone: 'Zone 2 (Medium Veg: 0.5-0.75)', seed: '28,000 / Acre', nfk: '55 kg / Acre', color: 'amber' },
+    { zone: 'Zone 3 (Low Veg: <0.5)', seed: '24,000 / Acre', nfk: '65 kg / Acre', color: 'red' },
+  ];
 
   const exportVraLog = () => {
+    if (!activeFieldObj) return;
     const headers = 'Zone,Target Index,Seed Density,NFK Fertilizer Dosage\n';
     const rows = vraPresets.map(r => `"${r.zone}","${activeFieldObj.crop}","${r.seed}","${r.nfk}"`).join('\n');
     const blob = new Blob([headers + rows], { type: 'text/csv' });
@@ -1211,23 +1283,80 @@ const EOSCropMonitor = ({
       <div className="lg:col-span-1 space-y-6">
         {/* Leaderboard Card */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-          <h3 className="text-sm font-black text-gray-700 mb-3 flex items-center justify-between">
-            <span>🏆 Registered Fields</span>
-            <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg border border-blue-100 font-bold">Total: {registeredFields.length}</span>
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-black text-gray-700">🏆 Registered Fields</h3>
+            <button
+              onClick={() => setShowAddFieldForm(!showAddFieldForm)}
+              className="bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold px-2.5 py-1 rounded-xl text-[10px] border border-blue-100 transition-all"
+            >
+              {showAddFieldForm ? 'Cancel' : '➕ Register Field'}
+            </button>
+          </div>
           <p className="text-[10px] text-gray-400 mb-4">Monitor average vegetation index across your farm holdings and track alert states</p>
           
+          {showAddFieldForm && (
+            <form onSubmit={handleAddNewField} className="bg-gray-50 border border-gray-100 rounded-xl p-3.5 mb-4 text-xs space-y-2 animate-fade-in">
+              <p className="font-bold text-[10px] uppercase text-gray-500">📍 New Field Details</p>
+              <div>
+                <label className="text-[9px] font-bold text-gray-400 uppercase">Field Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. North Side Rice Plot"
+                  value={newFieldName}
+                  onChange={e => setNewFieldName(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[9px] font-bold text-gray-400 uppercase">Crop Type</label>
+                  <select
+                    value={newFieldCrop}
+                    onChange={e => setNewFieldCrop(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-2 py-1.5 bg-white font-bold"
+                  >
+                    <option>Grapes</option>
+                    <option>Pomegranates</option>
+                    <option>Oranges</option>
+                    <option>Rice</option>
+                    <option>Wheat</option>
+                    <option>Sugarcane</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold text-gray-400 uppercase">Area Size</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 5.5 Acres"
+                    value={newFieldArea}
+                    onChange={e => setNewFieldArea(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-2 py-1.5 bg-white"
+                    required
+                  />
+                </div>
+              </div>
+              <p className="text-[9px] text-gray-400">💡 Field location will lock to the map's current active coordinate.</p>
+              <button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 rounded-lg text-[10px] shadow"
+              >
+                💾 Save Field to Database
+              </button>
+            </form>
+          )}
+
           <div className="space-y-2">
             {registeredFields.map(f => {
               const isActive = f.id === eosActiveField;
               return (
-                <button
+                <div
                   key={f.id}
                   onClick={() => {
                     setEosActiveField(f.id);
                     setCustomCoords({ lat: f.lat, lon: f.lon });
                   }}
-                  className={`w-full text-left p-3.5 rounded-xl border transition-all ${
+                  className={`w-full text-left p-3.5 rounded-xl border transition-all cursor-pointer relative group ${
                     isActive
                       ? 'bg-emerald-50/50 border-emerald-500 shadow-sm'
                       : 'bg-gray-50/50 border-gray-100 hover:bg-gray-50'
@@ -1238,10 +1367,17 @@ const EOSCropMonitor = ({
                       <p className="text-xs font-black text-gray-800">{f.name}</p>
                       <p className="text-[10px] text-gray-400 mt-0.5">{f.crop} | {f.area}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="flex items-center gap-2">
                       <span className={`text-xs font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg`}>
                         NDVI: {f.avgNdvi}
                       </span>
+                      <button
+                        onClick={(e) => handleDeleteField(e, f.id)}
+                        className="text-red-400 hover:text-red-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                        title="Delete Field"
+                      >
+                        🗑️
+                      </button>
                     </div>
                   </div>
 
@@ -1257,7 +1393,7 @@ const EOSCropMonitor = ({
                       </span>
                     )}
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -1470,7 +1606,7 @@ const EOSCropMonitor = ({
                   <p className="text-[9px] text-gray-400">Coordinates: {task.lat.toFixed(5)}, {task.lon.toFixed(5)}</p>
                 </div>
                 <button
-                  onClick={() => setScoutingTasks(prev => prev.filter(t => t.id !== task.id))}
+                  onClick={() => resolveScoutingTask(task.id)}
                   className="text-red-500 hover:text-red-700 text-xs font-bold font-mono px-2"
                 >
                   Resolve
@@ -1786,6 +1922,38 @@ export default function App() {
   ]);
   const [eosActiveField, setEosActiveField] = useState('f1');
   const [eosSpectralIndex, setEosSpectralIndex] = useState('ndvi');
+
+  // 15. Fetch Live Fields & Scouting Tasks from Backend
+  useEffect(() => {
+    const token = localStorage.getItem('agri_token');
+    if (!token || !currentUser) return;
+
+    // Fetch Fields
+    axios.get(`${API_BASE_URL}/fields`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => {
+      if (res.data && res.data.length > 0) {
+        setRegisteredFields(res.data);
+        setEosActiveField(res.data[0].id);
+      }
+    })
+    .catch(err => {
+      console.error("Error fetching live fields:", err);
+    });
+
+    // Fetch Scouting Tasks
+    axios.get(`${API_BASE_URL}/scouting`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => {
+      setScoutingTasks(res.data);
+    })
+    .catch(err => {
+      console.error("Error fetching live scouting tasks:", err);
+    });
+
+  }, [currentUser]);
 
   // Static land-use data per state (approx %)
   const LAND_USE_DATA = {
