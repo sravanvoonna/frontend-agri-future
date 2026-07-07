@@ -328,6 +328,58 @@ const LandVisualizer = ({
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [resolvedAddress, setResolvedAddress] = useState('');
 
+  // Location Address / Village / City Search State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
+
+  const handleAddressSearch = async (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setSearchError('');
+    setSearchLoading(true);
+    try {
+      const res = await axios.get(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=1`,
+        { headers: { 'User-Agent': 'AgriFutureApp/1.0' } }
+      );
+      if (res.data && res.data.length > 0) {
+        const first = res.data[0];
+        const latVal = parseFloat(first.lat);
+        const lonVal = parseFloat(first.lon);
+        const address = first.display_name;
+
+        setMapLat(latVal);
+        setMapLon(lonVal);
+        setResolvedAddress(address);
+        setCustomCoords({ lat: latVal, lon: lonVal });
+
+        // Update Map position & marker
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.setView([latVal, lonVal], 14);
+        }
+        if (markerRef.current) {
+          markerRef.current.setLatLng([latVal, lonVal]);
+          markerRef.current.setPopupContent(`
+            <div class="text-xs font-semibold p-1">
+              <p class="font-bold text-emerald-700">🎯 Location Resolved</p>
+              <p class="text-[10px] text-gray-600 mt-1">${address.split(',').slice(0, 3).join(',')}</p>
+              <p class="text-[10px] text-gray-400 mt-0.5">Lat: ${latVal.toFixed(4)}, Lon: ${lonVal.toFixed(4)}</p>
+            </div>
+          `);
+          markerRef.current.openPopup();
+        }
+      } else {
+        setSearchError('Location not found. Please try entering a more specific village, city, or district name.');
+      }
+    } catch (err) {
+      console.error('Location search error:', err);
+      setSearchError('Failed to connect to location database. Try again.');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   // Map Refs
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -715,35 +767,58 @@ const LandVisualizer = ({
 
   return (
     <div className="space-y-6">
-      {/* Search Header (including PIN code resolver) */}
+      {/* Search Header (including PIN code & general location search) */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm animate-fade-in text-left">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center justify-between">
-          <div className="space-y-1">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center">
+          <div className="space-y-1 lg:col-span-1">
             <h3 className="text-sm font-black text-gray-700">🗺️ Farm Explorer & Boundary Mapping</h3>
             <p className="text-[10px] text-gray-400">Locate your land, drag the pin to your field, and analyze precise Copernicus weather/soil readings</p>
           </div>
           
-          {/* PIN code lookup form */}
-          <form onSubmit={handlePincodeSearch} className="flex gap-2 justify-end w-full">
-            <div className="relative flex-grow max-w-[240px]">
+          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+            {/* General Location/Village Search */}
+            <form onSubmit={handleAddressSearch} className="flex gap-2 w-full">
+              <input
+                type="text"
+                placeholder="Search Village, City, or Landmark..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="flex-grow border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                required
+              />
+              <button
+                type="submit"
+                disabled={searchLoading}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition-all flex items-center gap-1.5 whitespace-nowrap"
+              >
+                {searchLoading ? <RefreshCw className="h-3 w-3 animate-spin" /> : '🔍'} Search Place
+              </button>
+            </form>
+
+            {/* PIN code lookup form */}
+            <form onSubmit={handlePincodeSearch} className="flex gap-2 w-full">
               <input
                 type="text"
                 placeholder="Enter 6-Digit PIN Code (e.g. 422001)"
                 value={pincode}
                 onChange={e => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                className="flex-grow border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                required
               />
-            </div>
-            <button
-              type="submit"
-              disabled={pincodeLoading}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition-all flex items-center gap-1.5"
-            >
-              {pincodeLoading ? <RefreshCw className="h-3 w-3 animate-spin" /> : '🔍'} Search
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={pincodeLoading}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition-all flex items-center gap-1.5 whitespace-nowrap"
+              >
+                {pincodeLoading ? <RefreshCw className="h-3 w-3 animate-spin" /> : '🔍'} Search PIN
+              </button>
+            </form>
+          </div>
         </div>
 
+        {searchError && (
+          <p className="text-xs font-bold text-red-600 mt-2">{searchError}</p>
+        )}
         {pincodeError && (
           <p className="text-xs font-bold text-red-600 mt-2">{pincodeError}</p>
         )}
