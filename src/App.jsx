@@ -332,6 +332,20 @@ const LandVisualizer = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const [searchCountry, setSearchCountry] = useState('in'); // ISO 3166-1 alpha-2 country codes
+
+  const COUNTRY_OPTIONS = [
+    { code: 'in', name: 'India 🇮🇳' },
+    { code: 'us', name: 'United States 🇺🇸' },
+    { code: 'np', name: 'Nepal 🇳🇵' },
+    { code: 'bd', name: 'Bangladesh 🇧🇩' },
+    { code: 'lk', name: 'Sri Lanka 🇱🇰' },
+    { code: 'ke', name: 'Kenya 🇰🇪' },
+    { code: 'vn', name: 'Vietnam 🇻🇳' },
+    { code: 'br', name: 'Brazil 🇧🇷' },
+    { code: 'au', name: 'Australia 🇦🇺' },
+    { code: 'ca', name: 'Canada 🇨🇦' }
+  ];
 
   const handleAddressSearch = async (e) => {
     e.preventDefault();
@@ -340,7 +354,7 @@ const LandVisualizer = ({
     setSearchLoading(true);
     try {
       const res = await axios.get(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=1`,
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&countrycodes=${searchCountry}&format=json&limit=1`,
         { headers: { 'User-Agent': 'AgriFutureApp/1.0' } }
       );
       if (res.data && res.data.length > 0) {
@@ -411,8 +425,11 @@ const LandVisualizer = ({
   // Handle PIN Code Lookup
   const handlePincodeSearch = async (e) => {
     e.preventDefault();
-    if (!/^\d{6}$/.test(pincode)) {
+    if (searchCountry === 'in' && !/^\d{6}$/.test(pincode)) {
       setPincodeError('Please enter a valid 6-digit Indian PIN code.');
+      return;
+    } else if (!pincode.trim()) {
+      setPincodeError('Please enter a postal code.');
       return;
     }
     setPincodeError('');
@@ -422,7 +439,7 @@ const LandVisualizer = ({
       let resolvedItem = null;
       try {
         const res = await axios.get(
-          `https://nominatim.openstreetmap.org/search?postalcode=${pincode}&country=India&format=json`,
+          `https://nominatim.openstreetmap.org/search?postalcode=${pincode}&countrycodes=${searchCountry}&format=json`,
           { headers: { 'User-Agent': 'AgriFutureApp/1.0' } }
         );
         if (res.data && res.data.length > 0) {
@@ -436,8 +453,8 @@ const LandVisualizer = ({
         console.warn('Direct Nominatim lookup failed, attempting fallback...', err);
       }
 
-      // 2. Try Post Office Directory Fallback if needed
-      if (!resolvedItem) {
+      // 2. Try Post Office Directory Fallback if needed (India only)
+      if (!resolvedItem && searchCountry === 'in') {
         const postRes = await axios.get(`https://api.postalpincode.in/pincode/${pincode}`);
         if (postRes.data && postRes.data[0] && postRes.data[0].Status === 'Success') {
           const po = postRes.data[0].PostOffice[0];
@@ -769,13 +786,31 @@ const LandVisualizer = ({
     <div className="space-y-6">
       {/* Search Header (including PIN code & general location search) */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm animate-fade-in text-left">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-center">
           <div className="space-y-1 lg:col-span-1">
             <h3 className="text-sm font-black text-gray-700">🗺️ Farm Explorer & Boundary Mapping</h3>
             <p className="text-[10px] text-gray-400">Locate your land, drag the pin to your field, and analyze precise Copernicus weather/soil readings</p>
           </div>
           
-          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+          <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
+            {/* Country Filter dropdown */}
+            <div className="w-full">
+              <select
+                value={searchCountry}
+                onChange={e => {
+                  setSearchCountry(e.target.value);
+                  setSearchError('');
+                  setPincodeError('');
+                }}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs font-black text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer"
+              >
+                {COUNTRY_OPTIONS.map(c => (
+                  <option key={c.code} value={c.code}>
+                    🗺️ {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             {/* General Location/Village Search */}
             <form onSubmit={handleAddressSearch} className="flex gap-2 w-full">
               <input
