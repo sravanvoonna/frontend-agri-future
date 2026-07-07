@@ -1172,6 +1172,7 @@ const EOSCropMonitor = ({
   setScoutingTasks,
   eosActiveField,
   setEosActiveField,
+  customCoords,
   setCustomCoords,
   eosSpectralIndex,
   setEosSpectralIndex,
@@ -1180,6 +1181,8 @@ const EOSCropMonitor = ({
   getSatelliteCoords
 }) => {
   const activeFieldObj = registeredFields.find(f => f.id === eosActiveField) || registeredFields[0];
+  const mapCenterLat = customCoords?.lat || activeFieldObj?.lat || 20.001;
+  const mapCenterLon = customCoords?.lon || activeFieldObj?.lon || 73.799;
 
   // Auto-sync map centering when the parent state/district dropdown changes
   useEffect(() => {
@@ -1454,8 +1457,8 @@ const EOSCropMonitor = ({
 
           {/* Leaflet wrapper */}
           <EOSCropMap
-            lat={activeFieldObj?.lat || 20.001}
-            lon={activeFieldObj?.lon || 73.799}
+            lat={mapCenterLat}
+            lon={mapCenterLon}
             spectralIndex={eosSpectralIndex}
             scoutingTasks={scoutingTasks}
             onAddScoutingTask={handleAddScoutingTask}
