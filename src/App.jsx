@@ -902,6 +902,231 @@ const LandVisualizer = ({
   );
 };
 
+const EOSCropMap = ({
+  lat,
+  lon,
+  spectralIndex,
+  scoutingTasks,
+  onAddScoutingTask,
+  boundaryEnabled
+}) => {
+  const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
+  const spectralLayersRef = useRef([]);
+  const boundaryRef = useRef(null);
+  const scoutingMarkersRef = useRef([]);
+
+  // Initialize Map
+  useEffect(() => {
+    let mapInstance = null;
+    let markerInstance = null;
+
+    const initMap = () => {
+      if (!document.getElementById('eos-crop-map')) return;
+      const L = window.L;
+
+      mapInstance = L.map('eos-crop-map', { zoomControl: true }).setView([lat, lon], 14);
+      mapInstanceRef.current = mapInstance;
+
+      // Esri Satellite Tiles
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Esri Satellite'
+      }).addTo(mapInstance);
+
+      // Main field center pin
+      const fieldIcon = L.divIcon({
+        html: `<div class="flex items-center justify-center h-8 w-8 rounded-full bg-emerald-600 border-2 border-white text-white text-base shadow-xl">🌾</div>`,
+        className: '',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      });
+
+      markerInstance = L.marker([lat, lon], { icon: fieldIcon }).addTo(mapInstance);
+      markerRef.current = markerInstance;
+
+      // Handle map clicks to drop scouting tasks
+      mapInstance.on('click', (e) => {
+        const clickedPos = e.latlng;
+        L.popup()
+          .setLatLng(clickedPos)
+          .setContent(`
+            <div class="text-xs p-1 text-left">
+              <p class="font-black text-blue-700">📍 Scout Location Pinpoint</p>
+              <p class="text-gray-500 mt-1">Lat: ${clickedPos.lat.toFixed(5)}, Lon: ${clickedPos.lng.toFixed(5)}</p>
+              <button 
+                onclick="window.dispatchEvent(new CustomEvent('add-scouting-pin', { detail: { lat: ${clickedPos.lat}, lng: ${clickedPos.lng} } }))"
+                class="mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-2 py-1 rounded text-[10px] shadow transition-all block w-full text-center"
+              >
+                ➕ Create Scouting Task here
+              </button>
+            </div>
+          `)
+          .openOn(mapInstance);
+      });
+    };
+
+    if (window.L) {
+      initMap();
+    } else {
+      if (!document.getElementById('leaflet-css')) {
+        const link = document.createElement('link');
+        link.id = 'leaflet-css';
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+      }
+      if (!document.getElementById('leaflet-js')) {
+        const script = document.createElement('script');
+        script.id = 'leaflet-js';
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = initMap;
+        document.head.appendChild(script);
+      }
+    }
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, []);
+
+  // Center update sync
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setView([lat, lon], 14);
+      if (markerRef.current) {
+        markerRef.current.setLatLng([lat, lon]);
+      }
+    }
+  }, [lat, lon]);
+
+  // Sync index layers & boundaries & scouting markers
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    const L = window.L;
+    if (!L) return;
+
+    // 1. Clear old spectral grid
+    spectralLayersRef.current.forEach(layer => layer.remove());
+    spectralLayersRef.current = [];
+
+    // 2. Render spectral grid based on index
+    const step = 0.003;
+    for (let i = -2; i <= 2; i++) {
+      for (let j = -2; j <= 2; j++) {
+        const gridLat = lat + i * step;
+        const gridLon = lon + j * step;
+        const seed = Math.sin(gridLat * 888) * Math.cos(gridLon * 888);
+        
+        let indexVal = 0.5 + seed * 0.4;
+        let color = '#fbbf24';
+        let label = 'Moderate';
+
+        if (spectralIndex === 'ndvi') {
+          color = indexVal > 0.65 ? '#10b981' : indexVal > 0.4 ? '#fbbf24' : '#ef4444';
+          label = indexVal > 0.65 ? 'High Biomass Health' : indexVal > 0.4 ? 'Moderate Health' : 'Stressed Vegetation';
+        } else if (spectralIndex === 'ndre') {
+          indexVal = 0.48 + seed * 0.38;
+          color = indexVal > 0.6 ? '#047857' : indexVal > 0.35 ? '#84cc16' : '#f97316';
+          label = indexVal > 0.6 ? 'High Chlorophyll Active' : indexVal > 0.35 ? 'Moderate Chlorophyll' : 'Chlorophyll Deficient';
+        } else if (spectralIndex === 'msavi') {
+          indexVal = 0.55 + seed * 0.3;
+          color = indexVal > 0.62 ? '#22c55e' : indexVal > 0.45 ? '#d97706' : '#78350f';
+          label = indexVal > 0.62 ? 'Healthy Seedlings' : indexVal > 0.45 ? 'Emerging Shoots' : 'Bare Soil Noise';
+        } else if (spectralIndex === 'ndmi') {
+          indexVal = 0.4 + seed * 0.45;
+          color = indexVal > 0.55 ? '#1d4ed8' : indexVal > 0.2 ? '#06b6d4' : '#eab308';
+          label = indexVal > 0.55 ? 'High Water Saturation' : indexVal > 0.2 ? 'Optimal Moisture' : 'Water Stress / Drought';
+        }
+
+        const rect = L.rectangle([
+          [gridLat - step/2, gridLon - step/2],
+          [gridLat + step/2, gridLon + step/2]
+        ], {
+          color: 'transparent',
+          fillColor: color,
+          fillOpacity: 0.32
+        }).addTo(mapInstanceRef.current);
+
+        rect.bindPopup(`
+          <div class="text-xs font-semibold p-1">
+            <p class="font-bold text-gray-700 uppercase">${spectralIndex.toUpperCase()} index: ${indexVal.toFixed(2)}</p>
+            <p class="text-gray-500 mt-1">${label}</p>
+          </div>
+        `);
+        
+        spectralLayersRef.current.push(rect);
+      }
+    }
+
+    // 3. Clear and draw boundary polygon if enabled
+    if (boundaryRef.current) {
+      boundaryRef.current.remove();
+      boundaryRef.current = null;
+    }
+
+    if (boundaryEnabled) {
+      const d = 0.004;
+      boundaryRef.current = L.polygon([
+        [lat - d * 0.5, lon - d * 0.8],
+        [lat - d * 0.4, lon + d * 0.7],
+        [lat + d * 0.6, lon + d * 0.6],
+        [lat + d * 0.5, lon - d * 0.7]
+      ], {
+        color: '#10b981',
+        fillColor: '#10b981',
+        fillOpacity: 0.1,
+        weight: 3
+      }).addTo(mapInstanceRef.current);
+    }
+
+    // 4. Clear and draw scouting pins
+    scoutingMarkersRef.current.forEach(marker => marker.remove());
+    scoutingMarkersRef.current = [];
+
+    scoutingTasks.forEach(task => {
+      const taskIcon = L.divIcon({
+        html: `<div class="flex items-center justify-center h-6 w-6 rounded-full ${
+          task.priority === 'High' ? 'bg-red-600' : task.priority === 'Medium' ? 'bg-orange-500' : 'bg-blue-500'
+        } border-2 border-white text-white text-[10px] shadow-lg animate-bounce font-black">📍</div>`,
+        className: '',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+
+      const scMarker = L.marker([task.lat, task.lon], { icon: taskIcon }).addTo(mapInstanceRef.current);
+      scMarker.bindPopup(`
+        <div class="text-xs p-1 text-left">
+          <p class="font-black text-red-700">${task.type}</p>
+          <p class="text-[10px] font-bold uppercase text-gray-400 mt-0.5">Priority: ${task.priority} | Status: ${task.status}</p>
+          <p class="text-gray-600 mt-1">${task.desc}</p>
+        </div>
+      `);
+      scoutingMarkersRef.current.push(scMarker);
+    });
+
+  }, [lat, lon, spectralIndex, boundaryEnabled, scoutingTasks]);
+
+  // Window event listener for adding scouting tasks from popup clicks
+  useEffect(() => {
+    const handleAddScoutingPin = (e) => {
+      if (onAddScoutingTask) {
+        onAddScoutingTask(e.detail.lat, e.detail.lng);
+      }
+    };
+    window.addEventListener('add-scouting-pin', handleAddScoutingPin);
+    return () => window.removeEventListener('add-scouting-pin', handleAddScoutingPin);
+  }, [onAddScoutingTask]);
+
+  return (
+    <div className="bg-white rounded-3xl border-4 border-white shadow-xl relative overflow-hidden">
+      <div id="eos-crop-map" style={{ height: 450 }} className="w-full z-10" />
+    </div>
+  );
+};
+
 export default function App() {
   // ── Auth State ──────────────────────────────────────────────
   const [currentUser, setCurrentUser] = useState(() => {
@@ -1191,6 +1416,19 @@ export default function App() {
   const [airQualityData, setAirQualityData] = useState(null);
   const [airQualityLoading, setAirQualityLoading] = useState(false);
   const satelliteStateNames = Object.keys(STATE_COORDINATES);
+
+  // 14. EOS Crop Monitoring States
+  const [registeredFields, setRegisteredFields] = useState([
+    { id: 'f1', name: 'Nashik Grape Vineyard 🍇', crop: 'Grapes', area: '4.5 Acres', avgNdvi: 0.76, trend: 'increasing', alerts: 0, lat: 20.001, lon: 73.799 },
+    { id: 'f2', name: 'Pune Pomegranate Orchard 🍎', crop: 'Pomegranates', area: '6.2 Acres', avgNdvi: 0.64, trend: 'stable', alerts: 1, lat: 18.520, lon: 73.856 },
+    { id: 'f3', name: 'Nagpur Mandarin Field 🍊', crop: 'Oranges', area: '8.0 Acres', avgNdvi: 0.49, trend: 'decreasing', alerts: 3, lat: 21.145, lon: 79.088 }
+  ]);
+  const [scoutingTasks, setScoutingTasks] = useState([
+    { id: 1, lat: 20.001, lon: 73.799, type: 'Pest Infestation 🐛', priority: 'High', status: 'Pending', desc: 'Check Nashik Grape region 3 for Downy Mildew signs.' },
+    { id: 2, lat: 20.015, lon: 73.805, type: 'Irrigation Leak 💧', priority: 'Medium', status: 'In Progress', desc: 'Drip line pressure drop detected on northern boundary.' }
+  ]);
+  const [eosActiveField, setEosActiveField] = useState('f1');
+  const [eosSpectralIndex, setEosSpectralIndex] = useState('ndvi');
 
   // Static land-use data per state (approx %)
   const LAND_USE_DATA = {
@@ -8157,6 +8395,7 @@ export default function App() {
                       { id: 'env-alerts', label: '⚠️ Environmental Alerts' },
                       { id: 'land-monitor', label: '🌍 Land Monitoring' },
                       { id: 'visualizer', label: '🗺️ Land Visualizer' },
+                      { id: 'eos-monitor', label: '🌱 Crop Monitoring (EOS)' },
                       { id: 'analytics', label: '📊 Analytics & Planning' },
                       { id: 'advanced', label: '🌍 Advanced Monitoring' },
                     ].map(tab => (
@@ -8571,6 +8810,351 @@ export default function App() {
                           satelliteLoading={satelliteLoading}
                         />
                       )}
+
+                      {/* ── SUB-TAB: CROP MONITORING (EOS) ──────────────── */}
+                      {satelliteTab === 'eos-monitor' && (() => {
+                        const activeFieldObj = registeredFields.find(f => f.id === eosActiveField) || registeredFields[0];
+                        
+                        // Local scouting form states
+                        const [scoutFormLat, setScoutFormLat] = useState(activeFieldObj.lat);
+                        const [scoutFormLon, setScoutFormLon] = useState(activeFieldObj.lon);
+                        const [scoutFormType, setScoutFormType] = useState('Pest Infestation 🐛');
+                        const [scoutFormPriority, setScoutFormPriority] = useState('High');
+                        const [scoutFormDesc, setScoutFormDesc] = useState('');
+
+                        const handleAddScoutingTask = (lat, lon) => {
+                          setScoutFormLat(lat);
+                          setScoutFormLon(lon);
+                          const alertDiv = document.createElement('div');
+                          alertDiv.className = 'fixed bottom-4 right-4 bg-emerald-600 text-white px-4 py-2.5 rounded-xl shadow-lg z-[9999] text-xs font-black animate-bounce';
+                          alertDiv.innerText = `📍 Coordinates loaded: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                          document.body.appendChild(alertDiv);
+                          setTimeout(() => alertDiv.remove(), 3000);
+                        };
+
+                        const submitScoutingForm = (e) => {
+                          e.preventDefault();
+                          const newTask = {
+                            id: Date.now(),
+                            lat: parseFloat(scoutFormLat),
+                            lon: parseFloat(scoutFormLon),
+                            type: scoutFormType,
+                            priority: scoutFormPriority,
+                            status: 'Pending',
+                            desc: scoutFormDesc || 'Routine inspection requested.'
+                          };
+                          setScoutingTasks(prev => [newTask, ...prev]);
+                          setScoutFormDesc('');
+                        };
+
+                        const exportVraLog = () => {
+                          const headers = 'Zone,Target Index,Seed Density,NFK Fertilizer Dosage\n';
+                          const rows = vraPresets.map(r => `"${r.zone}","${activeFieldObj.crop}","${r.seed}","${r.nfk}"`).join('\n');
+                          const blob = new Blob([headers + rows], { type: 'text/csv' });
+                          const link = document.createElement('a');
+                          link.href = URL.createObjectURL(blob);
+                          link.download = `VRA_Prescription_${activeFieldObj.name.replace(/\s+/g, '_')}.csv`;
+                          link.click();
+                        };
+
+                        const vraPresets = {
+                          f1: [
+                            { zone: 'Zone 1 (High Veg: >0.75)', seed: '32,000 / Acre', nfk: '45 kg / Acre', color: 'emerald' },
+                            { zone: 'Zone 2 (Medium Veg: 0.5-0.75)', seed: '28,000 / Acre', nfk: '55 kg / Acre', color: 'amber' },
+                            { zone: 'Zone 3 (Low Veg: <0.5)', seed: '24,000 / Acre', nfk: '65 kg / Acre', color: 'red' },
+                          ],
+                          f2: [
+                            { zone: 'Zone 1 (High Veg: >0.7)', seed: '30,000 / Acre', nfk: '50 kg / Acre', color: 'emerald' },
+                            { zone: 'Zone 2 (Medium Veg: 0.45-0.7)', seed: '26,000 / Acre', nfk: '60 kg / Acre', color: 'amber' },
+                            { zone: 'Zone 3 (Low Veg: <0.45)', seed: '22,000 / Acre', nfk: '70 kg / Acre', color: 'red' },
+                          ],
+                          f3: [
+                            { zone: 'Zone 1 (High Veg: >0.65)', seed: '28,000 / Acre', nfk: '55 kg / Acre', color: 'emerald' },
+                            { zone: 'Zone 2 (Medium Veg: 0.4-0.65)', seed: '24,000 / Acre', nfk: '65 kg / Acre', color: 'amber' },
+                            { zone: 'Zone 3 (Low Veg: <0.4)', seed: '20,000 / Acre', nfk: '75 kg / Acre', color: 'red' },
+                          ],
+                        }[activeFieldObj.id] || [];
+
+                        return (
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in text-left">
+                            {/* Left Panel: Field Leaderboard & Scouting Board */}
+                            <div className="lg:col-span-1 space-y-6">
+                              {/* Leaderboard Card */}
+                              <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                                <h3 className="text-sm font-black text-gray-700 mb-3 flex items-center justify-between">
+                                  <span>🏆 Registered Fields</span>
+                                  <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg border border-blue-100 font-bold">Total: {registeredFields.length}</span>
+                                </h3>
+                                <p className="text-[10px] text-gray-400 mb-4">Monitor average vegetation index across your farm holdings and track alert states</p>
+                                
+                                <div className="space-y-2">
+                                  {registeredFields.map(f => {
+                                    const isActive = f.id === eosActiveField;
+                                    return (
+                                      <button
+                                        key={f.id}
+                                        onClick={() => {
+                                          setEosActiveField(f.id);
+                                          setCustomCoords({ lat: f.lat, lon: f.lon });
+                                          setScoutFormLat(f.lat);
+                                          setScoutFormLon(f.lon);
+                                        }}
+                                        className={`w-full text-left p-3.5 rounded-xl border transition-all ${
+                                          isActive
+                                            ? 'bg-emerald-50/50 border-emerald-500 shadow-sm'
+                                            : 'bg-gray-50/50 border-gray-100 hover:bg-gray-50'
+                                        }`}
+                                      >
+                                        <div className="flex justify-between items-start">
+                                          <div>
+                                            <p className="text-xs font-black text-gray-800">{f.name}</p>
+                                            <p className="text-[10px] text-gray-400 mt-0.5">{f.crop} | {f.area}</p>
+                                          </div>
+                                          <div className="text-right">
+                                            <span className={`text-xs font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg`}>
+                                              NDVI: {f.avgNdvi}
+                                            </span>
+                                          </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between mt-3 text-[9px] font-bold">
+                                          <span className={`flex items-center gap-1 uppercase ${
+                                            f.trend === 'increasing' ? 'text-emerald-600' : f.trend === 'stable' ? 'text-blue-500' : 'text-orange-500'
+                                          }`}>
+                                            {f.trend === 'increasing' ? '📈 Rising' : f.trend === 'stable' ? '➡️ Stable' : '📉 Decreasing'}
+                                          </span>
+                                          {f.alerts > 0 && (
+                                            <span className="bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded-lg font-black uppercase">
+                                              ⚠️ {f.alerts} Alerts
+                                            </span>
+                                          )}
+                                        </div>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
+                              {/* Scouting Dispatcher Card */}
+                              <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                                <h3 className="text-sm font-black text-gray-700 mb-1">📋 Scouting Task Dispatcher</h3>
+                                <p className="text-[10px] text-gray-400 mb-4">Click anywhere on the map grid to lock coordinates, then log scout instructions</p>
+                                
+                                <form onSubmit={submitScoutingForm} className="space-y-3">
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <label className="text-[9px] font-bold text-gray-400 uppercase">Lat</label>
+                                      <input
+                                        type="number"
+                                        step="0.00001"
+                                        value={isNaN(scoutFormLat) ? '' : scoutFormLat}
+                                        onChange={e => setScoutFormLat(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                                        className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none"
+                                        required
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-[9px] font-bold text-gray-400 uppercase">Lon</label>
+                                      <input
+                                        type="number"
+                                        step="0.00001"
+                                        value={isNaN(scoutFormLon) ? '' : scoutFormLon}
+                                        onChange={e => setScoutFormLon(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                                        className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <label className="text-[9px] font-bold text-gray-400 uppercase">Issue Category</label>
+                                      <select
+                                        value={scoutFormType}
+                                        onChange={e => setScoutFormType(e.target.value)}
+                                        className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none font-bold"
+                                      >
+                                        <option>Pest Infestation 🐛</option>
+                                        <option>Irrigation Leak 💧</option>
+                                        <option>Nutrient Deficiency 🧪</option>
+                                        <option>Weeds Proliferation 🌿</option>
+                                        <option>Growth Log Check 📊</option>
+                                      </select>
+                                    </div>
+                                    <div>
+                                      <label className="text-[9px] font-bold text-gray-400 uppercase">Priority</label>
+                                      <select
+                                        value={scoutFormPriority}
+                                        onChange={e => setScoutFormPriority(e.target.value)}
+                                        className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none font-bold"
+                                      >
+                                        <option>High</option>
+                                        <option>Medium</option>
+                                        <option>Low</option>
+                                      </select>
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <label className="text-[9px] font-bold text-gray-400 uppercase">Scout Instructions</label>
+                                    <textarea
+                                      placeholder="e.g. Inspect grape leaves for yellow powdery spots..."
+                                      value={scoutFormDesc}
+                                      onChange={e => setScoutFormDesc(e.target.value)}
+                                      rows="2"
+                                      className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none"
+                                      required
+                                    />
+                                  </div>
+
+                                  <button
+                                    type="submit"
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-xl text-xs shadow-sm transition-all"
+                                  >
+                                    🚀 Dispatch Scouting Task
+                                  </button>
+                                </form>
+                              </div>
+                            </div>
+
+                            {/* Center/Right Panel: Interactive Spectral Map & VRA */}
+                            <div className="lg:col-span-2 space-y-6">
+                              {/* Visual Map Module */}
+                              <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm relative">
+                                <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
+                                  <div className="text-left">
+                                    <h3 className="text-sm font-black text-gray-700">🌱 EOS Multispectral Crop Visualizer</h3>
+                                    <p className="text-[10px] text-gray-400">Current Field: <span className="font-black text-emerald-600">{activeFieldObj.name}</span></p>
+                                  </div>
+                                  
+                                  {/* Index Selector pills */}
+                                  <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl flex-wrap">
+                                    {[
+                                      { id: 'ndvi', label: 'NDVI', tooltip: 'Vegetation Density' },
+                                      { id: 'ndre', label: 'NDRE', tooltip: 'Chlorophyll' },
+                                      { id: 'msavi', label: 'MSAVI', tooltip: 'Soil Adjusted' },
+                                      { id: 'ndmi', label: 'NDMI', tooltip: 'Water Stress' },
+                                    ].map(idx => (
+                                      <button
+                                        key={idx.id}
+                                        onClick={() => setEosSpectralIndex(idx.id)}
+                                        className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${
+                                          eosSpectralIndex === idx.id
+                                            ? 'bg-white text-emerald-700 shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-800'
+                                        }`}
+                                        title={idx.tooltip}
+                                      >
+                                        {idx.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Leaflet wrapper */}
+                                <EOSCropMap
+                                  lat={activeFieldObj.lat}
+                                  lon={activeFieldObj.lon}
+                                  spectralIndex={eosSpectralIndex}
+                                  scoutingTasks={scoutingTasks}
+                                  onAddScoutingTask={handleAddScoutingTask}
+                                  boundaryEnabled={true}
+                                />
+
+                                {/* Index explanations */}
+                                <div className="mt-3.5 grid grid-cols-2 md:grid-cols-4 gap-2 text-[9px] font-bold text-gray-400">
+                                  <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-2 text-emerald-700">
+                                    🟢 Green Zone: Optimal vegetative canopy index.
+                                  </div>
+                                  <div className="bg-amber-50 border border-amber-100 rounded-lg p-2 text-amber-700">
+                                    🟡 Yellow Zone: Moderate vegetation or bare patches.
+                                  </div>
+                                  <div className="bg-red-50 border border-red-100 rounded-lg p-2 text-red-700">
+                                    🔴 Red Zone: Water/heat stressed or bare soil cover.
+                                  </div>
+                                  <div className="bg-blue-50 border border-blue-100 rounded-lg p-2 text-blue-700 flex items-center justify-center">
+                                    💡 Click on map to pinpoint scout.
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* VRA Prescription Table */}
+                              <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                                <div className="flex items-center justify-between mb-4">
+                                  <div>
+                                    <h3 className="text-sm font-black text-gray-700">⚡ Variable Rate Application (VRA) Prescription Maps</h3>
+                                    <p className="text-[10px] text-gray-400 mt-0.5">Automated seed density and Nitrogen fertilizer adjustments based on satellite productivity zoning</p>
+                                  </div>
+                                  <button
+                                    onClick={exportVraLog}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shadow-sm transition-all"
+                                  >
+                                    📥 Export Prescription Log
+                                  </button>
+                                </div>
+
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-left text-xs font-semibold">
+                                    <thead>
+                                      <tr className="border-b border-gray-100 text-gray-400">
+                                        <th className="py-2.5">Zoning Class</th>
+                                        <th className="py-2.5">Vegetation Density</th>
+                                        <th className="py-2.5">Suggested Seed Rate</th>
+                                        <th className="py-2.5">Suggested Nitrogen Rate</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-50 text-gray-700">
+                                      {vraPresets.map(row => (
+                                        <tr key={row.zone} className="hover:bg-gray-50/50">
+                                          <td className="py-3 flex items-center gap-2">
+                                            <span className={`h-2.5 w-2.5 rounded-full bg-${row.color}-500 block`} />
+                                            {row.zone}
+                                          </td>
+                                          <td className="py-3 uppercase text-[10px] font-black text-gray-500">{activeFieldObj.crop}</td>
+                                          <td className="py-3 font-mono font-bold text-blue-600">{row.seed}</td>
+                                          <td className="py-3 font-mono font-bold text-amber-600">{row.nfk}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+
+                              {/* Active Scouting Logs List */}
+                              <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                                <h3 className="text-sm font-black text-gray-700 mb-3">📍 Active Scouting Tasks & Log</h3>
+                                <div className="space-y-2">
+                                  {scoutingTasks.map(task => (
+                                    <div key={task.id} className="flex items-start justify-between p-3.5 bg-gray-50 rounded-xl border border-gray-100">
+                                      <div className="space-y-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <span className="text-xs font-black text-gray-800">{task.type}</span>
+                                          <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${
+                                            task.priority === 'High' ? 'bg-red-100 text-red-700' : task.priority === 'Medium' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
+                                          }`}>
+                                            {task.priority} Priority
+                                          </span>
+                                          <span className="text-[8px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded font-bold uppercase">
+                                            {task.status}
+                                          </span>
+                                        </div>
+                                        <p className="text-xs text-gray-500">{task.desc}</p>
+                                        <p className="text-[9px] text-gray-400">Coordinates: {task.lat.toFixed(5)}, {task.lon.toFixed(5)}</p>
+                                      </div>
+                                      <button
+                                        onClick={() => setScoutingTasks(prev => prev.filter(t => t.id !== task.id))}
+                                        className="text-red-500 hover:text-red-700 text-xs font-bold font-mono px-2"
+                                      >
+                                        Resolve
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       {/* ── SUB-TAB 4: ADVANCED MONITORING ───────────────── */}
                       {satelliteTab === 'advanced' && (
