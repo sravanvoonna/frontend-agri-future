@@ -908,13 +908,18 @@ const EOSCropMap = ({
   spectralIndex,
   scoutingTasks,
   onAddScoutingTask,
-  boundaryEnabled
+  boundaryEnabled,
+  registeredFields,
+  eosActiveField,
+  setEosActiveField,
+  setCustomCoords
 }) => {
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
   const spectralLayersRef = useRef([]);
   const boundaryRef = useRef(null);
   const scoutingMarkersRef = useRef([]);
+  const fieldsMarkersRef = useRef([]);
 
   // Initialize Map
   useEffect(() => {
@@ -1107,7 +1112,40 @@ const EOSCropMap = ({
       scoutingMarkersRef.current.push(scMarker);
     });
 
-  }, [lat, lon, spectralIndex, boundaryEnabled, scoutingTasks]);
+    // 5. Clear and draw all registered fields as pins (like Google Maps)
+    fieldsMarkersRef.current.forEach(marker => marker.remove());
+    fieldsMarkersRef.current = [];
+
+    if (registeredFields && registeredFields.length > 0) {
+      registeredFields.forEach(f => {
+        const isCurrent = f.id === eosActiveField;
+        const fieldMarkerIcon = L.divIcon({
+          html: `<div class="flex flex-col items-center">
+            <div class="flex items-center justify-center h-8 w-8 rounded-full ${
+              isCurrent ? 'bg-emerald-600 ring-4 ring-emerald-200' : 'bg-gray-600'
+            } border-2 border-white text-white text-base shadow-xl transform hover:scale-110 transition-all">🌾</div>
+            <div class="bg-white/95 border border-gray-200 px-1.5 py-0.5 rounded text-[8px] font-black text-gray-700 shadow-md mt-0.5 whitespace-nowrap">${f.name}</div>
+          </div>`,
+          className: '',
+          iconSize: [60, 48],
+          iconAnchor: [30, 24]
+        });
+
+        const fMarker = L.marker([f.lat, f.lon], { icon: fieldMarkerIcon }).addTo(mapInstanceRef.current);
+        
+        fMarker.on('click', () => {
+          setEosActiveField(f.id);
+          setCustomCoords({ lat: f.lat, lon: f.lon });
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.flyTo([f.lat, f.lon], 14);
+          }
+        });
+
+        fieldsMarkersRef.current.push(fMarker);
+      });
+    }
+
+  }, [lat, lon, spectralIndex, boundaryEnabled, scoutingTasks, registeredFields, eosActiveField]);
 
   // Window event listener for adding scouting tasks from popup clicks
   useEffect(() => {
@@ -1136,9 +1174,24 @@ const EOSCropMonitor = ({
   setEosActiveField,
   setCustomCoords,
   eosSpectralIndex,
-  setEosSpectralIndex
+  setEosSpectralIndex,
+  satelliteState,
+  satelliteDistrict,
+  getSatelliteCoords
 }) => {
   const activeFieldObj = registeredFields.find(f => f.id === eosActiveField) || registeredFields[0];
+
+  // Auto-sync map centering when the parent state/district dropdown changes
+  useEffect(() => {
+    const parentCoords = getSatelliteCoords(satelliteState, satelliteDistrict);
+    if (parentCoords) {
+      setCustomCoords(parentCoords);
+      if (activeFieldObj) {
+        // Find if there is a registered field in the newly selected region, 
+        // or just center the map to the parent coordinate
+      }
+    }
+  }, [satelliteState, satelliteDistrict]);
 
   // Local scouting form states
   const [scoutFormLat, setScoutFormLat] = useState(activeFieldObj?.lat || 20.001);
@@ -1401,12 +1454,16 @@ const EOSCropMonitor = ({
 
           {/* Leaflet wrapper */}
           <EOSCropMap
-            lat={activeFieldObj.lat}
-            lon={activeFieldObj.lon}
+            lat={activeFieldObj?.lat || 20.001}
+            lon={activeFieldObj?.lon || 73.799}
             spectralIndex={eosSpectralIndex}
             scoutingTasks={scoutingTasks}
             onAddScoutingTask={handleAddScoutingTask}
             boundaryEnabled={true}
+            registeredFields={registeredFields}
+            eosActiveField={eosActiveField}
+            setEosActiveField={setEosActiveField}
+            setCustomCoords={setCustomCoords}
           />
 
           {/* Index explanations */}
@@ -9224,6 +9281,7 @@ export default function App() {
                       {satelliteTab === 'eos-monitor' && (
                         <EOSCropMonitor
                           registeredFields={registeredFields}
+                          setRegisteredFields={setRegisteredFields}
                           scoutingTasks={scoutingTasks}
                           setScoutingTasks={setScoutingTasks}
                           eosActiveField={eosActiveField}
@@ -9231,6 +9289,9 @@ export default function App() {
                           setCustomCoords={setCustomCoords}
                           eosSpectralIndex={eosSpectralIndex}
                           setEosSpectralIndex={setEosSpectralIndex}
+                          satelliteState={satelliteState}
+                          satelliteDistrict={satelliteDistrict}
+                          getSatelliteCoords={getSatelliteCoords}
                         />
                       )}
 
