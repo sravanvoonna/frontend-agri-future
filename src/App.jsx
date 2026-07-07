@@ -1127,6 +1127,363 @@ const EOSCropMap = ({
   );
 };
 
+const EOSCropMonitor = ({
+  registeredFields,
+  scoutingTasks,
+  setScoutingTasks,
+  eosActiveField,
+  setEosActiveField,
+  setCustomCoords,
+  eosSpectralIndex,
+  setEosSpectralIndex
+}) => {
+  const activeFieldObj = registeredFields.find(f => f.id === eosActiveField) || registeredFields[0];
+
+  // Local scouting form states
+  const [scoutFormLat, setScoutFormLat] = useState(activeFieldObj.lat);
+  const [scoutFormLon, setScoutFormLon] = useState(activeFieldObj.lon);
+  const [scoutFormType, setScoutFormType] = useState('Pest Infestation 🐛');
+  const [scoutFormPriority, setScoutFormPriority] = useState('High');
+  const [scoutFormDesc, setScoutFormDesc] = useState('');
+
+  // Keep form lat/lon in sync with active field selection
+  useEffect(() => {
+    setScoutFormLat(activeFieldObj.lat);
+    setScoutFormLon(activeFieldObj.lon);
+  }, [activeFieldObj]);
+
+  const handleAddScoutingTask = (lat, lon) => {
+    setScoutFormLat(lat);
+    setScoutFormLon(lon);
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'fixed bottom-4 right-4 bg-emerald-600 text-white px-4 py-2.5 rounded-xl shadow-lg z-[9999] text-xs font-black animate-bounce';
+    alertDiv.innerText = `📍 Coordinates loaded: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 3000);
+  };
+
+  const submitScoutingForm = (e) => {
+    e.preventDefault();
+    const newTask = {
+      id: Date.now(),
+      lat: parseFloat(scoutFormLat),
+      lon: parseFloat(scoutFormLon),
+      type: scoutFormType,
+      priority: scoutFormPriority,
+      status: 'Pending',
+      desc: scoutFormDesc || 'Routine inspection requested.'
+    };
+    setScoutingTasks(prev => [newTask, ...prev]);
+    setScoutFormDesc('');
+  };
+
+  const vraPresets = {
+    f1: [
+      { zone: 'Zone 1 (High Veg: >0.75)', seed: '32,000 / Acre', nfk: '45 kg / Acre', color: 'emerald' },
+      { zone: 'Zone 2 (Medium Veg: 0.5-0.75)', seed: '28,000 / Acre', nfk: '55 kg / Acre', color: 'amber' },
+      { zone: 'Zone 3 (Low Veg: <0.5)', seed: '24,000 / Acre', nfk: '65 kg / Acre', color: 'red' },
+    ],
+    f2: [
+      { zone: 'Zone 1 (High Veg: >0.7)', seed: '30,000 / Acre', nfk: '50 kg / Acre', color: 'emerald' },
+      { zone: 'Zone 2 (Medium Veg: 0.45-0.7)', seed: '26,000 / Acre', nfk: '60 kg / Acre', color: 'amber' },
+      { zone: 'Zone 3 (Low Veg: <0.45)', seed: '22,000 / Acre', nfk: '70 kg / Acre', color: 'red' },
+    ],
+    f3: [
+      { zone: 'Zone 1 (High Veg: >0.65)', seed: '28,000 / Acre', nfk: '55 kg / Acre', color: 'emerald' },
+      { zone: 'Zone 2 (Medium Veg: 0.4-0.65)', seed: '24,000 / Acre', nfk: '65 kg / Acre', color: 'amber' },
+      { zone: 'Zone 3 (Low Veg: <0.4)', seed: '20,000 / Acre', nfk: '75 kg / Acre', color: 'red' },
+    ],
+  }[activeFieldObj.id] || [];
+
+  const exportVraLog = () => {
+    const headers = 'Zone,Target Index,Seed Density,NFK Fertilizer Dosage\n';
+    const rows = vraPresets.map(r => `"${r.zone}","${activeFieldObj.crop}","${r.seed}","${r.nfk}"`).join('\n');
+    const blob = new Blob([headers + rows], { type: 'text/csv' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `VRA_Prescription_${activeFieldObj.name.replace(/\s+/g, '_')}.csv`;
+    link.click();
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in text-left">
+      {/* Left Panel: Field Leaderboard & Scouting Board */}
+      <div className="lg:col-span-1 space-y-6">
+        {/* Leaderboard Card */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+          <h3 className="text-sm font-black text-gray-700 mb-3 flex items-center justify-between">
+            <span>🏆 Registered Fields</span>
+            <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg border border-blue-100 font-bold">Total: {registeredFields.length}</span>
+          </h3>
+          <p className="text-[10px] text-gray-400 mb-4">Monitor average vegetation index across your farm holdings and track alert states</p>
+          
+          <div className="space-y-2">
+            {registeredFields.map(f => {
+              const isActive = f.id === eosActiveField;
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => {
+                    setEosActiveField(f.id);
+                    setCustomCoords({ lat: f.lat, lon: f.lon });
+                  }}
+                  className={`w-full text-left p-3.5 rounded-xl border transition-all ${
+                    isActive
+                      ? 'bg-emerald-50/50 border-emerald-500 shadow-sm'
+                      : 'bg-gray-50/50 border-gray-100 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-xs font-black text-gray-800">{f.name}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{f.crop} | {f.area}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-xs font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg`}>
+                        NDVI: {f.avgNdvi}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-3 text-[9px] font-bold">
+                    <span className={`flex items-center gap-1 uppercase ${
+                      f.trend === 'increasing' ? 'text-emerald-600' : f.trend === 'stable' ? 'text-blue-500' : 'text-orange-500'
+                    }`}>
+                      {f.trend === 'increasing' ? '📈 Rising' : f.trend === 'stable' ? '➡️ Stable' : '📉 Decreasing'}
+                    </span>
+                    {f.alerts > 0 && (
+                      <span className="bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded-lg font-black uppercase">
+                        ⚠️ {f.alerts} Alerts
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Scouting Dispatcher Card */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+          <h3 className="text-sm font-black text-gray-700 mb-1">📋 Scouting Task Dispatcher</h3>
+          <p className="text-[10px] text-gray-400 mb-4">Click anywhere on the map grid to lock coordinates, then log scout instructions</p>
+          
+          <form onSubmit={submitScoutingForm} className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[9px] font-bold text-gray-400 uppercase">Lat</label>
+                <input
+                  type="number"
+                  step="0.00001"
+                  value={isNaN(scoutFormLat) ? '' : scoutFormLat}
+                  onChange={e => setScoutFormLat(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-[9px] font-bold text-gray-400 uppercase">Lon</label>
+                <input
+                  type="number"
+                  step="0.00001"
+                  value={isNaN(scoutFormLon) ? '' : scoutFormLon}
+                  onChange={e => setScoutFormLon(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[9px] font-bold text-gray-400 uppercase">Issue Category</label>
+                <select
+                  value={scoutFormType}
+                  onChange={e => setScoutFormType(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none font-bold"
+                >
+                  <option>Pest Infestation 🐛</option>
+                  <option>Irrigation Leak 💧</option>
+                  <option>Nutrient Deficiency 🧪</option>
+                  <option>Weeds Proliferation 🌿</option>
+                  <option>Growth Log Check 📊</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[9px] font-bold text-gray-400 uppercase">Priority</label>
+                <select
+                  value={scoutFormPriority}
+                  onChange={e => setScoutFormPriority(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none font-bold"
+                >
+                  <option>High</option>
+                  <option>Medium</option>
+                  <option>Low</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[9px] font-bold text-gray-400 uppercase">Scout Instructions</label>
+              <textarea
+                placeholder="e.g. Inspect grape leaves for yellow powdery spots..."
+                value={scoutFormDesc}
+                onChange={e => setScoutFormDesc(e.target.value)}
+                rows="2"
+                className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-xl text-xs shadow-sm transition-all"
+            >
+              🚀 Dispatch Scouting Task
+            </button>
+          </form>
+        </div>
+      </div>
+
+      {/* Center/Right Panel: Interactive Spectral Map & VRA */}
+      <div className="lg:col-span-2 space-y-6">
+        {/* Visual Map Module */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm relative">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
+            <div className="text-left">
+              <h3 className="text-sm font-black text-gray-700">🌱 EOS Multispectral Crop Visualizer</h3>
+              <p className="text-[10px] text-gray-400">Current Field: <span className="font-black text-emerald-600">{activeFieldObj.name}</span></p>
+            </div>
+            
+            {/* Index Selector pills */}
+            <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl flex-wrap">
+              {[
+                { id: 'ndvi', label: 'NDVI', tooltip: 'Vegetation Density' },
+                { id: 'ndre', label: 'NDRE', tooltip: 'Chlorophyll' },
+                { id: 'msavi', label: 'MSAVI', tooltip: 'Soil Adjusted' },
+                { id: 'ndmi', label: 'NDMI', tooltip: 'Water Stress' },
+              ].map(idx => (
+                <button
+                  key={idx.id}
+                  onClick={() => setEosSpectralIndex(idx.id)}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${
+                    eosSpectralIndex === idx.id
+                      ? 'bg-white text-emerald-700 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                  title={idx.tooltip}
+                >
+                  {idx.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Leaflet wrapper */}
+          <EOSCropMap
+            lat={activeFieldObj.lat}
+            lon={activeFieldObj.lon}
+            spectralIndex={eosSpectralIndex}
+            scoutingTasks={scoutingTasks}
+            onAddScoutingTask={handleAddScoutingTask}
+            boundaryEnabled={true}
+          />
+
+          {/* Index explanations */}
+          <div className="mt-3.5 grid grid-cols-2 md:grid-cols-4 gap-2 text-[9px] font-bold text-gray-400">
+            <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-2 text-emerald-700">
+              🟢 Green Zone: Optimal vegetative canopy index.
+            </div>
+            <div className="bg-amber-50 border border-amber-100 rounded-lg p-2 text-amber-700">
+              🟡 Yellow Zone: Moderate vegetation or bare patches.
+            </div>
+            <div className="bg-red-50 border border-red-100 rounded-lg p-2 text-red-700">
+              🔴 Red Zone: Water/heat stressed or bare soil cover.
+            </div>
+            <div className="bg-blue-50 border border-blue-100 rounded-lg p-2 text-blue-700 flex items-center justify-center">
+              💡 Click on map to pinpoint scout.
+            </div>
+          </div>
+        </div>
+
+        {/* VRA Prescription Table */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-black text-gray-700">⚡ Variable Rate Application (VRA) Prescription Maps</h3>
+              <p className="text-[10px] text-gray-400 mt-0.5">Automated seed density and Nitrogen fertilizer adjustments based on satellite productivity zoning</p>
+            </div>
+            <button
+              onClick={exportVraLog}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shadow-sm transition-all"
+            >
+              📥 Export Prescription Log
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs font-semibold">
+              <thead>
+                <tr className="border-b border-gray-100 text-gray-400">
+                  <th className="py-2.5">Zoning Class</th>
+                  <th className="py-2.5">Vegetation Density</th>
+                  <th className="py-2.5">Suggested Seed Rate</th>
+                  <th className="py-2.5">Suggested Nitrogen Rate</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 text-gray-700">
+                {vraPresets.map(row => (
+                  <tr key={row.zone} className="hover:bg-gray-50/50">
+                    <td className="py-3 flex items-center gap-2">
+                      <span className={`h-2.5 w-2.5 rounded-full bg-${row.color}-500 block`} />
+                      {row.zone}
+                    </td>
+                    <td className="py-3 uppercase text-[10px] font-black text-gray-500">{activeFieldObj.crop}</td>
+                    <td className="py-3 font-mono font-bold text-blue-600">{row.seed}</td>
+                    <td className="py-3 font-mono font-bold text-amber-600">{row.nfk}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Active Scouting Logs List */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+          <h3 className="text-sm font-black text-gray-700 mb-3">📍 Active Scouting Tasks & Log</h3>
+          <div className="space-y-2">
+            {scoutingTasks.map(task => (
+              <div key={task.id} className="flex items-start justify-between p-3.5 bg-gray-50 rounded-xl border border-gray-100">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-black text-gray-800">{task.type}</span>
+                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${
+                      task.priority === 'High' ? 'bg-red-100 text-red-700' : task.priority === 'Medium' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {task.priority} Priority
+                    </span>
+                    <span className="text-[8px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded font-bold uppercase">
+                      {task.status}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500">{task.desc}</p>
+                  <p className="text-[9px] text-gray-400">Coordinates: {task.lat.toFixed(5)}, {task.lon.toFixed(5)}</p>
+                </div>
+                <button
+                  onClick={() => setScoutingTasks(prev => prev.filter(t => t.id !== task.id))}
+                  className="text-red-500 hover:text-red-700 text-xs font-bold font-mono px-2"
+                >
+                  Resolve
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   // ── Auth State ──────────────────────────────────────────────
   const [currentUser, setCurrentUser] = useState(() => {
@@ -8812,349 +9169,18 @@ export default function App() {
                       )}
 
                       {/* ── SUB-TAB: CROP MONITORING (EOS) ──────────────── */}
-                      {satelliteTab === 'eos-monitor' && (() => {
-                        const activeFieldObj = registeredFields.find(f => f.id === eosActiveField) || registeredFields[0];
-                        
-                        // Local scouting form states
-                        const [scoutFormLat, setScoutFormLat] = useState(activeFieldObj.lat);
-                        const [scoutFormLon, setScoutFormLon] = useState(activeFieldObj.lon);
-                        const [scoutFormType, setScoutFormType] = useState('Pest Infestation 🐛');
-                        const [scoutFormPriority, setScoutFormPriority] = useState('High');
-                        const [scoutFormDesc, setScoutFormDesc] = useState('');
-
-                        const handleAddScoutingTask = (lat, lon) => {
-                          setScoutFormLat(lat);
-                          setScoutFormLon(lon);
-                          const alertDiv = document.createElement('div');
-                          alertDiv.className = 'fixed bottom-4 right-4 bg-emerald-600 text-white px-4 py-2.5 rounded-xl shadow-lg z-[9999] text-xs font-black animate-bounce';
-                          alertDiv.innerText = `📍 Coordinates loaded: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-                          document.body.appendChild(alertDiv);
-                          setTimeout(() => alertDiv.remove(), 3000);
-                        };
-
-                        const submitScoutingForm = (e) => {
-                          e.preventDefault();
-                          const newTask = {
-                            id: Date.now(),
-                            lat: parseFloat(scoutFormLat),
-                            lon: parseFloat(scoutFormLon),
-                            type: scoutFormType,
-                            priority: scoutFormPriority,
-                            status: 'Pending',
-                            desc: scoutFormDesc || 'Routine inspection requested.'
-                          };
-                          setScoutingTasks(prev => [newTask, ...prev]);
-                          setScoutFormDesc('');
-                        };
-
-                        const exportVraLog = () => {
-                          const headers = 'Zone,Target Index,Seed Density,NFK Fertilizer Dosage\n';
-                          const rows = vraPresets.map(r => `"${r.zone}","${activeFieldObj.crop}","${r.seed}","${r.nfk}"`).join('\n');
-                          const blob = new Blob([headers + rows], { type: 'text/csv' });
-                          const link = document.createElement('a');
-                          link.href = URL.createObjectURL(blob);
-                          link.download = `VRA_Prescription_${activeFieldObj.name.replace(/\s+/g, '_')}.csv`;
-                          link.click();
-                        };
-
-                        const vraPresets = {
-                          f1: [
-                            { zone: 'Zone 1 (High Veg: >0.75)', seed: '32,000 / Acre', nfk: '45 kg / Acre', color: 'emerald' },
-                            { zone: 'Zone 2 (Medium Veg: 0.5-0.75)', seed: '28,000 / Acre', nfk: '55 kg / Acre', color: 'amber' },
-                            { zone: 'Zone 3 (Low Veg: <0.5)', seed: '24,000 / Acre', nfk: '65 kg / Acre', color: 'red' },
-                          ],
-                          f2: [
-                            { zone: 'Zone 1 (High Veg: >0.7)', seed: '30,000 / Acre', nfk: '50 kg / Acre', color: 'emerald' },
-                            { zone: 'Zone 2 (Medium Veg: 0.45-0.7)', seed: '26,000 / Acre', nfk: '60 kg / Acre', color: 'amber' },
-                            { zone: 'Zone 3 (Low Veg: <0.45)', seed: '22,000 / Acre', nfk: '70 kg / Acre', color: 'red' },
-                          ],
-                          f3: [
-                            { zone: 'Zone 1 (High Veg: >0.65)', seed: '28,000 / Acre', nfk: '55 kg / Acre', color: 'emerald' },
-                            { zone: 'Zone 2 (Medium Veg: 0.4-0.65)', seed: '24,000 / Acre', nfk: '65 kg / Acre', color: 'amber' },
-                            { zone: 'Zone 3 (Low Veg: <0.4)', seed: '20,000 / Acre', nfk: '75 kg / Acre', color: 'red' },
-                          ],
-                        }[activeFieldObj.id] || [];
-
-                        return (
-                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in text-left">
-                            {/* Left Panel: Field Leaderboard & Scouting Board */}
-                            <div className="lg:col-span-1 space-y-6">
-                              {/* Leaderboard Card */}
-                              <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                                <h3 className="text-sm font-black text-gray-700 mb-3 flex items-center justify-between">
-                                  <span>🏆 Registered Fields</span>
-                                  <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg border border-blue-100 font-bold">Total: {registeredFields.length}</span>
-                                </h3>
-                                <p className="text-[10px] text-gray-400 mb-4">Monitor average vegetation index across your farm holdings and track alert states</p>
-                                
-                                <div className="space-y-2">
-                                  {registeredFields.map(f => {
-                                    const isActive = f.id === eosActiveField;
-                                    return (
-                                      <button
-                                        key={f.id}
-                                        onClick={() => {
-                                          setEosActiveField(f.id);
-                                          setCustomCoords({ lat: f.lat, lon: f.lon });
-                                          setScoutFormLat(f.lat);
-                                          setScoutFormLon(f.lon);
-                                        }}
-                                        className={`w-full text-left p-3.5 rounded-xl border transition-all ${
-                                          isActive
-                                            ? 'bg-emerald-50/50 border-emerald-500 shadow-sm'
-                                            : 'bg-gray-50/50 border-gray-100 hover:bg-gray-50'
-                                        }`}
-                                      >
-                                        <div className="flex justify-between items-start">
-                                          <div>
-                                            <p className="text-xs font-black text-gray-800">{f.name}</p>
-                                            <p className="text-[10px] text-gray-400 mt-0.5">{f.crop} | {f.area}</p>
-                                          </div>
-                                          <div className="text-right">
-                                            <span className={`text-xs font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg`}>
-                                              NDVI: {f.avgNdvi}
-                                            </span>
-                                          </div>
-                                        </div>
-
-                                        <div className="flex items-center justify-between mt-3 text-[9px] font-bold">
-                                          <span className={`flex items-center gap-1 uppercase ${
-                                            f.trend === 'increasing' ? 'text-emerald-600' : f.trend === 'stable' ? 'text-blue-500' : 'text-orange-500'
-                                          }`}>
-                                            {f.trend === 'increasing' ? '📈 Rising' : f.trend === 'stable' ? '➡️ Stable' : '📉 Decreasing'}
-                                          </span>
-                                          {f.alerts > 0 && (
-                                            <span className="bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded-lg font-black uppercase">
-                                              ⚠️ {f.alerts} Alerts
-                                            </span>
-                                          )}
-                                        </div>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-
-                              {/* Scouting Dispatcher Card */}
-                              <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                                <h3 className="text-sm font-black text-gray-700 mb-1">📋 Scouting Task Dispatcher</h3>
-                                <p className="text-[10px] text-gray-400 mb-4">Click anywhere on the map grid to lock coordinates, then log scout instructions</p>
-                                
-                                <form onSubmit={submitScoutingForm} className="space-y-3">
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <div>
-                                      <label className="text-[9px] font-bold text-gray-400 uppercase">Lat</label>
-                                      <input
-                                        type="number"
-                                        step="0.00001"
-                                        value={isNaN(scoutFormLat) ? '' : scoutFormLat}
-                                        onChange={e => setScoutFormLat(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                                        className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none"
-                                        required
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="text-[9px] font-bold text-gray-400 uppercase">Lon</label>
-                                      <input
-                                        type="number"
-                                        step="0.00001"
-                                        value={isNaN(scoutFormLon) ? '' : scoutFormLon}
-                                        onChange={e => setScoutFormLon(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                                        className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none"
-                                        required
-                                      />
-                                    </div>
-                                  </div>
-
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <div>
-                                      <label className="text-[9px] font-bold text-gray-400 uppercase">Issue Category</label>
-                                      <select
-                                        value={scoutFormType}
-                                        onChange={e => setScoutFormType(e.target.value)}
-                                        className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none font-bold"
-                                      >
-                                        <option>Pest Infestation 🐛</option>
-                                        <option>Irrigation Leak 💧</option>
-                                        <option>Nutrient Deficiency 🧪</option>
-                                        <option>Weeds Proliferation 🌿</option>
-                                        <option>Growth Log Check 📊</option>
-                                      </select>
-                                    </div>
-                                    <div>
-                                      <label className="text-[9px] font-bold text-gray-400 uppercase">Priority</label>
-                                      <select
-                                        value={scoutFormPriority}
-                                        onChange={e => setScoutFormPriority(e.target.value)}
-                                        className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none font-bold"
-                                      >
-                                        <option>High</option>
-                                        <option>Medium</option>
-                                        <option>Low</option>
-                                      </select>
-                                    </div>
-                                  </div>
-
-                                  <div>
-                                    <label className="text-[9px] font-bold text-gray-400 uppercase">Scout Instructions</label>
-                                    <textarea
-                                      placeholder="e.g. Inspect grape leaves for yellow powdery spots..."
-                                      value={scoutFormDesc}
-                                      onChange={e => setScoutFormDesc(e.target.value)}
-                                      rows="2"
-                                      className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none"
-                                      required
-                                    />
-                                  </div>
-
-                                  <button
-                                    type="submit"
-                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-xl text-xs shadow-sm transition-all"
-                                  >
-                                    🚀 Dispatch Scouting Task
-                                  </button>
-                                </form>
-                              </div>
-                            </div>
-
-                            {/* Center/Right Panel: Interactive Spectral Map & VRA */}
-                            <div className="lg:col-span-2 space-y-6">
-                              {/* Visual Map Module */}
-                              <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm relative">
-                                <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
-                                  <div className="text-left">
-                                    <h3 className="text-sm font-black text-gray-700">🌱 EOS Multispectral Crop Visualizer</h3>
-                                    <p className="text-[10px] text-gray-400">Current Field: <span className="font-black text-emerald-600">{activeFieldObj.name}</span></p>
-                                  </div>
-                                  
-                                  {/* Index Selector pills */}
-                                  <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl flex-wrap">
-                                    {[
-                                      { id: 'ndvi', label: 'NDVI', tooltip: 'Vegetation Density' },
-                                      { id: 'ndre', label: 'NDRE', tooltip: 'Chlorophyll' },
-                                      { id: 'msavi', label: 'MSAVI', tooltip: 'Soil Adjusted' },
-                                      { id: 'ndmi', label: 'NDMI', tooltip: 'Water Stress' },
-                                    ].map(idx => (
-                                      <button
-                                        key={idx.id}
-                                        onClick={() => setEosSpectralIndex(idx.id)}
-                                        className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${
-                                          eosSpectralIndex === idx.id
-                                            ? 'bg-white text-emerald-700 shadow-sm'
-                                            : 'text-gray-500 hover:text-gray-800'
-                                        }`}
-                                        title={idx.tooltip}
-                                      >
-                                        {idx.label}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                {/* Leaflet wrapper */}
-                                <EOSCropMap
-                                  lat={activeFieldObj.lat}
-                                  lon={activeFieldObj.lon}
-                                  spectralIndex={eosSpectralIndex}
-                                  scoutingTasks={scoutingTasks}
-                                  onAddScoutingTask={handleAddScoutingTask}
-                                  boundaryEnabled={true}
-                                />
-
-                                {/* Index explanations */}
-                                <div className="mt-3.5 grid grid-cols-2 md:grid-cols-4 gap-2 text-[9px] font-bold text-gray-400">
-                                  <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-2 text-emerald-700">
-                                    🟢 Green Zone: Optimal vegetative canopy index.
-                                  </div>
-                                  <div className="bg-amber-50 border border-amber-100 rounded-lg p-2 text-amber-700">
-                                    🟡 Yellow Zone: Moderate vegetation or bare patches.
-                                  </div>
-                                  <div className="bg-red-50 border border-red-100 rounded-lg p-2 text-red-700">
-                                    🔴 Red Zone: Water/heat stressed or bare soil cover.
-                                  </div>
-                                  <div className="bg-blue-50 border border-blue-100 rounded-lg p-2 text-blue-700 flex items-center justify-center">
-                                    💡 Click on map to pinpoint scout.
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* VRA Prescription Table */}
-                              <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-                                <div className="flex items-center justify-between mb-4">
-                                  <div>
-                                    <h3 className="text-sm font-black text-gray-700">⚡ Variable Rate Application (VRA) Prescription Maps</h3>
-                                    <p className="text-[10px] text-gray-400 mt-0.5">Automated seed density and Nitrogen fertilizer adjustments based on satellite productivity zoning</p>
-                                  </div>
-                                  <button
-                                    onClick={exportVraLog}
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shadow-sm transition-all"
-                                  >
-                                    📥 Export Prescription Log
-                                  </button>
-                                </div>
-
-                                <div className="overflow-x-auto">
-                                  <table className="w-full text-left text-xs font-semibold">
-                                    <thead>
-                                      <tr className="border-b border-gray-100 text-gray-400">
-                                        <th className="py-2.5">Zoning Class</th>
-                                        <th className="py-2.5">Vegetation Density</th>
-                                        <th className="py-2.5">Suggested Seed Rate</th>
-                                        <th className="py-2.5">Suggested Nitrogen Rate</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-50 text-gray-700">
-                                      {vraPresets.map(row => (
-                                        <tr key={row.zone} className="hover:bg-gray-50/50">
-                                          <td className="py-3 flex items-center gap-2">
-                                            <span className={`h-2.5 w-2.5 rounded-full bg-${row.color}-500 block`} />
-                                            {row.zone}
-                                          </td>
-                                          <td className="py-3 uppercase text-[10px] font-black text-gray-500">{activeFieldObj.crop}</td>
-                                          <td className="py-3 font-mono font-bold text-blue-600">{row.seed}</td>
-                                          <td className="py-3 font-mono font-bold text-amber-600">{row.nfk}</td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </div>
-
-                              {/* Active Scouting Logs List */}
-                              <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                                <h3 className="text-sm font-black text-gray-700 mb-3">📍 Active Scouting Tasks & Log</h3>
-                                <div className="space-y-2">
-                                  {scoutingTasks.map(task => (
-                                    <div key={task.id} className="flex items-start justify-between p-3.5 bg-gray-50 rounded-xl border border-gray-100">
-                                      <div className="space-y-1">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          <span className="text-xs font-black text-gray-800">{task.type}</span>
-                                          <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${
-                                            task.priority === 'High' ? 'bg-red-100 text-red-700' : task.priority === 'Medium' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
-                                          }`}>
-                                            {task.priority} Priority
-                                          </span>
-                                          <span className="text-[8px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded font-bold uppercase">
-                                            {task.status}
-                                          </span>
-                                        </div>
-                                        <p className="text-xs text-gray-500">{task.desc}</p>
-                                        <p className="text-[9px] text-gray-400">Coordinates: {task.lat.toFixed(5)}, {task.lon.toFixed(5)}</p>
-                                      </div>
-                                      <button
-                                        onClick={() => setScoutingTasks(prev => prev.filter(t => t.id !== task.id))}
-                                        className="text-red-500 hover:text-red-700 text-xs font-bold font-mono px-2"
-                                      >
-                                        Resolve
-                                      </button>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
+                      {satelliteTab === 'eos-monitor' && (
+                        <EOSCropMonitor
+                          registeredFields={registeredFields}
+                          scoutingTasks={scoutingTasks}
+                          setScoutingTasks={setScoutingTasks}
+                          eosActiveField={eosActiveField}
+                          setEosActiveField={setEosActiveField}
+                          setCustomCoords={setCustomCoords}
+                          eosSpectralIndex={eosSpectralIndex}
+                          setEosSpectralIndex={setEosSpectralIndex}
+                        />
+                      )}
 
                       {/* ── SUB-TAB 4: ADVANCED MONITORING ───────────────── */}
                       {satelliteTab === 'advanced' && (
