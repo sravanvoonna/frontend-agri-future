@@ -862,6 +862,19 @@ const LandVisualizer = ({
             <button
               onClick={() => {
                 setCustomCoords({ lat: mapLat, lon: mapLon });
+                if (mapInstanceRef.current) {
+                  mapInstanceRef.current.setView([mapLat, mapLon], 14);
+                }
+                if (markerRef.current) {
+                  markerRef.current.setLatLng([mapLat, mapLon]);
+                  markerRef.current.setPopupContent(`
+                    <div class="text-xs font-semibold p-1">
+                      <p class="font-bold text-sm text-blue-700">🚜 Applied Coordinates</p>
+                      <p class="text-gray-500 mt-1">Analyzing coordinates entered manually</p>
+                      <p class="text-[10px] text-gray-400 mt-0.5">Lat: ${mapLat.toFixed(4)}, Lon: ${mapLon.toFixed(4)}</p>
+                    </div>
+                  `).openPopup();
+                }
               }}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 rounded-xl text-xs shadow-sm transition-all"
             >
