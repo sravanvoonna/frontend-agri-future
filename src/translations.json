@@ -265,7 +265,19 @@
     "netProjectedProfit": "Net Projected Profit",
     "estimatedRoi": "Estimated ROI",
     "cropGrowthTimeline": "Simulated Crop Growth Timeline",
-    "satelliteHub": "Satellite Hub"
+    "satelliteHub": "Satellite Hub",
+    "satelliteProvider": "Satellite Imagery Provider",
+    "esriSatellite": "ESRI World Imagery (Static)",
+    "eoxSentinel": "Sentinel-2 Cloudless (Free)",
+    "copernicusLive": "Live Copernicus S2 (WMS)",
+    "copernicusInstanceId": "Sentinel Hub WMS Instance ID",
+    "copernicusLayer": "Copernicus Layer",
+    "trueColor": "True Color (RGB)",
+    "ndviColor": "Vegetation Health (NDVI)",
+    "falseColor": "False Color (Infrared)",
+    "moistureColor": "Moisture Index",
+    "copernicusSetupHelp": "To view live imagery, sign up for free at Copernicus Data Space Ecosystem, create a WMS configuration, and paste your Instance ID here.",
+    "cropMonitoring": "Crop Monitoring"
   },
   "te": {
     "dashboard": "డ్యాష్‌బోర్డ్",
@@ -533,7 +545,19 @@
     "netProjectedProfit": "అంచనా వేసిన నికర లాభం",
     "estimatedRoi": "అంచనా వేసిన ROI",
     "cropGrowthTimeline": "పంట ఎదుగుదల కాలక్రమం",
-    "satelliteHub": "శాటిలైట్ హబ్"
+    "satelliteHub": "శాటిలైట్ హబ్",
+    "satelliteProvider": "శాటిలైట్ ఇమేజరీ ప్రొవైడర్",
+    "esriSatellite": "ESRI శాటిలైట్ (స్థిరమైనది)",
+    "eoxSentinel": "సెంటినెల్-2 క్లౌడ్‌లెస్ (ఉచితం)",
+    "copernicusLive": "లైవ్ కోపర్నికస్ S2 (WMS)",
+    "copernicusInstanceId": "కోపర్నికస్ ఇంస్టాన్స్ ID",
+    "copernicusLayer": "కోపర్నికస్ లేయర్",
+    "trueColor": "నిజమైన రంగు (True Color)",
+    "ndviColor": "పంట ఆరోగ్యం (NDVI)",
+    "falseColor": "ఇన్ఫ్రారెడ్ (False Color)",
+    "moistureColor": "తేమ సూచిక (Moisture Index)",
+    "copernicusSetupHelp": "లైవ్ శాటిలైట్ మ్యాప్‌లను వీక్షించడానికి కోపర్నికస్ సిస్టమ్‌లో ఉచిత ఖాతాను సృష్టించి మీ ఇంస్టాన్స్ IDని ఇక్కడ నమోదు చేయండి.",
+    "cropMonitoring": "పంటల పర్యవేక్షణ"
   },
   "hi": {
     "dashboard": "डैशबोर्ड",
@@ -801,7 +825,19 @@
     "netProjectedProfit": "अनुमानित शुद्ध लाभ",
     "estimatedRoi": "अनुमानित ROI",
     "cropGrowthTimeline": "फसल वृद्धि समयरेखा",
-    "satelliteHub": "सैटेलाइट हब"
+    "satelliteHub": "सैटेलाइट हब",
+    "satelliteProvider": "सैटेलाइट इमेजरी प्रदाता",
+    "esriSatellite": "ESRI सैटेलाइट (स्थिर)",
+    "eoxSentinel": "सेंटिनल-2 क्लाउडलेस (नि:शुल्क)",
+    "copernicusLive": "लाइव कोपरनिकस S2 (WMS)",
+    "copernicusInstanceId": "कोपरनिकस इंस्टेंस ID",
+    "copernicusLayer": "कोपरनिकस परत (Layer)",
+    "trueColor": "वास्तविक रंग (True Color)",
+    "ndviColor": "फसल स्वास्थ्य (NDVI)",
+    "falseColor": "इन्फ्रारेड (False Color)",
+    "moistureColor": "नमी सूचकांक (Moisture Index)",
+    "copernicusSetupHelp": "लाइव सैटेलाइट मानचित्र देखने के लिए कोपरनिकस पर एक मुफ्त खाता बनाएं और अपनी इंस्टेंस ID यहां दर्ज करें।",
+    "cropMonitoring": "फसल निगरानी"
   },
   "mr": {
     "dashboard": "डॅशबोर्ड",
@@ -1069,6 +1105,18 @@
     "netProjectedProfit": "अंदाजित निव्वळ नफा",
     "estimatedRoi": "अंदाजित ROI",
     "cropGrowthTimeline": "पीक वाढीचा सिम्युलेटेड कालक्रम",
-    "satelliteHub": "सॅटेलाइट हब"
+    "satelliteHub": "सॅटेलाइट हब",
+    "satelliteProvider": "सॅटेलाइट इमेज प्रदाता",
+    "esriSatellite": "ESRI सॅटेलाइट (स्थिर)",
+    "eoxSentinel": "सॅन्टीनेल-२ क्लाउडलेस (मोफत)",
+    "copernicusLive": "लाइव्ह कोपर्निकस S2 (WMS)",
+    "copernicusInstanceId": "कोपर्निकस इन्स्टन्स ID",
+    "copernicusLayer": "कोपर्निकस लेयर",
+    "trueColor": "वास्तविक रंग (True Color)",
+    "ndviColor": "पीक आरोग्य (NDVI)",
+    "falseColor": "इन्फ्रारेड (False Color)",
+    "moistureColor": "ओलावा निर्देशांक (Moisture Index)",
+    "copernicusSetupHelp": "लाइव्ह सॅटेलाइट नकाशा पाहण्यासाठी कोपर्निकसवर मोफत खाते तयार करा आणि तुमची इन्स्टन्स ID येथे टाका.",
+    "cropMonitoring": "पीक देखरेख"
   }
 }

@@ -310,11 +310,16 @@ const LandVisualizer = ({
   getSatelliteCoords,
   satelliteLoading
 }) => {
+  const { t } = useTranslation();
   const coords = getSatelliteCoords(satelliteState, satelliteDistrict);
   const [mapLat, setMapLat] = useState(coords.lat);
   const [mapLon, setMapLon] = useState(coords.lon);
   const [mapMode, setMapMode] = useState('satellite'); // 'satellite' | 'ndvi'
   const [boundaryEnabled, setBoundaryEnabled] = useState(false);
+  const [mapProvider, setMapProvider] = useState('esri'); // 'esri' | 'eox' | 'copernicus'
+  const copernicusInstanceId = '9eb3a4be-5642-4912-a943-53d49d5ecba2';
+  const [copernicusLayer, setCopernicusLayer] = useState('TRUE_COLOR'); // 'TRUE_COLOR' | 'NDVI' | 'FALSE_COLOR' | 'MOISTURE_INDEX'
+  const tileLayerRef = useRef(null);
 
   // Drawing States & Refs
   const [isDrawing, setIsDrawing] = useState(false);
@@ -543,9 +548,10 @@ const LandVisualizer = ({
         mapInstanceRef.current = mapInstance;
 
         // Esri Satellite Tiles
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        const initialTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
           attribution: 'Esri Satellite'
         }).addTo(mapInstance);
+        tileLayerRef.current = initialTiles;
 
         // Custom divIcon representing tractor/farm marker
         const farmerIcon = L.divIcon({
@@ -566,6 +572,13 @@ const LandVisualizer = ({
             <p class="text-[10px] text-gray-400 mt-0.5">Lat: ${mapLat.toFixed(4)}, Lon: ${mapLon.toFixed(4)}</p>
           </div>
         `).openPopup();
+
+        // Fix blurry tiles / incomplete container sizing on mount
+        setTimeout(() => {
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.invalidateSize();
+          }
+        }, 200);
 
         // Listen for drag end events
         markerInstance.on('dragend', (e) => {
@@ -612,6 +625,67 @@ const LandVisualizer = ({
     };
   }, []);
 
+  // Copernicus Instance ID is hardcoded
+
+  // Dynamic Map Provider & Copernicus Layer Swapper
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    const L = window.L;
+    if (!L) return;
+
+    // Remove the old base/WMS layer if it exists
+    if (tileLayerRef.current) {
+      tileLayerRef.current.remove();
+      tileLayerRef.current = null;
+    }
+
+    let newLayer = null;
+
+    if (mapProvider === 'esri') {
+      newLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Esri Satellite',
+        maxZoom: 19
+      });
+    } else if (mapProvider === 'eox') {
+      newLayer = L.tileLayer('https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg', {
+        attribution: '&copy; <a href="https://s2maps.eu">EOX IT Services</a> | Sentinel-2',
+        maxZoom: 19,
+        maxNativeZoom: 14
+      });
+    } else if (mapProvider === 'copernicus') {
+      if (copernicusInstanceId.trim()) {
+        // Copernicus Data Space Ecosystem / Sentinel Hub WMS Endpoint
+        newLayer = L.tileLayer.wms(`https://sh.dataspace.copernicus.eu/ogc/wms/${copernicusInstanceId.trim()}`, {
+          layers: copernicusLayer,
+          format: 'image/png',
+          transparent: true,
+          attribution: 'Sentinel-2 | Copernicus Data Space Ecosystem',
+          maxZoom: 19,
+          maxNativeZoom: 14
+        });
+      } else {
+        // Fallback to EOX Sentinel-2 cloudless if Instance ID is missing, but with a warning attribution
+        newLayer = L.tileLayer('https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg', {
+          attribution: '&copy; <a href="https://s2maps.eu">EOX IT Services</a> | Sentinel-2 (Instance ID missing)',
+          maxZoom: 19,
+          maxNativeZoom: 14
+        });
+      }
+    }
+
+    if (newLayer) {
+      newLayer.addTo(mapInstanceRef.current);
+      tileLayerRef.current = newLayer;
+
+      // Refresh map size/bounds after loading new layers to prevent tile blur/distortion
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 100);
+    }
+  }, [mapProvider, copernicusInstanceId, copernicusLayer]);
+
   // Sync Overlay Layers on Map Mode / Coords Changes (No map teardowns!)
   useEffect(() => {
     if (!mapInstanceRef.current) return;
@@ -622,8 +696,8 @@ const LandVisualizer = ({
     ndviRectsRef.current.forEach(rect => rect.remove());
     ndviRectsRef.current = [];
 
-    // 2. Add NDVI Grid if enabled
-    if (mapMode === 'ndvi') {
+    // 2. Add NDVI Grid if enabled (and NOT using real Copernicus NDVI layer)
+    if (mapMode === 'ndvi' && !(mapProvider === 'copernicus' && copernicusLayer === 'NDVI')) {
       const step = 0.003;
       for (let i = -2; i <= 2; i++) {
         for (let j = -2; j <= 2; j++) {
@@ -677,7 +751,7 @@ const LandVisualizer = ({
       `).openPopup();
     }
 
-  }, [mapLat, mapLon, mapMode, boundaryEnabled]);
+  }, [mapLat, mapLon, mapMode, boundaryEnabled, mapProvider, copernicusLayer]);
 
   // Area Calculation using flat Shoelace projection
   const calculatePolygonArea = (points) => {
@@ -867,12 +941,90 @@ const LandVisualizer = ({
 
         <hr className="my-4 border-gray-100" />
 
+        {/* Satellite Imagery Provider Selection */}
+        <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4 mb-4 space-y-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
+                {t('satelliteProvider')}
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { id: 'esri', label: t('esriSatellite'), icon: '🌍' },
+                  { id: 'eox', label: t('eoxSentinel'), icon: '🛰️' },
+                  { id: 'copernicus', label: t('copernicusLive'), icon: '⚡' }
+                ].map(prov => (
+                  <button
+                    key={prov.id}
+                    type="button"
+                    onClick={() => {
+                      setMapProvider(prov.id);
+                      if (prov.id === 'copernicus') {
+                        setCopernicusLayer(mapMode === 'ndvi' ? 'NDVI' : 'TRUE_COLOR');
+                      }
+                    }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border cursor-pointer ${
+                      mapProvider === prov.id
+                        ? 'bg-blue-600 border-blue-600 text-white shadow-md'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>{prov.icon}</span>
+                    <span>{prov.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Active Copernicus Layer Selector */}
+            {mapProvider === 'copernicus' && (
+              <div className="space-y-1.5 shrink-0">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
+                  {t('copernicusLayer')}
+                </label>
+                <div className="flex gap-1.5 flex-wrap">
+                  {[
+                    { id: 'TRUE_COLOR', label: t('trueColor'), mode: 'satellite' },
+                    { id: 'NDVI', label: t('ndviColor'), mode: 'ndvi' },
+                    { id: 'FALSE_COLOR', label: t('falseColor'), mode: 'satellite' },
+                    { id: 'MOISTURE_INDEX', label: t('moistureColor'), mode: 'satellite' }
+                  ].map(layer => (
+                    <button
+                      key={layer.id}
+                      type="button"
+                      onClick={() => {
+                        setCopernicusLayer(layer.id);
+                        setMapMode(layer.mode);
+                      }}
+                      className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border cursor-pointer ${
+                        copernicusLayer === layer.id
+                          ? 'bg-emerald-600 border-emerald-600 text-white'
+                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      {layer.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Copernicus Live WMS Configuration Panel removed - Key is hardcoded */}
+        </div>
+
         {/* Action Toggles */}
         <div className="flex items-center gap-3 flex-wrap justify-between">
           <div className="flex items-center gap-2 flex-wrap">
             <button
-              onClick={() => setMapMode(prev => prev === 'satellite' ? 'ndvi' : 'satellite')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border ${
+              onClick={() => {
+                const nextMode = mapMode === 'satellite' ? 'ndvi' : 'satellite';
+                setMapMode(nextMode);
+                if (mapProvider === 'copernicus') {
+                  setCopernicusLayer(nextMode === 'ndvi' ? 'NDVI' : 'TRUE_COLOR');
+                }
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                 mapMode === 'ndvi'
                   ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                   : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
@@ -1021,6 +1173,1030 @@ const LandVisualizer = ({
           </div>
         )}
       </div>
+    </div>
+  );
+};
+
+// ============================================================================
+// 🌱 CROP MONITORING & SATELLITE SUITABILITY COMPONENT (GOOGLE MAPS & AGRO API)
+// ============================================================================
+const loadGoogleMapsScript = (callback) => {
+  if (window.google && window.google.maps) {
+    callback();
+    return;
+  }
+  const existingScript = document.getElementById('googleMapsScript');
+  if (!existingScript) {
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?libraries=drawing,places,geometry`;
+    script.id = 'googleMapsScript';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      if (callback) callback();
+    };
+    document.head.appendChild(script);
+  } else {
+    existingScript.addEventListener('load', () => {
+      if (callback) callback();
+    });
+  }
+};
+
+const CropMonitoringTab = ({
+  satelliteState,
+  satelliteDistrict,
+  customCoords,
+  setCustomCoords,
+  getSatelliteCoords,
+  crops = [],
+  soils = [],
+  states = [],
+  satelliteData
+}) => {
+  const { t } = useTranslation();
+  const coords = getSatelliteCoords(satelliteState, satelliteDistrict);
+  
+  // Agromonitoring API Credentials
+  const agroMonitoringApiKey = 'e7de1851149c483ca342f355f0d95332';
+
+  // Map position states
+  const [mapLat, setMapLat] = useState(coords.lat);
+  const [mapLon, setMapLon] = useState(coords.lon);
+  const [overlay, setOverlay] = useState('hybrid'); // 'hybrid' | 'roadmap' | 'ndvi' | 'truecolor'
+  const [activeDetailTab, setActiveDetailTab] = useState('suitability'); // 'suitability' | 'health' | 'capabilities'
+
+  // Drawing mode states
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawPoints, setDrawPoints] = useState([]);
+
+  // Search states (Step 1)
+  const [pincode, setPincode] = useState('');
+  const [pincodeError, setPincodeError] = useState('');
+  const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [resolvedAddress, setResolvedAddress] = useState('');
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [searchCountry, setSearchCountry] = useState('in');
+
+  // Analysis / Agromonitoring states
+  const [generating, setGenerating] = useState(false);
+  const [analysisGenerated, setAnalysisGenerated] = useState(false);
+  const [agroPolygonId, setAgroPolygonId] = useState(null);
+  const [agroSoilData, setAgroSoilData] = useState(null);
+  const [agroNdviData, setAgroNdviData] = useState(null);
+  const [apiMode, setApiMode] = useState('simulated'); // 'live' | 'simulated'
+
+  // Map refs
+  const googleMapRef = useRef(null);
+  const googleMarkerRef = useRef(null);
+  const googlePolygonRef = useRef(null);
+  const isDrawingRef = useRef(isDrawing);
+
+  const COUNTRY_OPTIONS = [
+    { code: 'in', name: 'India 🇮🇳' },
+    { code: 'us', name: 'United States 🇺🇸' },
+    { code: 'np', name: 'Nepal 🇳🇵' },
+    { code: 'bd', name: 'Bangladesh 🇧🇩' },
+    { code: 'lk', name: 'Sri Lanka 🇱🇰' },
+    { code: 'ke', name: 'Kenya 🇰🇪' },
+    { code: 'vn', name: 'Vietnam 🇻🇳' },
+    { code: 'br', name: 'Brazil 🇧🇷' },
+    { code: 'au', name: 'Australia 🇦🇺' },
+    { code: 'ca', name: 'Canada 🇨🇦' }
+  ];
+
+  // Sync drawing state ref
+  useEffect(() => {
+    isDrawingRef.current = isDrawing;
+    if (googleMapRef.current) {
+      if (isDrawing) {
+        googleMapRef.current.setOptions({ draggableCursor: 'crosshair' });
+      } else {
+        googleMapRef.current.setOptions({ draggableCursor: null });
+      }
+    }
+  }, [isDrawing]);
+
+  // Sync coords when state/district changes (only if NOT in drawing/custom coords mode)
+  useEffect(() => {
+    if (drawPoints.length === 0 && googleMapRef.current) {
+      setMapLat(coords.lat);
+      setMapLon(coords.lon);
+      googleMapRef.current.setCenter({ lat: coords.lat, lng: coords.lon });
+      if (googleMarkerRef.current) {
+        googleMarkerRef.current.setPosition({ lat: coords.lat, lng: coords.lon });
+      }
+    }
+  }, [coords.lat, coords.lon]);
+
+  // Google Maps Initialization
+  useEffect(() => {
+    const initGoogleMap = () => {
+      if (!window.google || !document.getElementById('google-crop-map')) return;
+
+      const mapOptions = {
+        center: { lat: mapLat, lng: mapLon },
+        zoom: 14,
+        mapTypeId: window.google.maps.MapTypeId.HYBRID,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false
+      };
+
+      const gMap = new window.google.maps.Map(document.getElementById('google-crop-map'), mapOptions);
+      googleMapRef.current = gMap;
+
+      const gMarker = new window.google.maps.Marker({
+        position: { lat: mapLat, lng: mapLon },
+        map: gMap,
+        draggable: true,
+        title: "Tractor Pin"
+      });
+      googleMarkerRef.current = gMarker;
+
+      const infoWindow = new window.google.maps.InfoWindow({
+        content: `
+          <div class="text-xs font-semibold p-1 text-slate-800">
+            <p class="font-bold text-emerald-700">🚜 Farm Pin</p>
+            <p class="text-gray-500 mt-1">Drag to set center, or toggle "Draw Boundary" to outline fields.</p>
+          </div>
+        `
+      });
+      infoWindow.open(gMap, gMarker);
+
+      gMarker.addListener('dragend', () => {
+        const pos = gMarker.getPosition();
+        setMapLat(pos.lat());
+        setMapLon(pos.lng());
+        setAnalysisGenerated(false);
+      });
+
+      gMap.addListener('click', (e) => {
+        if (isDrawingRef.current) {
+          const latLng = e.latLng;
+          setDrawPoints(prev => [...prev, { lat: latLng.lat(), lng: latLng.lng() }]);
+          setAnalysisGenerated(false);
+        }
+      });
+    };
+
+    loadGoogleMapsScript(() => {
+      initGoogleMap();
+    });
+
+    return () => {
+      if (googleMarkerRef.current) {
+        window.google?.maps?.event?.clearInstanceListeners(googleMarkerRef.current);
+      }
+      if (googleMapRef.current) {
+        window.google?.maps?.event?.clearInstanceListeners(googleMapRef.current);
+      }
+    };
+  }, []);
+
+  // Sync Polygon Drawing on Google Maps
+  useEffect(() => {
+    if (!window.google || !googleMapRef.current) return;
+
+    if (googlePolygonRef.current) {
+      googlePolygonRef.current.setMap(null);
+      googlePolygonRef.current = null;
+    }
+
+    if (drawPoints.length >= 3) {
+      googlePolygonRef.current = new window.google.maps.Polygon({
+        paths: drawPoints,
+        strokeColor: '#10b981',
+        strokeOpacity: 0.8,
+        strokeWeight: 3,
+        fillColor: '#059669',
+        fillOpacity: 0.25,
+        map: googleMapRef.current,
+        editable: true,
+        draggable: false
+      });
+
+      const path = googlePolygonRef.current.getPath();
+      const updatePath = () => {
+        const pts = [];
+        for (let i = 0; i < path.getLength(); i++) {
+          pts.push({ lat: path.getAt(i).lat(), lng: path.getAt(i).lng() });
+        }
+        setDrawPoints(pts);
+        setAnalysisGenerated(false);
+      };
+
+      window.google.maps.event.addListener(path, 'set_at', updatePath);
+      window.google.maps.event.addListener(path, 'insert_at', updatePath);
+      window.google.maps.event.addListener(path, 'remove_at', updatePath);
+
+      // Centroid Calculation
+      let sumLat = 0;
+      let sumLon = 0;
+      drawPoints.forEach(p => {
+        sumLat += p.lat;
+        sumLon += p.lng;
+      });
+      const cLat = sumLat / drawPoints.length;
+      const cLon = sumLon / drawPoints.length;
+      setMapLat(cLat);
+      setMapLon(cLon);
+      
+      if (googleMarkerRef.current) {
+        googleMarkerRef.current.setPosition({ lat: cLat, lng: cLon });
+      }
+    }
+  }, [drawPoints]);
+
+  // Apply Tile Overlays to Google Maps
+  const applyGoogleMapOverlay = (map, type, polyId) => {
+    if (!map || !window.google) return;
+    map.overlayMapTypes.clear();
+
+    if (type === 'hybrid') {
+      map.setMapTypeId(window.google.maps.MapTypeId.HYBRID);
+    } else if (type === 'roadmap') {
+      map.setMapTypeId(window.google.maps.MapTypeId.ROADMAP);
+    } else if (type === 'satellite') {
+      map.setMapTypeId(window.google.maps.MapTypeId.SATELLITE);
+    } else if (polyId) {
+      map.setMapTypeId(window.google.maps.MapTypeId.HYBRID);
+      
+      const mapType = new window.google.maps.ImageMapType({
+        getTileUrl: (coord, zoom) => {
+          return `https://api.agromonitoring.com/agro/1.0/image/tile/${type}/${zoom}/${coord.x}/${coord.y}?polyid=${polyId}&appid=${agroMonitoringApiKey}`;
+        },
+        tileSize: new window.google.maps.Size(256, 256),
+        name: type.toUpperCase(),
+        maxZoom: 19
+      });
+      map.overlayMapTypes.insertAt(0, mapType);
+    }
+  };
+
+  const handleOverlayChange = (optId) => {
+    if ((optId === 'ndvi' || optId === 'truecolor') && !agroPolygonId) {
+      alert("Please click 'Generate Copernicus Analysis' first to register your field and download the satellite overlay layers.");
+      return;
+    }
+    setOverlay(optId);
+    applyGoogleMapOverlay(googleMapRef.current, optId, agroPolygonId);
+  };
+
+  // Safe area calculation using Google Maps spherical geometry
+  const getPolygonArea = () => {
+    if (drawPoints.length < 3) return 0;
+    if (window.google && window.google.maps && window.google.maps.geometry) {
+      const pathCoords = drawPoints.map(p => new window.google.maps.LatLng(p.lat, p.lng));
+      return window.google.maps.geometry.spherical.computeArea(pathCoords);
+    }
+    // Fallback shoelace formula
+    let area = 0;
+    const refLat = drawPoints[0].lat;
+    const refLon = drawPoints[0].lng;
+    const R_LAT = 111320;
+    const R_LON = 111320 * Math.cos(refLat * Math.PI / 180);
+    const projected = drawPoints.map(p => ({
+      x: (p.lng - refLon) * R_LON,
+      y: (p.lat - refLat) * R_LAT
+    }));
+    for (let i = 0; i < projected.length; i++) {
+      const j = (i + 1) % projected.length;
+      area += projected[i].x * projected[j].y;
+      area -= projected[j].x * projected[i].y;
+    }
+    return Math.abs(area) / 2.0;
+  };
+
+  const areaSqM = getPolygonArea();
+  const areaAcres = areaSqM / 4046.86;
+  const areaHectares = areaSqM / 10000;
+
+  // Search Place Handler
+  const handleAddressSearch = async (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setSearchError('');
+    setSearchLoading(true);
+    setAnalysisGenerated(false);
+    try {
+      const res = await axios.get(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&countrycodes=${searchCountry}&format=json&limit=1`,
+        { headers: { 'User-Agent': 'AgriFutureApp/1.0' } }
+      );
+      if (res.data && res.data.length > 0) {
+        const first = res.data[0];
+        const latVal = parseFloat(first.lat);
+        const lonVal = parseFloat(first.lon);
+        const address = first.display_name;
+
+        setMapLat(latVal);
+        setMapLon(lonVal);
+        setResolvedAddress(address);
+        setCustomCoords({ lat: latVal, lon: lonVal });
+
+        if (googleMapRef.current) {
+          googleMapRef.current.setCenter({ lat: latVal, lng: lonVal });
+          googleMapRef.current.setZoom(15);
+        }
+        if (googleMarkerRef.current) {
+          googleMarkerRef.current.setPosition({ lat: latVal, lng: lonVal });
+        }
+      } else {
+        setSearchError('Location not found. Please enter a more specific name.');
+      }
+    } catch (err) {
+      console.error(err);
+      setSearchError('Failed to connect to location database.');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // PIN Code Lookup Handler
+  const handlePincodeSearch = async (e) => {
+    e.preventDefault();
+    if (searchCountry === 'in' && !/^\d{6}$/.test(pincode)) {
+      setPincodeError('Please enter a valid 6-digit Indian PIN code.');
+      return;
+    } else if (!pincode.trim()) {
+      setPincodeError('Please enter a postal code.');
+      return;
+    }
+    setPincodeError('');
+    setPincodeLoading(true);
+    setAnalysisGenerated(false);
+    try {
+      let resolvedItem = null;
+      try {
+        const res = await axios.get(
+          `https://nominatim.openstreetmap.org/search?postalcode=${pincode}&countrycodes=${searchCountry}&format=json`,
+          { headers: { 'User-Agent': 'AgriFutureApp/1.0' } }
+        );
+        if (res.data && res.data.length > 0) {
+          resolvedItem = {
+            lat: parseFloat(res.data[0].lat),
+            lon: parseFloat(res.data[0].lon),
+            address: res.data[0].display_name
+          };
+        }
+      } catch (err) {
+        console.warn('Direct Nominatim lookup failed, attempting fallback...', err);
+      }
+
+      if (!resolvedItem && searchCountry === 'in') {
+        const postRes = await axios.get(`https://api.postalpincode.in/pincode/${pincode}`);
+        if (postRes.data && postRes.data[0] && postRes.data[0].Status === 'Success') {
+          const po = postRes.data[0].PostOffice[0];
+          const query = `${po.Name}, ${po.District}, ${po.State}, India`;
+          try {
+            const res = await axios.get(
+              `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json`,
+              { headers: { 'User-Agent': 'AgriFutureApp/1.0' } }
+            );
+            if (res.data && res.data.length > 0) {
+              resolvedItem = {
+                lat: parseFloat(res.data[0].lat),
+                lon: parseFloat(res.data[0].lon),
+                address: `${pincode} - ${po.Name}, ${po.District}, ${po.State}`
+              };
+            }
+          } catch (err) {
+            console.error(err);
+          }
+        }
+      }
+
+      if (resolvedItem) {
+        const { lat: latVal, lon: lonVal, address } = resolvedItem;
+        setMapLat(latVal);
+        setMapLon(lonVal);
+        setResolvedAddress(address);
+        setCustomCoords({ lat: latVal, lon: lonVal });
+
+        if (googleMapRef.current) {
+          googleMapRef.current.setCenter({ lat: latVal, lng: lonVal });
+          googleMapRef.current.setZoom(15);
+        }
+        if (googleMarkerRef.current) {
+          googleMarkerRef.current.setPosition({ lat: latVal, lng: lonVal });
+        }
+      } else {
+        setPincodeError('PIN code location not found.');
+      }
+    } catch (err) {
+      console.error(err);
+      setPincodeError('Failed to connect to PIN code database.');
+    } finally {
+      setPincodeLoading(false);
+    }
+  };
+
+  // Typical Soil Types helper mapping
+  const getStateTypicalSoils = (stateName) => {
+    const soilsMapping = {
+      'Andhra Pradesh': ['Red Soil', 'Alluvial Soil', 'Sandy Clay'],
+      'Assam': ['Alluvial Soil', 'Laterite Soil'],
+      'Bihar': ['Alluvial Soil', 'Clayey Soil'],
+      'Gujarat': ['Black Soil', 'Alluvial Soil', 'Sandy Loam'],
+      'Haryana': ['Alluvial Soil', 'Sandy Loam'],
+      'Karnataka': ['Red Soil', 'Laterite Soil', 'Black Soil'],
+      'Kerala': ['Laterite Soil', 'Alluvial Soil'],
+      'Madhya Pradesh': ['Black Soil', 'Alluvial Soil', 'Red Soil'],
+      'Maharashtra': ['Black Soil', 'Loamy Soil', 'Clayey Soil'],
+      'Punjab': ['Alluvial Soil', 'Sandy Loam'],
+      'Rajasthan': ['Sandy Soil', 'Loamy Sand'],
+      'Tamil Nadu': ['Red Soil', 'Black Soil', 'Laterite Soil'],
+      'Telangana': ['Red Soil', 'Black Soil', 'Chalka Soil'],
+      'Uttar Pradesh': ['Alluvial Soil', 'Clayey Loam']
+    };
+    return soilsMapping[stateName] || ['Loamy Soil', 'Clayey Soil'];
+  };
+
+  // Crop Suitability Logic
+  const getSuitabilityScore = (crop) => {
+    let score = 50; // base score
+    const matchedState = states.find(s => s.state_name.toLowerCase() === satelliteState.toLowerCase());
+    if (matchedState && crop.state_ids && crop.state_ids.includes(matchedState.id)) {
+      score += 20;
+    }
+    const stateTypicalSoils = getStateTypicalSoils(satelliteState);
+    const cropSoilNames = crop.soil_ids ? crop.soil_ids.map(id => soils.find(s => s.id === id)?.soil_name || '') : [];
+    const hasSoilMatch = cropSoilNames.some(name => stateTypicalSoils.some(sts => sts.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(sts.toLowerCase())));
+    if (hasSoilMatch) {
+      score += 15;
+    }
+
+    // Determine moisture level to match against
+    const currentMoisture = agroSoilData?.moisture ?? (satelliteData?.soil_moisture_0_1 ?? 0.22);
+    if (crop.water_requirement === 'High') {
+      score += currentMoisture > 0.25 ? 15 : (currentMoisture > 0.15 ? 5 : -10);
+    } else if (crop.water_requirement === 'Medium') {
+      score += currentMoisture > 0.15 && currentMoisture < 0.35 ? 15 : 5;
+    } else {
+      score += currentMoisture < 0.22 ? 15 : (currentMoisture < 0.30 ? 8 : -5);
+    }
+    const currentMonth = new Date().getMonth();
+    const isKharifMonth = currentMonth >= 5 && currentMonth <= 9;
+    const isRabiMonth = currentMonth >= 10 || currentMonth <= 2;
+
+    if (crop.season === 'Kharif' && isKharifMonth) {
+      score += 10;
+    } else if (crop.season === 'Rabi' && isRabiMonth) {
+      score += 10;
+    } else if (crop.season === 'Annual' || crop.season === 'Perennial') {
+      score += 8;
+    } else {
+      score += 2;
+    }
+    return Math.min(100, Math.max(15, score));
+  };
+
+  const scoredCrops = crops.map(c => ({
+    ...c,
+    suitability: getSuitabilityScore(c)
+  })).sort((a, b) => b.suitability - a.suitability);
+
+  // Dynamic Vegetation Health calculations
+  const getNdviDetails = (val) => {
+    if (val > 0.7) return { label: 'Optimal / Dense Canopy 🌳', desc: 'Vigorous crop health and high vegetation density. Ideal growth stage.', color: 'emerald' };
+    if (val > 0.4) return { label: 'Moderate Health / Emergence 🌱', desc: 'Active growth with partial canopy cover. Typical vegetative phase.', color: 'amber' };
+    return { label: 'Sparse / Critical Stress 🏜️', desc: 'Bare soil or low density. Vegetation shows signs of moisture or pest stress.', color: 'red' };
+  };
+
+  const ndviValue = agroNdviData?.stats?.ndvi?.mean ?? (
+    satelliteData?.soil_moisture_0_1 != null
+      ? Math.max(0.15, Math.min(0.88, 0.45 + (satelliteData.soil_moisture_0_1 - 0.2) * 1.5 + (satelliteData.uv_index ? satelliteData.uv_index * 0.02 : 0)))
+      : 0.62
+  );
+  
+  const ndviDetails = getNdviDetails(ndviValue);
+
+  const waterStressRating = agroSoilData
+    ? Math.max(0, Math.min(100, Math.round((1 - (agroSoilData.moisture / 0.45)) * 100)))
+    : (satelliteData?.soil_moisture_0_1 != null ? Math.max(0, Math.min(100, Math.round((1 - (satelliteData.soil_moisture_0_1 / 0.45)) * 100))) : 35);
+
+  // Trigger manual Agromonitoring API Fetch
+  const handleGenerateAnalysis = async () => {
+    if (drawPoints.length < 3) {
+      alert("Please outline your farm field first in Step 2 by drawing a boundary on the map.");
+      return;
+    }
+
+    setGenerating(true);
+    setSearchError('');
+    setPincodeError('');
+
+    try {
+      // 1. Delete previous polygon from OpenWeather account if it exists (avoids polygon limits)
+      if (agroPolygonId) {
+        try {
+          await axios.delete(`https://api.agromonitoring.com/agro/1.0/polygons/${agroPolygonId}?appid=${agroMonitoringApiKey}`);
+        } catch (e) {
+          console.warn("Could not delete old polygon:", e);
+        }
+      }
+
+      // 2. Create the custom polygon on Agromonitoring (OpenWeather)
+      const payload = {
+        name: `AgriFuture_${Date.now()}`,
+        geo_json: {
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "Polygon",
+            coordinates: [
+              [
+                ...drawPoints.map(p => [p.lng, p.lat]),
+                [drawPoints[0].lng, drawPoints[0].lat] // Close path
+              ]
+            ]
+          }
+        }
+      };
+
+      const polyRes = await axios.post(`https://api.agromonitoring.com/agro/1.0/polygons?appid=${agroMonitoringApiKey}`, payload);
+      const newPolyId = polyRes.data.id;
+      setAgroPolygonId(newPolyId);
+
+      // 3. Fetch Live Soil Moisture & Temp
+      const soilRes = await axios.get(`https://api.agromonitoring.com/agro/1.0/soil?polyid=${newPolyId}&appid=${agroMonitoringApiKey}`);
+      setAgroSoilData(soilRes.data);
+
+      // 4. Fetch NDVI history / scenes
+      const nowSec = Math.floor(Date.now() / 1000);
+      const thirtyDaysAgoSec = nowSec - 30 * 24 * 60 * 60;
+      const scenesRes = await axios.get(`https://api.agromonitoring.com/agro/1.0/image/search?start=${thirtyDaysAgoSec}&end=${nowSec}&polyid=${newPolyId}&appid=${agroMonitoringApiKey}`);
+      
+      if (scenesRes.data && scenesRes.data.length > 0) {
+        setAgroNdviData(scenesRes.data[0]);
+      } else {
+        setAgroNdviData(null);
+      }
+
+      setApiMode('live');
+      setAnalysisGenerated(true);
+
+      // Reset overlay to NDVI once polygon is ready
+      setTimeout(() => {
+        setOverlay('ndvi');
+        applyGoogleMapOverlay(googleMapRef.current, 'ndvi', newPolyId);
+      }, 500);
+
+    } catch (err) {
+      console.warn("Agromonitoring API limit/error, falling back to simulated data:", err);
+      // Fallback to simulated data so users are not blocked
+      setAgroPolygonId(null);
+      setAgroSoilData({
+        moisture: satelliteData?.soil_moisture_0_1 ?? 0.22,
+        t0: (satelliteData?.soil_temp_0cm ?? 28) + 273.15, // C to Kelvin
+        t10: (satelliteData?.soil_temp_6cm ?? 26) + 273.15
+      });
+      setAgroNdviData(null);
+      setApiMode('simulated');
+      setAnalysisGenerated(true);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* STEP 1: Select Place Card */}
+      <div className="bg-white rounded-2xl border border-gray-150 p-5 shadow-sm animate-fade-in text-left">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-center">
+          <div className="space-y-1 lg:col-span-1">
+            <h3 className="text-sm font-black text-gray-700">📍 Step 1: Select Place</h3>
+            <p className="text-[10px] text-gray-400">Locate your fields by typing a village, landmark, or entering a 6-digit postal PIN code.</p>
+          </div>
+          
+          <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
+            <div className="w-full">
+              <select
+                value={searchCountry}
+                onChange={e => {
+                  setSearchCountry(e.target.value);
+                  setSearchError('');
+                  setPincodeError('');
+                }}
+                className="w-full border border-gray-250 rounded-xl px-3 py-2 text-xs font-black text-gray-700 bg-gray-55 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer"
+              >
+                {COUNTRY_OPTIONS.map(c => (
+                  <option key={c.code} value={c.code}>
+                    🗺️ {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <form onSubmit={handleAddressSearch} className="flex gap-2 w-full">
+              <input
+                type="text"
+                placeholder="Search Village, City, or Landmark..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="flex-grow border border-gray-255 rounded-xl px-3 py-2 text-xs font-bold text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                required
+              />
+              <button
+                type="submit"
+                disabled={searchLoading}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+              >
+                {searchLoading ? <RefreshCw className="h-3 w-3 animate-spin" /> : '🔍'} Search Place
+              </button>
+            </form>
+
+            <form onSubmit={handlePincodeSearch} className="flex gap-2 w-full">
+              <input
+                type="text"
+                placeholder="Enter 6-Digit PIN Code"
+                value={pincode}
+                onChange={e => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="flex-grow border border-gray-255 rounded-xl px-3 py-2 text-xs font-bold text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                required
+              />
+              <button
+                type="submit"
+                disabled={pincodeLoading}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+              >
+                {pincodeLoading ? <RefreshCw className="h-3 w-3 animate-spin" /> : '🔍'} Search PIN
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {searchError && <p className="text-xs font-bold text-red-650 mt-2">{searchError}</p>}
+        {pincodeError && <p className="text-xs font-bold text-red-650 mt-2">{pincodeError}</p>}
+        {resolvedAddress && (
+          <div className="bg-blue-50 rounded-xl p-3 mt-3 border border-blue-100 animate-fade-in text-xs font-bold text-blue-800">
+            📍 Resolved: {resolvedAddress}
+          </div>
+        )}
+      </div>
+
+      {/* STEP 2: Draw Field Boundary Card */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        {/* Map and Drawing Panel */}
+        <div className="lg:col-span-6 space-y-4 flex flex-col justify-between bg-white rounded-2xl border border-gray-150 p-5 shadow-sm">
+          <div className="space-y-3">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-sm font-black text-gray-700">🌱 Step 2: Draw your field boundary</h3>
+                <p className="text-[10px] text-gray-400 mt-0.5">Click "Draw Boundary" to trace points on the map. You can drag corner pins to adjust.</p>
+              </div>
+              {customCoords && (
+                <button
+                  onClick={() => {
+                    setCustomCoords(null);
+                    setDrawPoints([]);
+                    setResolvedAddress('');
+                    setPincode('');
+                    setAnalysisGenerated(false);
+                    setAgroPolygonId(null);
+                    const original = getSatelliteCoords(satelliteState, satelliteDistrict);
+                    setMapLat(original.lat);
+                    setMapLon(original.lon);
+                    if (googleMapRef.current) {
+                      googleMapRef.current.setCenter({ lat: original.lat, lng: original.lon });
+                      googleMapRef.current.setZoom(14);
+                    }
+                    if (googleMarkerRef.current) {
+                      googleMarkerRef.current.setPosition({ lat: original.lat, lng: original.lon });
+                    }
+                  }}
+                  className="bg-red-50 text-red-600 hover:bg-red-100 font-bold px-3 py-1 rounded-xl text-xs transition-all border border-red-100 cursor-pointer"
+                >
+                  Reset Location
+                </button>
+              )}
+            </div>
+
+            <div className="flex gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDrawing(!isDrawing);
+                  if (!isDrawing) setDrawPoints([]);
+                  setAnalysisGenerated(false);
+                }}
+                className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1 cursor-pointer ${
+                  isDrawing
+                    ? 'bg-red-650 border-red-650 text-white animate-pulse shadow-sm'
+                    : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                ✏️ {isDrawing ? 'Cancel Drawing' : 'Draw Boundary'}
+              </button>
+
+              {drawPoints.length > 0 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDrawPoints(prev => prev.slice(0, -1));
+                      setAnalysisGenerated(false);
+                    }}
+                    className="px-2.5 py-2 rounded-xl text-xs font-bold bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 cursor-pointer"
+                  >
+                    ↩️ Undo Point
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDrawPoints([]);
+                      setAnalysisGenerated(false);
+                      setAgroPolygonId(null);
+                    }}
+                    className="px-2.5 py-2 rounded-xl text-xs font-bold bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 cursor-pointer"
+                  >
+                    🗑️ Clear
+                  </button>
+                </>
+              )}
+            </div>
+
+            {drawPoints.length > 0 && (
+              <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3.5 text-xs font-semibold animate-fade-in">
+                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-wider block">📐 Field Area Measurements</span>
+                <p className="text-gray-700 mt-1 leading-normal">
+                  {drawPoints.length < 3
+                    ? `Place at least ${3 - drawPoints.length} more corners on the map to enclose boundary.`
+                    : `Boundary Area: ${areaAcres.toFixed(2)} Acres (${areaHectares.toFixed(2)} Hectares)`
+                  }
+                </p>
+              </div>
+            )}
+
+            {/* Layer Selection */}
+            <div className="space-y-1.5 pt-1">
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider block">Satellite Overlay Options</span>
+              <div className="grid grid-cols-4 gap-1.5">
+                {[
+                  { id: 'hybrid', label: 'Hybrid Base' },
+                  { id: 'roadmap', label: 'Roadmap' },
+                  { id: 'ndvi', label: 'Agro NDVI' },
+                  { id: 'truecolor', label: 'Agro TrueColor' }
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => handleOverlayChange(opt.id)}
+                    className={`py-1 px-1 rounded-lg text-[9px] font-bold text-center border cursor-pointer ${
+                      overlay === opt.id
+                        ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                        : 'bg-white border-gray-200 text-gray-650 hover:bg-gray-50'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={handleGenerateAnalysis}
+            disabled={generating}
+            className={`w-full py-3 mt-4 rounded-xl text-sm font-black transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer ${
+              generating
+                ? 'bg-amber-100 border border-amber-200 text-amber-700'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:scale-[1.01]'
+            }`}
+          >
+            {generating ? (
+              <>
+                <RefreshCw className="h-4 w-4 animate-spin text-amber-600" />
+                <span>Contacting OpenWeather Agromonitoring API...</span>
+              </>
+            ) : (
+              <>
+                <span>⚡ Generate Crop Monitoring Analysis</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Map Canvas Box (Google Maps) */}
+        <div className="lg:col-span-6 bg-white border-4 border-white rounded-3xl shadow-lg overflow-hidden relative" style={{ minHeight: 320 }}>
+          <div id="google-crop-map" className="h-full w-full z-10 animate-fade-in" />
+          {customCoords && (
+            <div className="absolute top-4 right-4 bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-lg z-[400] flex items-center gap-1.5 animate-pulse">
+              <span className="h-2 w-2 rounded-full bg-white block" />
+              Pin Lock Active
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ANALYSIS RESULTS DASHBOARD */}
+      {!analysisGenerated ? (
+        <div className="bg-slate-50 border border-slate-100 rounded-3xl py-12 px-6 text-center space-y-3 animate-fade-in">
+          <div className="text-4xl">🛰️</div>
+          <h3 className="text-base font-black text-slate-800">Satellite Analysis Ready</h3>
+          <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+            Select your location in **Step 1**, trace your field boundary in **Step 2**, then click **Generate Crop Monitoring Analysis** to compute crop suitability, live soil moisture, and active NDVI telemetry.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-fade-in-up">
+          {/* Navigation Tab list */}
+          <div className="lg:col-span-12 flex bg-gray-100 p-1 rounded-xl">
+            {[
+              { id: 'suitability', label: '🌾 Crop Suitability Scorer' },
+              { id: 'health', label: '🩺 Crop Health diagnostics' },
+              { id: 'capabilities', label: '📡 Sentinel Outputs & Data' }
+            ].map(tb => (
+              <button
+                key={tb.id}
+                onClick={() => setActiveDetailTab(tb.id)}
+                className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                  activeDetailTab === tb.id
+                    ? 'bg-white text-emerald-800 shadow-sm font-black'
+                    : 'text-gray-500 hover:text-gray-800 font-semibold'
+                }`}
+              >
+                {tb.label}
+              </button>
+            ))}
+          </div>
+
+          {/* TAB CONTENT: SUITABILITY */}
+          {activeDetailTab === 'suitability' && (
+            <div className="lg:col-span-12 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-base font-extrabold text-gray-900">Crop Suitability Recommendation</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Scored dynamically against local climate, state soil mapping, and OpenWeather Agromonitoring parameters.</p>
+                </div>
+                <span className={`text-[9px] font-black border uppercase px-2.5 py-1 rounded-lg ${apiMode === 'live' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                  {apiMode === 'live' ? '🟢 Live API Data' : '🟡 Simulated Fallback'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[460px] overflow-y-auto pr-1">
+                {scoredCrops.map((crop) => {
+                  const badgeColor = crop.suitability > 80 ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : crop.suitability > 50 ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-rose-50 text-rose-700 border-rose-100';
+                  const progressColor = crop.suitability > 80 ? 'bg-emerald-500' : crop.suitability > 50 ? 'bg-amber-500' : 'bg-rose-500';
+
+                  const typSoils = getStateTypicalSoils(satelliteState);
+                  const cropSoils = crop.soil_ids ? crop.soil_ids.map(id => soils.find(s => s.id === id)?.soil_name || '') : [];
+                  const soilOk = cropSoils.some(n => typSoils.some(sts => sts.toLowerCase().includes(n.toLowerCase()) || n.toLowerCase().includes(sts.toLowerCase())));
+                  
+                  const currentMoisture = agroSoilData?.moisture ?? 0.22;
+
+                  let rationale = '';
+                  if (crop.suitability > 80) {
+                    rationale = `${crop.crop_name} is highly recommended. The local soil (${soilOk ? cropSoils[0] || 'typical soils' : 'loam'}) and moisture level (${currentMoisture.toFixed(2)}) match the crop's ${crop.water_requirement.toLowerCase()} water needs.`;
+                  } else if (crop.suitability > 55) {
+                    rationale = `${crop.crop_name} is moderately compatible. Requires additional monitoring. ${!soilOk ? 'Soil adjustment or organic manure suggested.' : ''} ${crop.water_requirement === 'High' ? 'Ensure drip irrigation is scheduled.' : ''}`;
+                  } else {
+                    rationale = `Low compatibility. High risk of crop failure. The season or soil characteristics are unsuitable for ${crop.crop_name} right now.`;
+                  }
+
+                  return (
+                    <div key={crop.id} className="p-4 border border-gray-150 rounded-xl bg-slate-50/40 hover:bg-slate-50 transition-all flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-extrabold text-sm text-gray-900">{crop.crop_name}</h4>
+                            <span className="text-[10px] text-gray-400 font-bold italic mt-0.5 block">{crop.scientific_name}</span>
+                          </div>
+                          <span className={`text-[10px] font-black border px-2 py-0.5 rounded-lg ${badgeColor}`}>
+                            {crop.suitability}% Match
+                          </span>
+                        </div>
+
+                        <div className="w-full bg-gray-200/80 rounded-full h-1.5 mt-2.5">
+                          <div className={`h-1.5 rounded-full ${progressColor}`} style={{ width: `${crop.suitability}%` }} />
+                        </div>
+
+                        <p className="text-[11px] text-gray-500 mt-2.5 leading-relaxed font-semibold">
+                          💡 {rationale}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 mt-3.5 pt-2.5 border-t border-slate-100 text-[9px] font-bold text-gray-450 uppercase">
+                        <div>Water: <span className="text-gray-700">{crop.water_requirement}</span></div>
+                        <div>Season: <span className="text-gray-700">{crop.season}</span></div>
+                        <div>Yield: <span className="text-gray-700">{crop.yield || 'N/A'}</span></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* TAB CONTENT: HEALTH */}
+          {activeDetailTab === 'health' && (
+            <div className="lg:col-span-12 bg-white rounded-2xl border border-gray-250 p-5 shadow-sm space-y-4">
+              <div>
+                <h3 className="text-base font-extrabold text-gray-900">Sentinel Health Diagnostics</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Indices evaluated dynamically for your farm centroid coords ({mapLat.toFixed(4)}, {mapLon.toFixed(4)}).</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-emerald-50/30 border border-emerald-100 rounded-xl space-y-2">
+                  <span className="text-[10px] font-extrabold text-emerald-800 uppercase block tracking-wider">🌿 Vegetation Health Index (NDVI)</span>
+                  <p className="text-3xl font-black text-emerald-600 mt-1">{ndviValue.toFixed(2)}</p>
+                  <p className="text-xs font-black text-gray-700 mt-1">{ndviDetails.label}</p>
+                  <p className="text-[10px] text-gray-500 leading-normal mt-1">{ndviDetails.desc}</p>
+                </div>
+
+                <div className="p-4 bg-blue-50/30 border border-blue-100 rounded-xl space-y-2">
+                  <span className="text-[10px] font-extrabold text-blue-800 uppercase block tracking-wider">💧 Soil Moisture & Water Stress</span>
+                  <p className="text-3xl font-black text-blue-600 mt-1">
+                    {agroSoilData ? `${(agroSoilData.moisture * 100).toFixed(0)}%` : `${waterStressRating}%`}
+                  </p>
+                  <p className="text-xs font-black text-gray-700 mt-1">
+                    {waterStressRating > 70 ? 'High Deficit 🚨' : waterStressRating > 40 ? 'Moderate Moisture ⚠️' : 'Optimal Moisture ✅'}
+                  </p>
+                  <p className="text-[10px] text-gray-500 leading-normal mt-1">
+                    {agroSoilData && (
+                      <span className="block font-bold text-slate-700 mb-1">
+                        🌡️ Surface Temp: {(agroSoilData.t0 - 273.15).toFixed(1)}°C | Deep (10cm): {(agroSoilData.t10 - 273.15).toFixed(1)}°C
+                      </span>
+                    )}
+                    {waterStressRating > 70
+                      ? 'Soil layer displays extreme dryness. Heavy supplemental watering required to prevent cellular collapse.'
+                      : waterStressRating > 40
+                      ? 'Mild stress detected. Schedule irrigation cycles during early morning to maximize uptake.'
+                      : 'Good moisture content in root zones. Ideal transpiration conditions.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-150 rounded-xl p-4 flex items-start gap-3">
+                <Sparkles className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5 animate-pulse" />
+                <div>
+                  <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Copernicus Advisory Prescription</h4>
+                  <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                    Based on the combined indices, the soil canopy exhibits <strong>{ndviDetails.label.split(' / ')[0]}</strong> properties with a water stress rating of <strong>{waterStressRating}%</strong>. We advise maintaining crop covers to reduce direct evapotranspiration.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB CONTENT: CAPABILITIES */}
+          {activeDetailTab === 'capabilities' && (
+            <div className="lg:col-span-12 bg-white rounded-2xl border border-gray-250 p-5 shadow-sm space-y-4">
+              <div>
+                <h3 className="text-base font-extrabold text-gray-900">Sentinel-2 Capabilities Overview</h3>
+                <p className="text-xs text-gray-500 mt-0.5">European Space Agency Sentinel-2 multi-spectral capabilities for target coordinates.</p>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-gray-155 text-[10px] font-black text-gray-400 uppercase tracking-wider">
+                      <th className="pb-2">Spectral Band</th>
+                      <th className="pb-2">Resolution</th>
+                      <th className="pb-2">Primary Use-case</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50 text-gray-700">
+                    {[
+                      { band: 'B2, B3, B4 (RGB)', res: '10 Meters', use: 'Visual verification, vegetative canopy cover, and urban boundaries.' },
+                      { band: 'B8 (Near Infrared)', res: '10 Meters', use: 'Vegetation health assessment (NDVI), chlorophyll absorption index.' },
+                      { band: 'B11, B12 (Shortwave IR)', res: '20 Meters', use: 'Crop moisture content, surface water logging, and soil salinity indices.' },
+                      { band: 'B8A (Vegetation Red Edge)', res: '20 Meters', use: 'Specific canopy chlorophyll assessment, precision plant stress analysis.' }
+                    ].map((row, i) => (
+                      <tr key={i}>
+                        <td className="py-2.5 font-bold text-slate-800">{row.band}</td>
+                        <td className="py-2.5 font-semibold text-blue-600">{row.res}</td>
+                        <td className="py-2.5 text-gray-555 leading-normal">{row.use}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="p-3.5 bg-blue-50/50 border border-blue-100 rounded-xl flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-black text-blue-800 uppercase block tracking-wider">Copernicus Explorer Link</span>
+                  <p className="text-[11px] text-gray-550 leading-normal">Download raw bands (Band 2 to Band 12) for this bounding box.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = `https://browser.dataspace.copernicus.eu/?zoom=15&lat=${mapLat}&lng=${mapLon}&themeId=AGRICULTURE`;
+                    window.open(url, '_blank');
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-xl text-[10px] shadow-sm transition-all whitespace-nowrap cursor-pointer"
+                >
+                  Open Explorer ↗
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -8282,6 +9458,7 @@ export default function App() {
                       { id: 'env-alerts', label: '⚠️ Environmental Alerts' },
                       { id: 'land-monitor', label: '🌍 Land Monitoring' },
                       { id: 'visualizer', label: '🗺️ Land Visualizer' },
+                      { id: 'crop-monitoring', label: `🌱 ${t('cropMonitoring', 'Crop Monitoring')}` },
                       { id: 'analytics', label: '📊 Analytics & Planning' },
                       { id: 'advanced', label: '🌍 Advanced Monitoring' },
                     ].map(tab => (
@@ -8694,6 +9871,21 @@ export default function App() {
                           setCustomCoords={setCustomCoords}
                           getSatelliteCoords={getSatelliteCoords}
                           satelliteLoading={satelliteLoading}
+                        />
+                      )}
+
+                      {/* ── SUB-TAB: CROP MONITORING ────────────────────── */}
+                      {satelliteTab === 'crop-monitoring' && (
+                        <CropMonitoringTab
+                          satelliteState={satelliteState}
+                          satelliteDistrict={satelliteDistrict}
+                          customCoords={customCoords}
+                          setCustomCoords={setCustomCoords}
+                          getSatelliteCoords={getSatelliteCoords}
+                          crops={crops}
+                          soils={soils}
+                          states={states}
+                          satelliteData={satelliteData}
                         />
                       )}
 
