@@ -860,13 +860,13 @@ const LandVisualizer = ({
     <div className="space-y-6">
       {/* Search Header (including PIN code & general location search) */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm animate-fade-in text-left">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-center">
-          <div className="space-y-1 lg:col-span-1">
+        <div className="space-y-4">
+          <div className="space-y-1">
             <h3 className="text-sm font-black text-gray-700">🗺️ Farm Explorer & Boundary Mapping</h3>
             <p className="text-[10px] text-gray-400">Locate your land, drag the pin to your field, and analyze precise Copernicus weather/soil readings</p>
           </div>
           
-          <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
             {/* Country Filter dropdown */}
             <div className="w-full">
               <select
@@ -1767,13 +1767,13 @@ const CropMonitoringTab = ({
     <div className="space-y-6">
       {/* STEP 1: Select Place Card */}
       <div className="bg-white rounded-2xl border border-gray-150 p-5 shadow-sm animate-fade-in text-left">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-center">
-          <div className="space-y-1 lg:col-span-1">
+        <div className="space-y-4">
+          <div className="space-y-1">
             <h3 className="text-sm font-black text-gray-700">📍 Step 1: Select Place</h3>
             <p className="text-[10px] text-gray-400">Locate your fields by typing a village, landmark, or entering a 6-digit postal PIN code.</p>
           </div>
           
-          <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
             <div className="w-full">
               <select
                 value={searchCountry}
