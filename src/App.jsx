@@ -2619,7 +2619,8 @@ export default function App() {
       chatbotOpen: false,
       adminPasswordModalOpen: false,
       toolsTab: 'calculators',
-      toolsCalcSubTab: 'seed'
+      toolsCalcSubTab: 'seed',
+      mobileMenuOpen: false
     };
     window.history.replaceState(initialState, '');
 
@@ -2638,6 +2639,7 @@ export default function App() {
         setAdminPasswordModalOpen(state.adminPasswordModalOpen || false);
         setToolsTab(state.toolsTab || 'calculators');
         setToolsCalcSubTab(state.toolsCalcSubTab || 'seed');
+        setMobileMenuOpen(state.mobileMenuOpen || false);
       }
     };
 
@@ -2661,7 +2663,8 @@ export default function App() {
       chatbotOpen,
       adminPasswordModalOpen,
       toolsTab,
-      toolsCalcSubTab
+      toolsCalcSubTab,
+      mobileMenuOpen
     };
 
     const historyState = window.history.state;
@@ -2675,12 +2678,17 @@ export default function App() {
       historyState.chatbotOpen !== currentState.chatbotOpen ||
       historyState.adminPasswordModalOpen !== currentState.adminPasswordModalOpen ||
       historyState.toolsTab !== currentState.toolsTab ||
-      historyState.toolsCalcSubTab !== currentState.toolsCalcSubTab;
+      historyState.toolsCalcSubTab !== currentState.toolsCalcSubTab ||
+      historyState.mobileMenuOpen !== currentState.mobileMenuOpen;
 
     if (isDifferent) {
-      window.history.pushState(currentState, '');
+      if (historyState && historyState.mobileMenuOpen && !currentState.mobileMenuOpen && historyState.activeTab !== currentState.activeTab) {
+        window.history.replaceState(currentState, '');
+      } else {
+        window.history.pushState(currentState, '');
+      }
     }
-  }, [activeTab, profileOpen, selectedCropDetail, selectedDiseaseDetail, selectedNewsDetail, stateDetail, chatbotOpen, adminPasswordModalOpen, toolsTab, toolsCalcSubTab]);
+  }, [activeTab, profileOpen, selectedCropDetail, selectedDiseaseDetail, selectedNewsDetail, stateDetail, chatbotOpen, adminPasswordModalOpen, toolsTab, toolsCalcSubTab, mobileMenuOpen]);
 
   const handleCloseDetail = (type) => {
     const state = window.history.state;
@@ -2690,7 +2698,8 @@ export default function App() {
       (type === 'news' && state.newsDetail) ||
       (type === 'profile' && state.profileOpen) ||
       (type === 'chatbot' && state.chatbotOpen) ||
-      (type === 'adminPassword' && state.adminPasswordModalOpen)
+      (type === 'adminPassword' && state.adminPasswordModalOpen) ||
+      (type === 'mobileMenu' && state.mobileMenuOpen)
     )) {
       window.history.back();
     } else {
@@ -2700,6 +2709,7 @@ export default function App() {
       if (type === 'profile') setProfileOpen(false);
       if (type === 'chatbot') setChatbotOpen(false);
       if (type === 'adminPassword') setAdminPasswordModalOpen(false);
+      if (type === 'mobileMenu') setMobileMenuOpen(false);
     }
   };
 
@@ -4352,7 +4362,7 @@ export default function App() {
       {mobileMenuOpen && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 md:hidden animate-fade-in"
-          onClick={() => setMobileMenuOpen(false)}
+          onClick={() => handleCloseDetail('mobileMenu')}
         />
       )}
 
@@ -4394,7 +4404,7 @@ export default function App() {
             >
               {(currentUser?.name || 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
             </button>
-            <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(false)}>
+             <button className="md:hidden text-white" onClick={() => handleCloseDetail('mobileMenu')}>
               <X className="h-6 w-6" />
             </button>
           </div>
