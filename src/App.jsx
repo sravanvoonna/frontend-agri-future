@@ -4391,7 +4391,7 @@ export default function App() {
                 }
               }}
               title={t('adminPanel')}
-              className="flex text-emerald-300 hover:text-white p-1.5 rounded-lg hover:bg-emerald-800 transition-all"
+              className="hidden md:flex text-emerald-300 hover:text-white p-1.5 rounded-lg hover:bg-emerald-800 transition-all"
             >
               <UserCheck className="h-5 w-5" />
             </button>
@@ -4400,7 +4400,7 @@ export default function App() {
               onClick={() => setProfileOpen(true)}
               title="My Profile & History"
               id="user-profile-btn"
-              className="flex items-center justify-center h-8 w-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white font-black text-xs shadow-md hover:shadow-lg hover:scale-105 transition-all"
+              className="hidden md:flex items-center justify-center h-8 w-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white font-black text-xs shadow-md hover:shadow-lg hover:scale-105 transition-all"
             >
               {(currentUser?.name || 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
             </button>
