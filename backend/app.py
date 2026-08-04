@@ -1794,6 +1794,76 @@ def aquafuture_tts():
         return jsonify({"error": f"TTS generation failed: {str(e)}"}), 500
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# EOS DATA ANALYTICS PROXY — routes browser requests through server (CORS-safe)
+# ═══════════════════════════════════════════════════════════════════════════════
+EOS_API_KEY = os.getenv("EOS_API_KEY", "")
+EOS_BASE_URL = "https://api-connect.eos.com"
+
+@app.route("/api/eos/scene-search", methods=["POST"])
+def eos_scene_search():
+    """Proxy: Forward scene search request to EOSDA Search API."""
+    if not EOS_API_KEY:
+        return jsonify({"error": "EOS API key not configured on server"}), 500
+    try:
+        payload = request.get_json(force=True)
+        url = f"{EOS_BASE_URL}/api/lms/search/v2/sentinel2?api_key={EOS_API_KEY}"
+        headers = {"Content-Type": "application/json", "x-api-key": EOS_API_KEY}
+        print(f"[EOS PROXY] Scene search >> {url}")
+        print(f"[EOS PROXY] Payload: {json.dumps(payload)}")
+        resp = requests.post(url, json=payload, headers=headers, timeout=30)
+        print(f"[EOS PROXY] Scene search status: {resp.status_code}")
+        print(f"[EOS PROXY] Scene search body (500c): {resp.text[:500]}")
+        return jsonify(resp.json()), resp.status_code
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "EOS API request timed out"}), 504
+    except Exception as e:
+        print(f"[EOS PROXY] Scene search error: {str(e)}")
+        return jsonify({"error": f"EOS scene search failed: {str(e)}"}), 500
+
+
+@app.route("/api/eos/stats-task", methods=["POST"])
+def eos_stats_task():
+    """Proxy: Create mt_stats task on EOSDA GDW API."""
+    if not EOS_API_KEY:
+        return jsonify({"error": "EOS API key not configured on server"}), 500
+    try:
+        payload = request.get_json(force=True)
+        url = f"{EOS_BASE_URL}/api/gdw/api?api_key={EOS_API_KEY}"
+        headers = {"Content-Type": "application/json", "x-api-key": EOS_API_KEY}
+        print(f"[EOS PROXY] Stats task CREATE >> {url}")
+        print(f"[EOS PROXY] Payload: {json.dumps(payload)}")
+        resp = requests.post(url, json=payload, headers=headers, timeout=30)
+        print(f"[EOS PROXY] Stats task status: {resp.status_code}")
+        print(f"[EOS PROXY] Stats task body (500c): {resp.text[:500]}")
+        return jsonify(resp.json()), resp.status_code
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "EOS stats task creation timed out"}), 504
+    except Exception as e:
+        print(f"[EOS PROXY] Stats task error: {str(e)}")
+        return jsonify({"error": f"EOS stats task failed: {str(e)}"}), 500
+
+
+@app.route("/api/eos/stats-result/<task_id>", methods=["GET"])
+def eos_stats_result(task_id):
+    """Proxy: Poll for mt_stats task result from EOSDA GDW API."""
+    if not EOS_API_KEY:
+        return jsonify({"error": "EOS API key not configured on server"}), 500
+    try:
+        url = f"{EOS_BASE_URL}/api/gdw/api/{task_id}"
+        headers = {"x-api-key": EOS_API_KEY}
+        print(f"[EOS PROXY] Stats result POLL >> {url}")
+        resp = requests.get(url, headers=headers, timeout=15)
+        print(f"[EOS PROXY] Stats result status: {resp.status_code}")
+        print(f"[EOS PROXY] Stats result body (500c): {resp.text[:500]}")
+        return jsonify(resp.json()), resp.status_code
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "EOS stats result poll timed out"}), 504
+    except Exception as e:
+        print(f"[EOS PROXY] Stats result error: {str(e)}")
+        return jsonify({"error": f"EOS stats result failed: {str(e)}"}), 500
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
 

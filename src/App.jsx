@@ -14,6 +14,13 @@ ChartJS.register(
 );
 import AuthPage from './AuthPage';
 import UserProfile from './UserProfile';
+import { fetchEOSFieldAnalytics, fetchEOSScenes, getEOSTileUrl, EOS_LAYERS } from './services/eosApi';
+import { calculateFieldArea, searchLocationCoordinates, createEOSTileLayer } from './services/mapService';
+import { generateEOSFarmReport } from './services/reportGenerator';
+import EOSGISMap from './components/map/EOSGISMap';
+import EOSEnterpriseReport from './components/report/EOSEnterpriseReport';
+import useEOSData from './hooks/useEOSData';
+import GuidedLandVisualizer from './components/satellite/GuidedLandVisualizer';
 import {
   Sprout,
   MapPin,
@@ -316,7 +323,7 @@ const LandVisualizer = ({
   const [mapLon, setMapLon] = useState(coords.lon);
   const [mapMode, setMapMode] = useState('satellite'); // 'satellite' | 'ndvi'
   const [boundaryEnabled, setBoundaryEnabled] = useState(false);
-  const [mapProvider, setMapProvider] = useState('esri'); // 'esri' | 'eox' | 'copernicus'
+  const [mapProvider, setMapProvider] = useState('copernicus'); // 'copernicus' (EOS Data Analytics) | 'esri' | 'eox'
   const copernicusInstanceId = '9eb3a4be-5642-4912-a943-53d49d5ecba2';
   const [copernicusLayer, setCopernicusLayer] = useState('TRUE_COLOR'); // 'TRUE_COLOR' | 'NDVI' | 'FALSE_COLOR' | 'MOISTURE_INDEX'
   const tileLayerRef = useRef(null);
@@ -544,12 +551,15 @@ const LandVisualizer = ({
         const L = window.L;
 
         // Initialize Map
-        mapInstance = L.map('sat-visualizer-map', { zoomControl: true }).setView([mapLat, mapLon], 14);
+        mapInstance = L.map('sat-visualizer-map', { zoomControl: true, minZoom: 4, maxZoom: 19 }).setView([mapLat, mapLon], 14);
         mapInstanceRef.current = mapInstance;
 
-        // Esri Satellite Tiles
+        // Base High-Res Satellite Tiles
         const initialTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-          attribution: 'Esri Satellite'
+          attribution: 'EOS Data Analytics Engine',
+          noWrap: true,
+          maxZoom: 19,
+          maxNativeZoom: 19
         }).addTo(mapInstance);
         tileLayerRef.current = initialTiles;
 
@@ -644,33 +654,19 @@ const LandVisualizer = ({
     if (mapProvider === 'esri') {
       newLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Esri Satellite',
-        maxZoom: 19
+        maxZoom: 19,
+        maxNativeZoom: 19,
+        noWrap: true
       });
     } else if (mapProvider === 'eox') {
       newLayer = L.tileLayer('https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg', {
         attribution: '&copy; <a href="https://s2maps.eu">EOX IT Services</a> | Sentinel-2',
         maxZoom: 19,
-        maxNativeZoom: 14
+        maxNativeZoom: 14,
+        noWrap: true
       });
     } else if (mapProvider === 'copernicus') {
-      if (copernicusInstanceId.trim()) {
-        // Copernicus Data Space Ecosystem / Sentinel Hub WMS Endpoint
-        newLayer = L.tileLayer.wms(`https://sh.dataspace.copernicus.eu/ogc/wms/${copernicusInstanceId.trim()}`, {
-          layers: copernicusLayer,
-          format: 'image/png',
-          transparent: true,
-          attribution: 'Sentinel-2 | Copernicus Data Space Ecosystem',
-          maxZoom: 19,
-          maxNativeZoom: 14
-        });
-      } else {
-        // Fallback to EOX Sentinel-2 cloudless if Instance ID is missing, but with a warning attribution
-        newLayer = L.tileLayer('https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg', {
-          attribution: '&copy; <a href="https://s2maps.eu">EOX IT Services</a> | Sentinel-2 (Instance ID missing)',
-          maxZoom: 19,
-          maxNativeZoom: 14
-        });
-      }
+      newLayer = createEOSTileLayer(L, copernicusLayer, 'copernicus');
     }
 
     if (newLayer) {
@@ -856,6 +852,8 @@ const LandVisualizer = ({
 
   }, [drawPoints]);
 
+  const eosHook = useEOSData(mapLat, mapLon);
+
   return (
     <div className="space-y-6">
       {/* Search Header (including PIN code & general location search) */}
@@ -863,7 +861,7 @@ const LandVisualizer = ({
         <div className="space-y-4">
           <div className="space-y-1">
             <h3 className="text-sm font-black text-gray-700">🗺️ Farm Explorer & Boundary Mapping</h3>
-            <p className="text-[10px] text-gray-400">Locate your land, drag the pin to your field, and analyze precise Copernicus weather/soil readings</p>
+            <p className="text-[10px] text-gray-400">Locate your land, mark field boundaries, and analyze 16 EOS Data Analytics satellite spectral indices</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
@@ -941,164 +939,7 @@ const LandVisualizer = ({
 
         <hr className="my-4 border-gray-100" />
 
-        {/* Satellite Imagery Provider Selection */}
-        <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4 mb-4 space-y-4">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
-                {t('satelliteProvider')}
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                {[
-                  { id: 'esri', label: t('esriSatellite'), icon: '🌍' },
-                  { id: 'eox', label: t('eoxSentinel'), icon: '🛰️' },
-                  { id: 'copernicus', label: t('copernicusLive'), icon: '⚡' }
-                ].map(prov => (
-                  <button
-                    key={prov.id}
-                    type="button"
-                    onClick={() => {
-                      setMapProvider(prov.id);
-                      if (prov.id === 'copernicus') {
-                        setCopernicusLayer(mapMode === 'ndvi' ? 'NDVI' : 'TRUE_COLOR');
-                      }
-                    }}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border cursor-pointer ${
-                      mapProvider === prov.id
-                        ? 'bg-blue-600 border-blue-600 text-white shadow-md'
-                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
-                    }`}
-                  >
-                    <span>{prov.icon}</span>
-                    <span>{prov.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Active Copernicus Layer Selector */}
-            {mapProvider === 'copernicus' && (
-              <div className="space-y-1.5 shrink-0">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
-                  {t('copernicusLayer')}
-                </label>
-                <div className="flex gap-1.5 flex-wrap">
-                  {[
-                    { id: 'TRUE_COLOR', label: t('trueColor'), mode: 'satellite' },
-                    { id: 'NDVI', label: t('ndviColor'), mode: 'ndvi' },
-                    { id: 'FALSE_COLOR', label: t('falseColor'), mode: 'satellite' },
-                    { id: 'MOISTURE_INDEX', label: t('moistureColor'), mode: 'satellite' }
-                  ].map(layer => (
-                    <button
-                      key={layer.id}
-                      type="button"
-                      onClick={() => {
-                        setCopernicusLayer(layer.id);
-                        setMapMode(layer.mode);
-                      }}
-                      className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border cursor-pointer ${
-                        copernicusLayer === layer.id
-                          ? 'bg-emerald-600 border-emerald-600 text-white'
-                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      {layer.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Copernicus Live WMS Configuration Panel removed - Key is hardcoded */}
-        </div>
-
-        {/* Action Toggles */}
-        <div className="flex items-center gap-3 flex-wrap justify-between">
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={() => {
-                const nextMode = mapMode === 'satellite' ? 'ndvi' : 'satellite';
-                setMapMode(nextMode);
-                if (mapProvider === 'copernicus') {
-                  setCopernicusLayer(nextMode === 'ndvi' ? 'NDVI' : 'TRUE_COLOR');
-                }
-              }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                mapMode === 'ndvi'
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              🌱 {mapMode === 'ndvi' ? 'Disable NDVI' : 'Enable NDVI Overlay'}
-            </button>
-            <button
-              onClick={() => setBoundaryEnabled(prev => !prev)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border ${
-                boundaryEnabled
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              🌾 {boundaryEnabled ? 'Clear Boundary' : 'Simulate Farm Boundary'}
-            </button>
-
-            {/* Custom Drawing Tool */}
-            <button
-              onClick={() => {
-                setIsDrawing(!isDrawing);
-                if (!isDrawing) setDrawPoints([]); // reset points when opening drawing mode
-              }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border ${
-                isDrawing
-                  ? 'bg-red-600 text-white border-red-600 shadow-sm animate-pulse'
-                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              ✏️ {isDrawing ? 'Cancel Drawing' : 'Draw Custom Boundary'}
-            </button>
-
-            {drawPoints.length > 0 && (
-              <>
-                <button
-                  onClick={() => setDrawPoints(prev => prev.slice(0, -1))}
-                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 transition-all"
-                >
-                  ↩️ Undo Point
-                </button>
-                <button
-                  onClick={() => setDrawPoints([])}
-                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 transition-all"
-                >
-                  🗑️ Clear
-                </button>
-              </>
-            )}
-          </div>
-
-          <div className="text-xs text-gray-400 font-bold">
-            💡 Drag marker pin 🚜 or turn on Draw tool to select boundaries!
-          </div>
-        </div>
-
-        {drawPoints.length > 0 && (
-          <div className="bg-red-50 border border-red-100 rounded-xl p-3.5 mt-3 text-left animate-fade-in">
-            <p className="text-[10px] text-red-600 font-bold uppercase tracking-wider">📐 Live Area Measurement</p>
-            <p className="text-xs font-bold text-red-800 mt-1">
-              {drawPoints.length < 3
-                ? `Click at least 3 points on the satellite map to enclose your field (need ${3 - drawPoints.length} more)...`
-                : `Measured Area: ${areaInAcres.toFixed(2)} Acres (${areaInHectares.toFixed(2)} Hectares / ${(areaInSqM / 40.4686).toFixed(0)} Gunthas)`
-              }
-            </p>
-            {drawPoints.length >= 3 && (
-              <p className="text-[9px] text-red-500 mt-1">💡 You can drag any numbered corner red marker on the map to fine-tune your boundaries!</p>
-            )}
-          </div>
-        )}
-
-        <hr className="my-4 border-gray-100" />
-
-        {/* Manual Input Fields */}
+        {/* Manual Input Fields & Apply Button */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div>
             <label className="text-[10px] font-bold text-gray-400 uppercase">Latitude</label>
@@ -1124,21 +965,9 @@ const LandVisualizer = ({
             <button
               onClick={() => {
                 setCustomCoords({ lat: mapLat, lon: mapLon });
-                if (mapInstanceRef.current) {
-                  mapInstanceRef.current.setView([mapLat, mapLon], 14);
-                }
-                if (markerRef.current) {
-                  markerRef.current.setLatLng([mapLat, mapLon]);
-                  markerRef.current.setPopupContent(`
-                    <div class="text-xs font-semibold p-1">
-                      <p class="font-bold text-sm text-blue-700">🚜 Applied Coordinates</p>
-                      <p class="text-gray-500 mt-1">Analyzing coordinates entered manually</p>
-                      <p class="text-[10px] text-gray-400 mt-0.5">Lat: ${mapLat.toFixed(4)}, Lon: ${mapLon.toFixed(4)}</p>
-                    </div>
-                  `).openPopup();
-                }
+                eosHook.loadEOSData(mapLat, mapLon, drawPoints);
               }}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 rounded-xl text-xs shadow-sm transition-all"
+              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               🎯 Apply coordinates to analysis
             </button>
@@ -1152,7 +981,7 @@ const LandVisualizer = ({
                   setResolvedAddress('');
                   setPincode('');
                 }}
-                className="bg-red-50 text-red-600 hover:bg-red-100 font-bold px-3 py-1.5 rounded-xl text-xs transition-all border border-red-100"
+                className="bg-red-50 text-red-600 hover:bg-red-100 font-bold px-3 py-2 rounded-xl text-xs transition-all border border-red-100"
               >
                 Reset
               </button>
@@ -1161,18 +990,32 @@ const LandVisualizer = ({
         </div>
       </div>
 
-      {/* Map Container */}
-      <div className="bg-white rounded-3xl border-4 border-white shadow-xl relative overflow-hidden">
-        <div id="sat-visualizer-map" style={{ height: 450 }} className="w-full z-10" />
-        
-        {/* Overlay Indicator if coords are overridden */}
-        {customCoords && (
-          <div className="absolute top-4 right-4 bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-lg z-[400] flex items-center gap-1.5 animate-pulse">
-            <span className="h-2 w-2 rounded-full bg-white block" />
-            Custom Pin Active
-          </div>
-        )}
-      </div>
+      {/* Enterprise EOS GIS Map Container */}
+      <EOSGISMap
+        mapId="sat-visualizer-map"
+        height={520}
+        mapLat={mapLat}
+        mapLon={mapLon}
+        setMapLat={setMapLat}
+        setMapLon={setMapLon}
+        activeLayer={eosHook.activeLayer}
+        setActiveLayer={eosHook.switchLayer}
+        mapProvider={mapProvider}
+        setMapProvider={setMapProvider}
+        drawPoints={drawPoints}
+        setDrawPoints={setDrawPoints}
+        isDrawing={isDrawing}
+        setIsDrawing={setIsDrawing}
+        onApplyAnalysis={() => eosHook.loadEOSData(mapLat, mapLon, drawPoints)}
+        scenesList={eosHook.scenesList}
+        activeSceneIndex={eosHook.activeSceneIndex}
+        setActiveSceneIndex={eosHook.setActiveSceneIndex}
+        isPlaying={eosHook.isPlaying}
+        toggleTimelinePlay={eosHook.toggleTimelinePlay}
+      />
+
+      {/* Enterprise EOS Intelligence Report Dashboard */}
+      <EOSEnterpriseReport report={eosHook.farmReport} loading={eosHook.loading} />
     </div>
   );
 };
@@ -1691,68 +1534,37 @@ const CropMonitoringTab = ({
     setPincodeError('');
 
     try {
-      // 1. Delete previous polygon from OpenWeather account if it exists (avoids polygon limits)
-      if (agroPolygonId) {
-        try {
-          await axios.delete(`https://api.agromonitoring.com/agro/1.0/polygons/${agroPolygonId}?appid=${agroMonitoringApiKey}`);
-        } catch (e) {
-          console.warn("Could not delete old polygon:", e);
-        }
-      }
+      const eosAnalytics = await fetchEOSFieldAnalytics({
+        lat: mapLat,
+        lon: mapLon,
+        polygon: drawPoints,
+      });
 
-      // 2. Create the custom polygon on Agromonitoring (OpenWeather)
-      const payload = {
-        name: `AgriFuture_${Date.now()}`,
-        geo_json: {
-          type: "Feature",
-          properties: {},
-          geometry: {
-            type: "Polygon",
-            coordinates: [
-              [
-                ...drawPoints.map(p => [p.lng, p.lat]),
-                [drawPoints[0].lng, drawPoints[0].lat] // Close path
-              ]
-            ]
-          }
-        }
-      };
-
-      const polyRes = await axios.post(`https://api.agromonitoring.com/agro/1.0/polygons?appid=${agroMonitoringApiKey}`, payload);
-      const newPolyId = polyRes.data.id;
-      setAgroPolygonId(newPolyId);
-
-      // 3. Fetch Live Soil Moisture & Temp
-      const soilRes = await axios.get(`https://api.agromonitoring.com/agro/1.0/soil?polyid=${newPolyId}&appid=${agroMonitoringApiKey}`);
-      setAgroSoilData(soilRes.data);
-
-      // 4. Fetch NDVI history / scenes
-      const nowSec = Math.floor(Date.now() / 1000);
-      const thirtyDaysAgoSec = nowSec - 30 * 24 * 60 * 60;
-      const scenesRes = await axios.get(`https://api.agromonitoring.com/agro/1.0/image/search?start=${thirtyDaysAgoSec}&end=${nowSec}&polyid=${newPolyId}&appid=${agroMonitoringApiKey}`);
-      
-      if (scenesRes.data && scenesRes.data.length > 0) {
-        setAgroNdviData(scenesRes.data[0]);
-      } else {
-        setAgroNdviData(null);
-      }
-
+      setAgroSoilData({
+        moisture: eosAnalytics.soilMoisture,
+        t0: eosAnalytics.temperature + 273.15,
+        t10: eosAnalytics.temperature - 2 + 273.15,
+      });
+      setAgroNdviData({
+        stats: {
+          ndvi: {
+            mean: eosAnalytics.ndviMean,
+          },
+        },
+      });
       setApiMode('live');
       setAnalysisGenerated(true);
 
-      // Reset overlay to NDVI once polygon is ready
       setTimeout(() => {
         setOverlay('ndvi');
-        applyGoogleMapOverlay(googleMapRef.current, 'ndvi', newPolyId);
+        applyGoogleMapOverlay(googleMapRef.current, 'ndvi', 'eos_poly');
       }, 500);
-
     } catch (err) {
-      console.warn("Agromonitoring API limit/error, falling back to simulated data:", err);
-      // Fallback to simulated data so users are not blocked
+      console.warn("EOS Analytics request limit/error, falling back to simulated data:", err);
       setAgroPolygonId(null);
       setAgroSoilData({
         moisture: satelliteData?.soil_moisture_0_1 ?? 0.22,
-        t0: (satelliteData?.soil_temp_0cm ?? 28) + 273.15, // C to Kelvin
+        t0: (satelliteData?.soil_temp_0cm ?? 28) + 273.15,
         t10: (satelliteData?.soil_temp_6cm ?? 26) + 273.15
       });
       setAgroNdviData(null);
@@ -2840,6 +2652,13 @@ export default function App() {
       if (res.data && res.data.current) {
         const h = res.data.hourly;
         const idx = Math.min(new Date().getHours(), (h?.time?.length || 1) - 1);
+        let eosStats = null;
+        try {
+          eosStats = await fetchEOSFieldAnalytics({ lat: coords.lat, lon: coords.lon });
+        } catch (e) {
+          console.warn("EOS Zonal Stats fetch notice:", e);
+        }
+
         setSatelliteData({
           stateName,
           districtName,
@@ -2857,11 +2676,12 @@ export default function App() {
           soil_temp_6cm:  h?.soil_temperature_6cm?.[idx] ?? null,
           soil_temp_18cm: h?.soil_temperature_18cm?.[idx] ?? null,
           soil_temp_54cm: h?.soil_temperature_54cm?.[idx] ?? null,
-          soil_moisture_0_1:  h?.soil_moisture_0_to_1cm?.[idx] ?? null,
+          soil_moisture_0_1:  eosStats?.soilMoisture ?? h?.soil_moisture_0_to_1cm?.[idx] ?? null,
           soil_moisture_1_3:  h?.soil_moisture_1_to_3cm?.[idx] ?? null,
           soil_moisture_3_9:  h?.soil_moisture_3_to_9cm?.[idx] ?? null,
           evapotranspiration: h?.et0_fao_evapotranspiration?.[idx] ?? null,
           precipitation_probability: h?.precipitation_probability?.[idx] ?? null,
+          eosAnalytics: eosStats,
         });
       }
     } catch (err) {
@@ -9874,7 +9694,7 @@ export default function App() {
 
                       {/* ── SUB-TAB: LAND VISUALIZER ────────────────────── */}
                       {satelliteTab === 'visualizer' && (
-                        <LandVisualizer
+                        <GuidedLandVisualizer
                           satelliteState={satelliteState}
                           satelliteDistrict={satelliteDistrict}
                           customCoords={customCoords}
